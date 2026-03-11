@@ -59,7 +59,22 @@
 import { X, Plus } from 'lucide-react'; // 1. Import Plus icon
 import { useState } from 'react';
 
-const TagInput = ({ label, icon: Icon, tags = [], setTags, placeholder }) => {
+interface TagInputProps {
+  label: string;
+  icon: React.ComponentType<any>;
+  tags?: string[];
+  setTags: (tags: string[]) => void;
+  placeholder: string;
+}
+
+// const TagInput = ({ label, icon: Icon, tags = [], setTags, placeholder }) => {
+const TagInput: React.FC<TagInputProps> = ({
+  label,
+  icon: Icon,
+  tags = [],
+  setTags,
+  placeholder,
+}) => {
   const [inputValue, setInputValue] = useState('');
 
   // 2. Extracted logic to add a tag so it can be reused

@@ -23,6 +23,9 @@ const GeneratedCV = ({
   cvNameForSavingInput,
   setCvNameForSavingInput,
   confirmSaveNamedCv,
+  onSendEmail,
+  defaultSubject = '',
+  defaultBodyHtml = '',
 }: any) => {
   const [editableContent, setEditableContent] = useState('');
   const [selectedTemplate, setSelectedTemplate] =
@@ -88,6 +91,10 @@ const GeneratedCV = ({
                 title="CV Content"
                 type="resume"
                 isHtml={true}
+                onSendEmail={onSendEmail}
+                sendEmailHint="CV only"
+                defaultSubject={defaultSubject}
+                defaultBodyHtml={defaultBodyHtml}
               />
             </div>
           </div>

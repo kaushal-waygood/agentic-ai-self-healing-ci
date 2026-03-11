@@ -25,6 +25,7 @@ export default function OnboardingExperienceFeedback({
         rating,
         message: feedback,
       });
+      onClose();
       toast({
         title: 'Feedback submitted',
         description: 'Thanks for letting us know!',

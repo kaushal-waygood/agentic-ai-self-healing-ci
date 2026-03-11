@@ -351,6 +351,50 @@ const AppHeader = ({
   }, [user?._id]);
 
   useEffect(() => {
+    if (!user?._id) return;
+
+    let isCancelled = false;
+
+    const prefetchJobs = async () => {
+      try {
+        const { getRecommendJobs } = await import('@/services/api/job');
+        const { makeCacheKey, getCache, setCache } =
+          await import('@/lib/jobCache');
+
+        // Preload up to 5 pages of recommended jobs into frontend cache
+        for (let page = 1; page <= 5; page++) {
+          if (isCancelled) break;
+
+          const cacheKey = makeCacheKey('recommend', { page });
+          if (!getCache(cacheKey)) {
+            const response = await getRecommendJobs({ page });
+            if (response?.data && !isCancelled) {
+              setCache(cacheKey, {
+                jobs: response.data.jobs,
+                pagination: response.data.pagination,
+              });
+
+              if (!response.data.pagination?.hasNextPage) {
+                break;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Background job prefetch failed:', err);
+      }
+    };
+
+    // Stagger prefetch to not block critical UI render
+    const timer = setTimeout(() => prefetchJobs(), 2000);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [user?._id]);
+
+  useEffect(() => {
     setIsNotificationOpen(false);
     setIsUserMenuOpen(false);
     setIsPlanOpen(false);
@@ -533,15 +577,8 @@ const AppHeader = ({
                       markAsRead={markAsRead}
                       fetchNotifications={fetchNotifications}
                       // connectionStatus={connectionStatus}
+                      onClose={() => setIsNotificationOpen(false)}
                     />
-                  </div>
-                  <div className="p-4 border-t border-slate-100">
-                    <button
-                      className="w-full text-center text-sm text-purple-600 hover:text-purple-700 font-medium"
-                      onClick={handleViewAllNotifications}
-                    >
-                      View All Notifications
-                    </button>
                   </div>
                 </div>
               )}

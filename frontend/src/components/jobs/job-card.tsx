@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { JobListing } from '@/lib/data/jobs';
 import { MapPin, Clock, Building, Eye, TrendingUp } from 'lucide-react';
 import { truncate } from '@/utils/formatTitle';
-import { useJobs } from '@/hooks/jobs/useJobs';
 
 interface JobCardProps {
   job: JobListing;
@@ -57,7 +56,6 @@ function formatLocation(job: any): string {
 }
 
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
-  console.log('job', job);
   return (
     <div
       onClick={onClick}

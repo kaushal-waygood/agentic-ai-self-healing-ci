@@ -14,7 +14,7 @@ import { AppSidebarContent } from '@/components/layout/app-sidebar-content';
 import DashboardFooter from '@/components/layout/DashboardFooter';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Footer } from '@/components/layout/footer';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import ProtectedRoute from '@/components/protected/ProtectedRoute';
 import FeedbackPopup from '@/components/ui/feedbackPopup';
 import { FeedbackProvider } from '@/components/Feedback-context/feedbackContext';
@@ -24,6 +24,10 @@ import FeedbackButton from '@/components/Feedback-context/FeedbackButton';
 import ImprovementPopup from '@/components/dashboard-popup/ImprovementPopup';
 import { useDailyStreak } from '@/hooks/credits/useStreakCredit';
 import StreakPopup from '@/components/dashboard-popup/StreakPopup';
+import {
+  fetchDailyStreakRequest,
+  getTotalCreditRequest,
+} from '@/redux/reducers/creditReducer';
 
 interface SidebarContextType {
   isOpen: boolean;
@@ -61,9 +65,18 @@ export default function DashboardLayoutClient({
 
   const popupShownForPathRef = useRef<Set<string>>(new Set());
 
+  const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
   const [globalLastDismissTime, setGlobalLastDismissTime] = useState<number>(0);
   const { streak, claiming, claim } = useDailyStreak();
+
+  // Single fetch for streak + total credit (avoids 3x duplication from useDailyStreak in header/popup)
+  useEffect(() => {
+    if (user?._id) {
+      dispatch(fetchDailyStreakRequest());
+      dispatch(getTotalCreditRequest());
+    }
+  }, [dispatch, user?._id]);
   const [showStreakPopup, setShowStreakPopup] = useState(false);
 
   useEffect(() => {

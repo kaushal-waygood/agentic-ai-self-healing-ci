@@ -25,6 +25,7 @@ import {
   Handshake,
   Network,
   BotMessageSquare,
+  Send,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -135,6 +136,12 @@ export const AppSidebarContent = ({
         title: 'My Docs',
         href: '/dashboard/my-docs',
         icon: Activity,
+        allowedRoles: [ROLES.STUDENT, ROLES.UNI_STUDENT, ROLES.USER],
+      },
+      {
+        title: 'Sent Emails',
+        href: '/dashboard/sent-emails',
+        icon: Send,
         allowedRoles: [ROLES.STUDENT, ROLES.UNI_STUDENT, ROLES.USER],
       },
 

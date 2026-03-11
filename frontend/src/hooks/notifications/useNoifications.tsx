@@ -101,7 +101,7 @@ export function useNotifications() {
         );
         if (res.data?.success) {
           setNotifications(res.data.data.notifications || []);
-          await fetchUnreadCount();
+          // fetchUnreadCount moved to initial useEffect to avoid duplicate API calls
         }
       } catch (err) {
         console.error('fetchNotifications failed', err);
@@ -109,7 +109,7 @@ export function useNotifications() {
         setIsLoading(false);
       }
     },
-    [fetchUnreadCount],
+    [],
   );
 
   const markAsRead = useCallback(async (notificationId: string) => {
@@ -162,11 +162,32 @@ export function useNotifications() {
     }
   }, [unreadCount]);
 
-  // initial fetch once
+  // initial fetch once - run both in parallel (fetchNotifications no longer calls fetchUnreadCount to avoid 2x)
   useEffect(() => {
     fetchUnreadCount();
     fetchNotifications();
   }, [fetchNotifications, fetchUnreadCount]);
+
+  // Listen for document generation complete - refresh notifications immediately
+  useEffect(() => {
+    const onDocComplete = () => {
+      fetchNotifications();
+      fetchUnreadCount();
+    };
+    window.addEventListener('document-generation-complete', onDocComplete);
+    return () =>
+      window.removeEventListener('document-generation-complete', onDocComplete);
+  }, [fetchNotifications, fetchUnreadCount]);
+
+  // Polling fallback when socket disconnected - ensures notifications appear within ~15s
+  useEffect(() => {
+    if (connectionStatus !== 'disconnected') return;
+    const interval = setInterval(() => {
+      fetchNotifications();
+      fetchUnreadCount();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [connectionStatus, fetchNotifications, fetchUnreadCount]);
 
   return {
     notifications,

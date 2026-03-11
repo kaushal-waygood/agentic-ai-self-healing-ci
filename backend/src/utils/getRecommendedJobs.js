@@ -60,18 +60,27 @@ function buildSearchQuery(student, agentConfig) {
 /**
  * Build jobHelpers context from studentProfile + agentConfig for accurate job matching.
  */
-function buildRecommendationContext(studentId, studentProfile, agentConfig, appliedJobIds) {
+function buildRecommendationContext(
+  studentId,
+  studentProfile,
+  agentConfig,
+  appliedJobIds,
+) {
   const profile = extractProfileFromStudent(studentProfile);
   const query = buildSearchQuery(studentProfile, agentConfig);
 
   const filters = {};
-  const country = agentConfig?.country || studentProfile?.jobPreferences?.preferredCountries?.[0];
+  const country =
+    agentConfig?.country ||
+    studentProfile?.jobPreferences?.preferredCountries?.[0];
   if (country) filters.country = String(country).toUpperCase().trim();
   if (agentConfig?.state) filters.state = String(agentConfig.state).trim();
   if (agentConfig?.city) filters.city = String(agentConfig.city).trim();
-  if (agentConfig?.employmentType) filters.employmentType = agentConfig.employmentType;
+  if (agentConfig?.employmentType)
+    filters.employmentType = agentConfig.employmentType;
   else if (studentProfile?.jobPreferences?.preferredJobTypes?.length) {
-    filters.employmentType = studentProfile.jobPreferences.preferredJobTypes.join(',');
+    filters.employmentType =
+      studentProfile.jobPreferences.preferredJobTypes.join(',');
   }
 
   const applied = new Set((appliedJobIds || []).map((id) => String(id)));
@@ -97,6 +106,7 @@ export const getRecommendedJobs = async ({
   appliedJobIds = [],
   limit = 50,
   skipExternalFetch = false, // true for autopilot to avoid RapidAPI 429
+  includeAppliedInResults = false, // true for agent dashboard - show jobs even if already applied
 }) => {
   const student = studentProfile || (await Student.findById(studentId).lean());
   if (!student) throw new Error('Student not found');
@@ -109,6 +119,8 @@ export const getRecommendedJobs = async ({
     appliedJobIds,
   );
   context.skipExternalFetch = skipExternalFetch;
+  context.includeAppliedInResults = includeAppliedInResults;
+  context.skipCacheForAgent = includeAppliedInResults; // Always fresh results for agent dashboard
 
   // Merge JobInteraction-based applied/saved if available (e.g. from dashboard)
   const interactionCtx = await buildInteractionContext(studentId);
@@ -125,7 +137,11 @@ export const getRecommendedJobs = async ({
   let filterContext = context;
 
   // When autopilot gets 0 local jobs, retry with relaxed country filter (DB may have jobs from other regions)
-  if (skipExternalFetch && candidates.length === 0 && context.filters?.country) {
+  if (
+    skipExternalFetch &&
+    candidates.length === 0 &&
+    context.filters?.country
+  ) {
     const relaxedContext = { ...context, filters: { ...context.filters } };
     delete relaxedContext.filters.country;
     relaxedContext.skipExternalFetch = true;
@@ -135,8 +151,13 @@ export const getRecommendedJobs = async ({
 
   let filtered = applyFilters(candidates, filterContext);
 
-  if (agentConfig?.isRemote || student?.jobPreferences?.isRemote) {
-    filtered = filtered.filter((j) => !!j.remote);
+  // Remote filter: when agent prefers remote, prefer remote jobs but don't drop all if none match
+  const prefersRemote =
+    agentConfig?.isRemote || student?.jobPreferences?.isRemote;
+  if (prefersRemote) {
+    const remoteOnly = filtered.filter((j) => !!j.remote);
+    // Keep non-remote jobs as fallback when no remote jobs found (don't drop all jobs)
+    filtered = remoteOnly.length > 0 ? remoteOnly : filtered;
   }
 
   const ranked = rankJobsWithIntentBoost(filtered, context);

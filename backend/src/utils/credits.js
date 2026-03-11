@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 import { User } from '../models/User.model.js'; // adjust path
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc.js';
+import timezone from 'dayjs/plugin/timezone.js';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export const CREDIT_COSTS = {
   CV_GENERATION: 10,
@@ -38,7 +43,12 @@ export const CREDIT_EARN = {
   LIKE_COMMENT_SHARE: 1,
   SHARE_SOCIAL_CONTENT: 1,
   VISITJOB_SITE: 5,
+  COMPLETE_JOB_SEARCH_SETTINGS: 10,
 };
+
+const CREDIT_TZ = 'Asia/Kolkata';
+const MAX_CREDIT_TRANSACTIONS = 500;
+const SOCIAL_ENGAGEMENT_DAILY_CAP = 20;
 
 // ---------- helpers ----------
 export async function resolveUser(userOrId) {
@@ -63,30 +73,84 @@ export async function resolveUser(userOrId) {
 
 export async function addCredits(userOrId, amount, kind = 'adjust', meta = {}) {
   const user = await resolveUser(userOrId);
+  const amountNum = Number(amount);
+  const userId = user._id;
 
-  const current = Number(user.credits || 0);
-  const newBalance = current + Number(amount);
-
-  user.credits = newBalance;
   const tx = {
-    type: amount >= 0 ? 'EARN' : 'SPEND',
-    amount: Math.abs(Number(amount)),
-    balanceAfter: newBalance,
+    type: amountNum >= 0 ? 'EARN' : 'SPEND',
+    amount: Math.abs(amountNum),
     kind,
     meta,
     createdAt: new Date(),
   };
-  user.creditTransactions = user.creditTransactions || [];
-  user.creditTransactions.push(tx);
-  await user.save();
-  return tx;
+
+  // Atomic update: $inc credits and $push transaction in one pipeline
+  const updated = await User.findOneAndUpdate(
+    { _id: userId },
+    [
+      {
+        $set: {
+          credits: { $add: [{ $ifNull: ['$credits', 0] }, amountNum] },
+        },
+      },
+      {
+        $set: {
+          creditTransactions: {
+            $slice: [
+              {
+                $concatArrays: [
+                  [
+                    {
+                      $mergeObjects: [
+                        tx,
+                        { balanceAfter: '$credits' },
+                      ],
+                    },
+                  ],
+                  { $ifNull: ['$creditTransactions', []] },
+                ],
+              },
+              MAX_CREDIT_TRANSACTIONS,
+            ],
+          },
+        },
+      },
+    ],
+    { new: true },
+  );
+
+  if (!updated) {
+    const err = new Error('User not found');
+    err.status = 404;
+    throw err;
+  }
+
+  return { ...tx, balanceAfter: updated.credits };
 }
 
 export async function spendCredits(userOrId, cost, kind = 'spend', meta = {}) {
-  return addCredits(userOrId, -Math.abs(Number(cost)), kind, meta);
+  const user = await resolveUser(userOrId);
+  const costNum = Math.abs(Number(cost));
+  const current = Number(user.credits || 0);
+
+  if (current < costNum) {
+    const err = new Error('Insufficient credits');
+    err.status = 400;
+    err.balance = current;
+    err.required = costNum;
+    throw err;
+  }
+
+  return addCredits(userOrId, -costNum, kind, meta);
 }
 
 // ---------- transaction queries ----------
+function isSameCalendarDay(date1, date2, tz = CREDIT_TZ) {
+  const d1 = dayjs(date1).tz(tz);
+  const d2 = dayjs(date2).tz(tz);
+  return d1.isSame(d2, 'day');
+}
+
 function lastTxOfKind(user, kind, metaFilter = {}) {
   const txs = (user.creditTransactions || [])
     .filter((t) => t.kind === kind)
@@ -163,7 +227,7 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
       if (lastTxOfKind(user, kind)) allow = false;
       break;
     case 'COMPLETE_JOB_SEARCH_SETTINGS':
-      amount = 10;
+      amount = CREDIT_EARN.COMPLETE_JOB_SEARCH_SETTINGS;
       if (lastTxOfKind(user, kind)) allow = false;
       break;
 
@@ -194,32 +258,21 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
       if (lastTxOfKind(user, kind)) allow = false;
       break;
 
-    // daily checkin - one per 24 hours
+    // daily checkin - one per calendar day (Asia/Kolkata)
     case 'DAILY_CHECKIN':
       amount = CREDIT_EARN.DAILY_CHECKIN;
-
-      const last = lastTxOfKind(user, kind);
-
-      if (last) {
-        const today = dayjs().tz('Asia/Kolkata');
-        const lastDay = dayjs(last.createdAt).tz('Asia/Kolkata');
-
-        if (lastDay.isSame(today, 'day')) {
-          allow = false;
-        }
+      {
+        const last = lastTxOfKind(user, kind);
+        if (last && isSameCalendarDay(last.createdAt, new Date())) allow = false;
       }
       break;
 
-    // job search daily - limit once per day
+    // job search daily - one per calendar day (Asia/Kolkata), same logic as DAILY_CHECKIN
     case 'JOB_SEARCH_DAILY':
       amount = CREDIT_EARN.JOB_SEARCH_DAILY;
       {
         const last = lastTxOfKind(user, kind);
-        if (
-          last &&
-          Date.now() - new Date(last.createdAt).getTime() < 24 * 60 * 60 * 1000
-        )
-          allow = false;
+        if (last && isSameCalendarDay(last.createdAt, new Date())) allow = false;
       }
       break;
 
@@ -238,19 +291,22 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
       if (lastTxOfKind(user, kind, { jobId: meta.jobId })) allow = false;
       break;
 
-    // likes/comments/shares - small value but limit per day (default max 20/day)
+    // likes/comments/shares - shared 20/day cap across both actions (calendar day, Asia/Kolkata)
     case 'LIKE_COMMENT_SHARE':
     case 'SHARE_SOCIAL_CONTENT':
-      amount = CREDIT_EARN.LIKE_COMMENT_SHARE || 1;
-      // count last 24h and cap to 20
+      amount =
+        action === 'SHARE_SOCIAL_CONTENT'
+          ? CREDIT_EARN.SHARE_SOCIAL_CONTENT || 1
+          : CREDIT_EARN.LIKE_COMMENT_SHARE || 1;
       {
-        const count24 = (user.creditTransactions || []).filter(
+        const today = dayjs().tz(CREDIT_TZ);
+        const countToday = (user.creditTransactions || []).filter(
           (t) =>
-            t.kind === kind &&
-            Date.now() - new Date(t.createdAt).getTime() < 24 * 60 * 60 * 1000,
+            (t.kind === 'LIKE_COMMENT_SHARE' ||
+              t.kind === 'SHARE_SOCIAL_CONTENT') &&
+            dayjs(t.createdAt).tz(CREDIT_TZ).isSame(today, 'day'),
         ).length;
-        const cap = 20;
-        if (count24 >= cap) allow = false;
+        if (countToday >= SOCIAL_ENGAGEMENT_DAILY_CAP) allow = false;
       }
       break;
 

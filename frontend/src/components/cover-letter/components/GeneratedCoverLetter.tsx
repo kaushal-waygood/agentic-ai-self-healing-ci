@@ -44,6 +44,9 @@ const GeneratedCoverLetter = ({
   cvNameForSavingInput,
   setCvNameForSavingInput,
   confirmSaveNamedCv,
+  onSendEmail,
+  defaultSubject = '',
+  defaultBodyHtml = '',
 }: any) => {
   return (
     <div className="min-h-screen  p-2 md:p-3 lg:p-4">
@@ -84,11 +87,15 @@ const GeneratedCoverLetter = ({
                   editorId="cover-letter-live-editor"
                   title="Cover Letter"
                   content={generatedLetter}
-                  setContent={setGeneratedLetter} // This is correct
+                  setContent={setGeneratedLetter}
                   handleRegenerate={handleRegenerate}
                   isHtml
                   handleSave={handleInitiateSave}
                   type="coverletter"
+                  onSendEmail={onSendEmail}
+                  sendEmailHint="Cover letter only"
+                  defaultSubject={defaultSubject}
+                  defaultBodyHtml={defaultBodyHtml}
                 />
               </CardContent>
             </Card>

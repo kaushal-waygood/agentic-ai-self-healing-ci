@@ -177,7 +177,11 @@ export const processTailoredApplication = async (
       { $inc: { 'usageCounters.aiApplication': 1 } },
     );
 
-    await redisClient.del(`dashboard:${userId}:ai-activity`);
+    try {
+      await redisClient.del(`dashboard:${userId}:ai-activity`);
+    } catch (redisErr) {
+      console.warn('[TAILORED APPLY] Redis cache clear failed (non-fatal):', redisErr?.message);
+    }
 
     await sendRealTimeUserNotification(
       io,

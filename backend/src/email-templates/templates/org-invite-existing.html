@@ -1,3 +1,33 @@
-<p>
-    
-</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse">
+  <tr>
+    <td class="body" style="padding: 32px 32px; font-size: 15px;">
+      <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700; color: #0f172a;">Hi {{name}}! 👋</h2>
+
+      <p style="margin: 0 0 20px 0; color: #475569;">
+        <strong style="color: #0f172a;">{{invitedBy}}</strong> has invited you to join their organization on
+        <strong style="color: #0f172a;">{{brandName}}</strong>.
+      </p>
+
+      <p style="margin: 0 0 24px 0; color: #475569;">
+        Since you already have an account, simply accept the invitation to get instant access.
+      </p>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 28px 0;">
+        <tr>
+          <td style="text-align: center;">
+            <a href="{{actionUrl}}" class="btn">Accept Invitation</a>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin: 0 0 20px 0; font-size: 14px; color: #64748b;">
+        This invitation link will expire in 7 days. If you didn't expect this invitation, you can safely ignore this email.
+      </p>
+
+      <p style="margin: 24px 0 0 0; color: #475569;">
+        Thanks,<br />
+        <strong style="color: #0f172a;">The {{brandName}} Team</strong>
+      </p>
+    </td>
+  </tr>
+</table>

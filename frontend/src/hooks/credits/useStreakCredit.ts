@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
@@ -9,7 +9,6 @@ import {
   fetchDailyStreakRequest,
   getCreditRequest,
   claimDailyStreakRequest,
-  getTotalCreditRequest,
 } from '@/redux/reducers/creditReducer';
 
 type StreakState = {
@@ -32,10 +31,7 @@ export function useDailyStreak() {
     claimCredits,
   } = useSelector((state: RootState) => state.credit);
 
-  useEffect(() => {
-    dispatch(fetchDailyStreakRequest());
-    dispatch(getTotalCreditRequest());
-  }, [dispatch]);
+  // Fetch moved to layout-client to avoid 3x duplication (header, popup, layout all use this hook)
 
   const streakData = useMemo(() => {
     if (!reduxStreak?.data?.streak) {

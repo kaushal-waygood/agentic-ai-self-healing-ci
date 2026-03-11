@@ -7,10 +7,13 @@ export interface AuthState {
     token?: string;
     accountType?: string;
     organizationName?: string;
+    dailyStreak?: number;
+    role?: string;
+    googleAuth?: any;
+    canSetPassword?: boolean;
   };
   message: string;
   token: string | null;
-  refreshToken: string | null;
   loading: boolean;
   error: string | null;
 }

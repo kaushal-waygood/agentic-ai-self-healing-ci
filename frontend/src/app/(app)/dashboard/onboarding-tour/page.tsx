@@ -177,7 +177,6 @@ const OnboardingPage = () => {
 
   useEffect(() => {
     dispatch(getStudentDetailsRequest());
-    dispatch(getStudentDetailsRequest());
   }, [dispatch]);
 
   useEffect(() => {

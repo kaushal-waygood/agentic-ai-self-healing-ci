@@ -85,17 +85,13 @@ export function setupNotificationSocket(io) {
 // Enhanced send function with debugging
 export function sendRealTimeNotification(io, userId, notification) {
   try {
+    if (!io) {
+      console.warn('🔔 ⚠️ Socket.IO not available (e.g. worker process) - notification saved to DB only');
+      return false;
+    }
     const userRoom = `user:${userId}`;
-
-    // Get the namespace
     const notificationNamespace = io.of('/notifications');
-
-    // Check if room exists and has clients
-    const room = notificationNamespace.adapter.rooms.get(userRoom);
-
-    // Send to specific room
     notificationNamespace.to(userRoom).emit('new-notification', notification);
-
     return true;
   } catch (error) {
     console.error('🔔 ❌ Error sending real-time notification:', error);

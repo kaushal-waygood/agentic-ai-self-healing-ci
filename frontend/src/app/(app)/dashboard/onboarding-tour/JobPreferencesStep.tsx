@@ -262,6 +262,8 @@
 
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
+import CountrySelector from '@/components/common/CountrySelector';
+import CitySelector from '@/components/common/CitySelector';
 
 const EDUCATION_LEVELS = [
   'High School',
@@ -344,8 +346,8 @@ const JobPreferencesStep = ({
 }: any) => {
   // --- Local State for Inputs ---
   const [skillInput, setSkillInput] = useState('');
-  const [cityInput, setCityInput] = useState('');
-  const [countryInput, setCountryInput] = useState('');
+  // const [cityInput, setCityInput] = useState('');
+  // const [countryInput, setCountryInput] = useState('');
 
   // --- Helpers to ensure we always have arrays ---
   // Now looking for 'preferredCities' and 'preferredCountries' in formData
@@ -390,31 +392,64 @@ const JobPreferencesStep = ({
   return (
     <div className="space-y-6">
       {/* 1. Preferred Cities */}
-      <MultiInput
-        label="Preferred Cities"
-        field="preferredCities" // Matches backend key
-        list={cities}
-        value={cityInput}
-        setValue={setCityInput}
-        placeholder="Type a city and press Enter (e.g. New Delhi)"
-        attemptedNext={attemptedNext}
-        errorMsg="Add at least one preferred city"
-        addItem={addItem}
-        removeItem={removeItem}
-      />
+      {/* <MultiInput
+       label="Preferred Cities"
+       field="preferredCities" // Matches backend key
+       list={cities}
+       value={cityInput}
+       setValue={setCityInput}
+       placeholder="Type a city and press Enter (e.g. New Delhi)"
+       attemptedNext={attemptedNext}
+       errorMsg="Add at least one preferred city"
+       addItem={addItem}
+       removeItem={removeItem}
+     /> */}
+      <div>
+        <label className="block text-md font-semibold text-gray-700 mb-2 ml-1">
+          Preferred City
+        </label>
+        <CitySelector
+          countryCode={formData.preferredCountry || ''}
+          value={formData.preferredCity || ''}
+          onChange={(value) => handleInputChange('preferredCity', value)}
+          className="w-full"
+        />
+        {attemptedNext &&
+          !formData.preferredCity &&
+          formData.preferredCountry && (
+            <p className="text-xs text-red-500 mt-1">
+              Preferred city is required
+            </p>
+          )}
+      </div>
       {/* 2. Preferred Countries */}
-      <MultiInput
-        label="Preferred Countries"
-        field="preferredCountries" // Matches backend key
-        list={countries}
-        value={countryInput}
-        attemptedNext={attemptedNext}
-        errorMsg="At least one country is required"
-        setValue={setCountryInput}
-        placeholder="Type a country and press Enter (e.g. India)"
-        addItem={addItem}
-        removeItem={removeItem}
-      />
+      {/* <MultiInput
+       label="Preferred Countries"
+       field="preferredCountries" // Matches backend key
+       list={countries}
+       value={countryInput}
+       attemptedNext={attemptedNext}
+       errorMsg="At least one country is required"
+       setValue={setCountryInput}
+       placeholder="Type a country and press Enter (e.g. India)"
+       addItem={addItem}
+       removeItem={removeItem}
+     /> */}
+      <div>
+        <label className="block text-md font-semibold text-gray-700 mb-2 ml-1">
+          Preferred Country
+        </label>
+        <CountrySelector
+          value={formData.preferredCountry || ''}
+          onChange={(value) => handleInputChange('preferredCountry', value)}
+          className="w-full"
+        />
+        {attemptedNext && !formData.preferredCountry && (
+          <p className="text-xs text-red-500 mt-1">
+            Preferred country is required
+          </p>
+        )}
+      </div>
       {/* 3. Must-have Skills */}
       <MultiInput
         label="Must-have Skills"

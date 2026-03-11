@@ -14,6 +14,7 @@ import {
   Eye,
   Sparkles,
   X,
+  Loader2,
 } from 'lucide-react';
 import EditableMaterial from '@/components/application/editable-material';
 import { useSelector } from 'react-redux';
@@ -46,7 +47,7 @@ const InternalEditableMaterialButton = ({
       variant === 'outline'
         ? 'border bg-transparent hover:bg-slate-100'
         : 'bg-slate-900 text-white hover:bg-slate-700',
-      className,
+      className ?? '',
     )}
   >
     {children}
@@ -62,7 +63,14 @@ interface ResultStepProps {
   emailDraft: string;
   setEmailDraft: (content: string) => void;
   setWizardStep: (step: string) => void;
-  handleSendEmail: () => void;
+  handleSendEmail: (
+    recruiterEmail: string,
+    options?: {
+      mode?: 'cv' | 'cl' | 'tailored';
+      subject?: string;
+      bodyHtml?: string;
+    },
+  ) => void | Promise<void>;
   handleStartNew: () => void;
   handleSaveAndFinish: () => void;
 }
@@ -141,7 +149,7 @@ const ResultStep = ({
         variant === 'ghost'
           ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           : '',
-        className,
+        className ?? '',
       )}
     >
       {children}
@@ -190,16 +198,6 @@ const ResultStep = ({
     }, 2000);
   };
 
-  const handleSendEmailWithLoading = async () => {
-    setIsProcessing(true);
-    try {
-      await handleSendEmail();
-    } catch (error) {
-      console.error('Error sending email:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   return (
     <div className="max-w-6xl mx-auto sm:p-6 p-1 space-y-4 font-sans">
@@ -266,7 +264,7 @@ const ResultStep = ({
               </div>
 
               <p className="text-sm leading-relaxed">
-                {jobContext.jobDescription.split('\n').map((line, i) => (
+                {jobContext.jobDescription.split('\n').map((line: string, i: number) => (
                   <span key={i}>
                     {line}
                     <br />
@@ -320,6 +318,16 @@ const ResultStep = ({
                   setContent={setRefinedCv}
                   isHtml={true}
                   template={selectedTemplate}
+                  onSendEmail={(email, { subject, bodyHtml }) =>
+                    handleSendEmail(email, { mode: 'cv', subject, bodyHtml })
+                  }
+                  defaultSubject={
+                    jobContext && 'jobTitle' in jobContext
+                      ? `Job Application - ${jobContext.jobTitle}`
+                      : 'Job Application'
+                  }
+                  defaultBodyHtml="Please find my CV attached."
+                  sendEmailHint="CV only"
                 />
               </div>
             </div>
@@ -349,7 +357,18 @@ const ResultStep = ({
                 title="Cover Letter"
                 content={tailoredCl}
                 setContent={setTailoredCl}
+                template={null}
                 isHtml={true}
+                onSendEmail={(email, { subject, bodyHtml }) =>
+                  handleSendEmail(email, { mode: 'cl', subject, bodyHtml })
+                }
+                defaultSubject={
+                  jobContext && 'jobTitle' in jobContext
+                    ? `Job Application - ${jobContext.jobTitle}`
+                    : 'Job Application'
+                }
+                defaultBodyHtml="Please find my cover letter attached."
+                sendEmailHint="Cover letter only"
               />
             </div>
           </div>
@@ -397,7 +416,18 @@ const ResultStep = ({
                 title="Email Draft"
                 content={emailDraft}
                 setContent={setEmailDraft}
+                template={null}
                 isHtml={true}
+                onSendEmail={(email, { subject, bodyHtml }) =>
+                  handleSendEmail(email, { mode: 'tailored', subject, bodyHtml })
+                }
+                defaultSubject={
+                  jobContext && 'jobTitle' in jobContext
+                    ? `Job Application - ${jobContext.jobTitle}`
+                    : 'Job Application'
+                }
+                defaultBodyHtml={emailDraft}
+                sendEmailHint="CV + Cover Letter + Email draft"
               />
             </div>
           </div>

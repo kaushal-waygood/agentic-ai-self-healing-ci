@@ -2,6 +2,7 @@ import React from 'react';
 import { Bell as BellIcon, RefreshCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Loader } from '../Loader';
+import Link from 'next/link';
 
 type Notification = {
   _id: string;
@@ -20,6 +21,7 @@ interface NotificationBellProps {
   fetchNotifications: () => Promise<void>;
   connectionStatus?: string;
   isLoading?: boolean;
+  onClose?: () => void;
 }
 
 export function NotificationBell({
@@ -29,6 +31,7 @@ export function NotificationBell({
   fetchNotifications,
   connectionStatus,
   isLoading = false, // default false
+  onClose,
 }: NotificationBellProps) {
   const router = useRouter();
 
@@ -41,6 +44,7 @@ export function NotificationBell({
       router.push(url.startsWith('/') ? url : `/dashboard/${url}`);
     }
     if (!n.isRead) markAsRead(n._id);
+    if (onClose) onClose();
   };
 
   return (
@@ -69,7 +73,6 @@ export function NotificationBell({
           }}
         />
       </div>
-
       <div className="space-y-3 min-h-[200px] relative">
         {isLoading ? (
           <div className="py-10">
@@ -112,6 +115,13 @@ export function NotificationBell({
           </>
         )}
       </div>
+      <div className="p-4 border-t border-slate-100">
+        <Link href="/dashboard/notifications" legacyBehavior>
+          <a className="w-full text-center text-sm text-purple-600 hover:text-purple-700 font-medium">
+            View All Notifications
+          </a>
+        </Link>
+      </div>{' '}
     </div>
   );
 }

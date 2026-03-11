@@ -2,8 +2,10 @@ import {
   activateAgent,
   createAutopilotAgent,
   getAllPilotAgents,
+  getAgentJobs,
   getSinglePilotAgent,
   removeAutoPilotAgent,
+  startAgentJobTailoredGeneration,
 } from '../controllers/autopilotAgent.controller.js';
 import express from 'express';
 import {
@@ -27,6 +29,15 @@ router.post(
 );
 
 router.get('/get', authMiddleware, isGeneralUser, getAllPilotAgents);
+router.get('/get/:id/jobs', authMiddleware, isGeneralUser, getAgentJobs);
+router.post(
+  '/get/:agentId/jobs/:jobId/generate',
+  authMiddleware,
+  isGeneralUser,
+  checkCredits('TAILORED_APPLY'),
+  requireCompleteProfile,
+  startAgentJobTailoredGeneration,
+);
 router.get('/get/:id', authMiddleware, isGeneralUser, getSinglePilotAgent);
 router.delete(
   '/delete/:id',
