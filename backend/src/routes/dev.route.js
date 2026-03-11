@@ -14,7 +14,8 @@ import { findAndProcessJobs } from '../worker/autopilotWorker.js';
 const router = express.Router();
 
 // This entire router will only be active in a development environment
-if (process.env.NODE_ENV === 'local') {
+const isDev = process.env.NODE_ENV !== 'production';
+if (isDev) {
   router.get('/task1', async (req, res) => {
     try {
       await task1();

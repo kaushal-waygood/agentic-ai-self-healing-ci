@@ -110,10 +110,11 @@ jobDiscoveryQueue.process(async (job) => {
     const jobsToProcess = recommendedJobs.slice(0, applicationsToFind);
 
     // 8. Prepare and queue the chosen jobs for the next stage (AI processing).
-    const aiTasks = jobsToProcess.map(({ job, score }) => {
+    const aiTasks = jobsToProcess.map((job) => {
+      const score = job.rankScore;
       console.log(
         `[JobDiscoveryQueue] Queuing job "${job.title}" (Score: ${
-          score?.toFixed(2) || 'N/A'
+          score != null ? Number(score).toFixed(2) : 'N/A'
         }) for AI processing.`,
       );
       const plainJobObject = JSON.parse(JSON.stringify(job));

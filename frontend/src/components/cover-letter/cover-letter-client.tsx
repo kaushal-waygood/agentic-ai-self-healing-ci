@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -74,6 +75,7 @@ export function CoverLetterGeneratorClient() {
   const { toast } = useToast();
   const dispatch = useDispatch();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchParams = useSearchParams();
 
   /* wizard */
   const [wizardStep, setWizardStep] = useState<WizardStep>('job');
@@ -88,6 +90,9 @@ export function CoverLetterGeneratorClient() {
   /* result */
   const [generatedCoverLetter, setGeneratedCoverLetter] = useState('');
   const [currentContent, setCurrentContent] = useState('');
+  const [generatingDocumentId, setGeneratingDocumentId] = useState<string | null>(
+    null,
+  );
 
   /* saved letters */
   const [savedLettersList, setSavedLettersList] = useState<SavedCoverLetter[]>(
@@ -120,6 +125,42 @@ export function CoverLetterGeneratorClient() {
     dispatch(getStudentDetailsRequest());
     dispatch(savedStudentCoverLetterRequest());
   }, [dispatch]);
+
+  /* ---------- URL query: slug, step, docType (consistent with cv-generator & apply) ---------- */
+  useEffect(() => {
+    const slug = searchParams.get('slug');
+    if (!slug) return;
+
+    const initFromSlug = async () => {
+      try {
+        setIsLoading(true);
+        setLoadingMessage('Loading job details...');
+        const response = await apiInstance.get(`/jobs/job-desc/${slug}`);
+        const job = response.data?.singleJob ?? response.data?.job ?? response.data;
+        if (!job) return;
+
+        setJobContext({
+          mode: 'select',
+          value: slug,
+          title: job.title ?? '',
+          description: job.description ?? '',
+        });
+        setWizardStep('cv');
+      } catch (err) {
+        console.error('Failed to load job from slug:', err);
+        toast({
+          variant: 'destructive',
+          title: 'Could not load job',
+          description: 'The job may no longer be available. Try selecting a job manually.',
+        });
+      } finally {
+        setIsLoading(false);
+        setLoadingMessage('');
+      }
+    };
+
+    initFromSlug();
+  }, [searchParams, toast]);
 
   /* ---------- Navigation Guards ---------- */
 
@@ -321,6 +362,7 @@ export function CoverLetterGeneratorClient() {
 
     setRateLimited(false);
     setRateLimitMessage(null);
+    setGeneratingDocumentId(null);
     setIsLoading(true);
     setWizardStep('result');
     setGeneratedCoverLetter('');
@@ -360,10 +402,25 @@ export function CoverLetterGeneratorClient() {
             : '/students/coverletter/generate/jobId';
 
       const res = await apiInstance.post(endpoint, formData);
-      const letter = res.data?.data ?? res.data;
+      const data = res.data?.data ?? res.data;
 
-      setGeneratedCoverLetter(letter);
-      setCurrentContent(letter);
+      // 202: async generation started, poll status API
+      if (res.status === 202 && data?.clId) {
+        setGeneratingDocumentId(
+          typeof data.clId === 'string' ? data.clId : data.clId?.toString?.(),
+        );
+        toast({
+          title: 'Cover Letter Generation Started',
+          description:
+            'Your cover letter is being generated. We will update when it is ready.',
+        });
+        return;
+      }
+
+      setGeneratedCoverLetter(data);
+      setCurrentContent(data);
+
+      dispatch(savedStudentCoverLetterRequest());
 
       toast({
         title: 'Cover Letter Generated!',
@@ -430,9 +487,7 @@ export function CoverLetterGeneratorClient() {
         html: activeLetterToSave,
       });
 
-      const res = await apiInstance.get('/students/letter/saved');
-      setSavedLettersList(res.data.html);
-
+      dispatch(savedStudentCoverLetterRequest());
       toast({ title: 'Cover Letter Saved!' });
     } finally {
       setIsNamingDialogDisplayed(false);
@@ -489,6 +544,9 @@ export function CoverLetterGeneratorClient() {
             planPath="/dashboard/subscriptions"
             title="Cover Letter"
             targetLink="/dashboard/my-docs?tab=cover-letters"
+            documentId={generatingDocumentId ?? undefined}
+            documentType="cl"
+            onStatusCompleted={() => dispatch(savedStudentCoverLetterRequest())}
           />
         );
       default:

@@ -45,8 +45,8 @@ function* loginSaga(
 ): SagaIterator {
   try {
     const response = yield call(login, action.payload);
-    const { user, accessToken: token } = response.data;
-    yield put(loginSuccess({ user, token }));
+    const { user, accessToken: token, refreshToken } = response.data;
+    yield put(loginSuccess({ user, token, refreshToken }));
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : 'Login failed';
@@ -117,7 +117,9 @@ function* getGetMeSaga(token: string): SagaIterator {
 
 function* logoutSaga(): SagaIterator {
   const Router = require('next/router');
+  const { clearDashboardCache } = require('@/lib/dashboardCache');
   try {
+    clearDashboardCache();
     localStorage.removeItem('persist:root');
     localStorage.clear();
     yield put(logoutSuccess());
@@ -134,8 +136,8 @@ function* verifyEmailSaga(
 ): SagaIterator {
   try {
     const response = yield call(verifyEmail, action.payload);
-    const { user, accessToken: token } = response.data;
-    yield put(verifyEmailSuccess({ user, token }));
+    const { user, accessToken: token, refreshToken } = response.data;
+    yield put(verifyEmailSuccess({ user, token, refreshToken }));
   } catch (error: any) {
     const errorMessage =
       error?.response?.data?.message || error.message || 'Verification failed';

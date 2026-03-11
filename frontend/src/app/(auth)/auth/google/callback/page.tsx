@@ -4,12 +4,11 @@ import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import {
   getGetMeRequest,
-  getProfileRequest,
   googleLoginSuccess,
-} from '@/redux/reducers/authReducer'; // Adjust path if needed
+} from '@/redux/reducers/authReducer';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import { Loader } from '@/components/Loader';
+import { persistor } from '@/redux/store';
 
 const GoogleAuthCallback = () => {
   const searchParams = useSearchParams();
@@ -18,23 +17,36 @@ const GoogleAuthCallback = () => {
 
   useEffect(() => {
     const token = searchParams.get('token');
+    const refreshToken = searchParams.get('refreshToken');
     const error = searchParams.get('error');
     const isNew = searchParams.get('new');
 
     if (token) {
-      try {
-        dispatch(googleLoginSuccess(token));
-        dispatch(getGetMeRequest(token));
+      const runAuthFlow = async () => {
+        try {
+          dispatch(
+            googleLoginSuccess({
+              token,
+              refreshToken: refreshToken || undefined,
+            }),
+          );
+          // Flush persist so token is in localStorage before dashboard requests run
+          await persistor.flush();
+          dispatch(getGetMeRequest(token));
 
-        if (isNew === 'true') {
-          navigate.push('/dashboard/onboarding-tour');
-        } else {
-          navigate.push('/dashboard');
+          if (isNew === 'true') {
+            navigate.push('/dashboard/onboarding-tour');
+          } else {
+            navigate.push('/dashboard');
+          }
+        } catch (err) {
+          console.error('OAuth callback error:', err);
+          navigate.push('/login?error=invalid_token');
         }
-      } catch (error) {
-        console.error('Invalid token:', error);
-        navigate.push('/login?error=invalid_token');
-      }
+      };
+      runAuthFlow();
+    } else if (error) {
+      navigate.push(`/login?error=${error}`);
     } else {
       navigate.push('/login?error=no_token');
     }

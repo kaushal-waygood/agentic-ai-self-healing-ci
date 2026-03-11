@@ -1,10 +1,3 @@
-/**
- * Autopilot worker cron - runs findAndProcessJobs on a schedule.
- * Integrates the worker.js logic into the main server process.
- *
- * Requires: AUTOGEN_TAILORED=true for actual processing.
- * Toggle: AUTOPILOT_CRON_ENABLED=true (default: true when AUTOGEN_TAILORED is set)
- */
 import cron from 'node-cron';
 import { findAndProcessJobs } from '../worker/autopilotWorker.js';
 
@@ -18,6 +11,11 @@ const runAutopilotWorker = async () => {
     return;
   }
   if (!toBool(process.env.AUTOGEN_TAILORED || 'false')) {
+    if (process.env.DEBUG_AUTOPILOT === '1') {
+      console.log(
+        '[AutopilotCron] Skipping - set AUTOGEN_TAILORED=true to enable.',
+      );
+    }
     return; // Worker logic is disabled
   }
 
@@ -26,7 +24,7 @@ const runAutopilotWorker = async () => {
     console.log('🚀 [AutopilotCron] Starting autopilot job-finding cycle...');
     const result = await findAndProcessJobs();
     console.log(
-      `✅ [AutopilotCron] Cycle complete. Processed: ${result?.processed ?? 0}`,
+      `✅ [AutopilotCron] Cycle complete. Students checked: ${result?.studentsChecked ?? 0}, Processed: ${result?.processed ?? 0}`,
     );
   } catch (err) {
     console.error('❌ [AutopilotCron] Error:', err?.message || err);
@@ -47,7 +45,11 @@ export const startAutopilotWorkerCron = (schedule = '*/15 * * * *') => {
 
   cron.schedule(schedule, runAutopilotWorker);
   console.log(
-    `🗓️  [AutopilotCron] Scheduled to run every 15 minutes (${schedule})`,
+    `🗓️  [AutopilotCron] Scheduled (${schedule}). Set AUTOGEN_TAILORED=true to enable processing.`,
   );
+  // Run once after 30s so first cycle doesn't wait for cron
+  if (toBool(process.env.AUTOGEN_TAILORED || 'false')) {
+    setTimeout(() => runAutopilotWorker(), 30000);
+  }
   return runAutopilotWorker; // Export for manual trigger if needed
 };

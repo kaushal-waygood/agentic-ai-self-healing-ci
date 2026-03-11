@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckCircle, FileText, Loader2 } from 'lucide-react';
+import { CheckCircle, FileText, ListRestart, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import apiInstance from '@/services/api';
 
 type Props = {
   cvlink?: string;
@@ -12,6 +13,9 @@ type Props = {
   title?: string;
   targetLink?: string;
   incompleteProfile?: string | null;
+  documentId?: string;
+  documentType?: 'cv' | 'cl' | 'application';
+  onStatusCompleted?: () => void;
 };
 
 export default function FinalResultView({
@@ -22,30 +26,78 @@ export default function FinalResultView({
   title,
   targetLink,
   incompleteProfile,
+  documentId,
+  documentType = 'cv',
+  onStatusCompleted,
 }: Props) {
   const [isGenerating, setIsGenerating] = useState(true);
   const [showNotification, setShowNotification] = useState(false);
+  const [statusCompleted, setStatusCompleted] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    // If profile is incomplete, stop spinner immediately
     if (incompleteProfile) {
       setIsGenerating(false);
       setShowNotification(false);
       return;
     }
 
-    if (!rateLimited) {
-      const t = setTimeout(() => {
-        setIsGenerating(false);
-        setShowNotification(true);
-      }, 1800);
-      return () => clearTimeout(t);
-    } else {
+    if (rateLimited) {
       setIsGenerating(false);
       setShowNotification(false);
+      return;
     }
-  }, [rateLimited, incompleteProfile]);
+
+    if (documentId) return;
+
+    const t = setTimeout(() => {
+      setIsGenerating(false);
+      setShowNotification(true);
+    }, 1800);
+    return () => clearTimeout(t);
+  }, [rateLimited, incompleteProfile, documentId]);
+
+  // Poll status API when documentId is provided; stop when status is completed
+  useEffect(() => {
+    if (!documentId || rateLimited || incompleteProfile || statusCompleted) return;
+
+    const getEndpoint = () => {
+      switch (documentType) {
+        case 'cv':
+          return `/students/status/cv/${documentId}`;
+        case 'cl':
+          return `/students/status/cl/${documentId}`;
+        case 'application':
+          return `/students/status/tailored/${documentId}`;
+        default:
+          return `/students/status/cv/${documentId}`;
+      }
+    };
+
+    const checkStatus = async () => {
+      try {
+        const { data } = await apiInstance.get(getEndpoint());
+        const status = data?.item?.status ?? data?.document?.status;
+        if (status === 'completed' || status === 'new') {
+          setStatusCompleted(true);
+          setIsGenerating(false);
+          setShowNotification(true);
+          onStatusCompleted?.();
+        }
+      } catch (error) {
+        console.error('Error polling document status:', error);
+      }
+    };
+
+    const timer = setTimeout(checkStatus, 1500);
+
+    const interval = setInterval(checkStatus, 6000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, [documentId, documentType, rateLimited, incompleteProfile, statusCompleted]);
 
   const handleRedirectDocs = () => {
     if (typeof targetLink === 'string' && targetLink.length > 0) {
@@ -95,7 +147,6 @@ export default function FinalResultView({
               </div>
             </>
           ) : incompleteProfile ? (
-            /* PROFILE INCOMPLETE */
             <>
               <div className="mb-6">
                 <FileText className="w-20 h-20 text-red-500 mx-auto" />
@@ -127,52 +178,93 @@ export default function FinalResultView({
                 </button>
               </div>
             </>
-          ) : isGenerating ? (
-            /* GENERATING */
+          ) : (
             <>
-              <div className="mb-6">
-                <div className="relative inline-block">
-                  <FileText className="w-20 h-20 text-indigo-600 mx-auto" />
-                  <Loader2 className="w-8 h-8 text-indigo-600 absolute -top-2 -right-2 animate-spin" />
+              <div className="mb-8 relative flex items-center justify-center h-32">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-indigo-200 rounded-2xl blur-xl opacity-20 animate-pulse"></div>
+
+                  <div className="relative p-6 bg-white border border-indigo-50 rounded-2xl shadow-sm z-10">
+                    <FileText className="w-12 h-12 text-indigo-500" />
+
+                    <div className="absolute -top-2 -right-2 bg-indigo-600 rounded-full p-1.5 shadow-lg border-2 border-white">
+                      {statusCompleted ? (
+                        <CheckCircle className="w-5 h-5 text-white" />
+                      ) : (
+                        <Loader2 className="w-5 h-5 text-white animate-spin" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="absolute top-2 -left-4 w-12 h-12 bg-gray-100 rounded-lg -z-10 rotate-[-10deg] border border-gray-200 opacity-50"></div>
+                  <div className="absolute top-4 -left-2 w-12 h-12 bg-gray-50 rounded-lg -z-10 rotate-[-5deg] border border-gray-200 opacity-80"></div>
                 </div>
               </div>
+
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                Generating Your {title}...
+                {statusCompleted ? 'Document ready!' : 'Document is being generated'}
               </h2>
-              <p className="text-gray-600 mb-6">
-                Running in the background. This may take a few moments.
-              </p>
-            </>
-          ) : (
-            /* SUCCESS */
-            <>
-              <div className="mb-6">
-                <CheckCircle className="w-20 h-20 text-green-500 mx-auto" />
+
+              <div className="flex flex-col gap-4 mb-8 max-w-xs mx-auto text-left">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600">
+                    <CheckCircle className="h-4 h-4" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">
+                    Request received
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${statusCompleted ? 'bg-green-100 text-green-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                    {statusCompleted ? (
+                      <CheckCircle className="h-4 h-4" />
+                    ) : (
+                      <div className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse" />
+                    )}
+                  </div>
+                  <span className={`text-sm font-medium ${statusCompleted ? 'text-gray-700' : 'font-bold text-indigo-600'}`}>
+                    {statusCompleted ? 'Processing complete' : 'Added to queue & processing'}
+                  </span>
+                </div>
+
+                <div className={`flex items-center gap-3 ${statusCompleted ? '' : 'opacity-40'}`}>
+                  <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${statusCompleted ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                    {statusCompleted ? (
+                      <CheckCircle className="h-4 h-4" />
+                    ) : (
+                      <div className="h-2 w-2 rounded-full bg-gray-400" />
+                    )}
+                  </div>
+                  <span className={`text-sm font-medium ${statusCompleted ? 'text-gray-700' : 'text-gray-500'}`}>
+                    Document ready
+                  </span>
+                </div>
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                {title} Ready!
-              </h2>
-              <p className="text-gray-600 mb-8">
-                Your {title} has been successfully generated and is ready to
-                view.
-              </p>
+
+              <div className="bg-indigo-50/50 rounded-xl p-4 mb-8 border border-indigo-100/50">
+                <p className="text-sm text-indigo-800 leading-relaxed">
+                  {statusCompleted
+                    ? 'Your document is ready. Click below to view it in your documents.'
+                    : "Your document is in safe hands. You can continue with other operations; we'll notify you when it's done."}
+                </p>
+              </div>
 
               <div className="flex gap-3 flex-col">
                 <button
                   onClick={handleRedirectDocs}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 px-6 rounded-xl shadow-md transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!statusCompleted && !!documentId}
                 >
-                  View {title}
+                  {statusCompleted ? 'View Document' : 'View Live Status'}
                 </button>
 
-                {cvlink && (
-                  <button
-                    onClick={() => window.open(cvlink, '_blank')}
-                    className="w-full border border-gray-200 bg-white text-gray-700 font-medium py-3 px-6 rounded-lg"
-                  >
-                    Open Document
-                  </button>
-                )}
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="w-full bg-white border border-gray-200 text-gray-700 font-semibold py-3.5 px-6 rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  Continue Other Operations
+                </button>
               </div>
             </>
           )}

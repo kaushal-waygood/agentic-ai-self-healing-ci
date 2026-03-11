@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -64,6 +65,7 @@ export function CvGeneratorClient() {
   const { toast } = useToast();
   const dispatch = useDispatch();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchParams = useSearchParams();
 
   /* wizard state */
   const [wizardStep, setWizardStep] = useState<WizardStep>('job');
@@ -77,6 +79,9 @@ export function CvGeneratorClient() {
   const [generatedCvOutput, setGeneratedCvOutput] =
     useState<CVGenerationOutput | null>(null);
   const [currentCvContent, setCurrentCvContent] = useState('');
+  const [generatingDocumentId, setGeneratingDocumentId] = useState<string | null>(
+    null,
+  );
 
   /* saved cvs */
   const [savedCvsList, setSavedCvsList] = useState<SavedCv[]>([]);
@@ -96,7 +101,6 @@ export function CvGeneratorClient() {
   const [incompleteProfile, setIncompleteProfile] = useState<string | null>(
     null,
   );
-  console.log('ratelimts cv ', rateLimited);
   const {
     students: student,
     loading: studentLoading,
@@ -121,6 +125,42 @@ export function CvGeneratorClient() {
       });
     }
   }, [studentError, toast]);
+
+  /* ---------- URL query: slug, step, docType (consistent with apply flow) ---------- */
+  useEffect(() => {
+    const slug = searchParams.get('slug');
+    if (!slug) return;
+
+    const initFromSlug = async () => {
+      try {
+        setIsLoading(true);
+        setLoadingMessage('Loading job details...');
+        const response = await apiInstance.get(`/jobs/job-desc/${slug}`);
+        const job = response.data?.singleJob ?? response.data?.job ?? response.data;
+        if (!job) return;
+
+        setJobContext({
+          mode: 'select',
+          value: slug,
+          title: job.title ?? '',
+          description: job.description ?? '',
+        });
+        setWizardStep('cv');
+      } catch (err) {
+        console.error('Failed to load job from slug:', err);
+        toast({
+          variant: 'destructive',
+          title: 'Could not load job',
+          description: 'The job may no longer be available. Try selecting a job manually.',
+        });
+      } finally {
+        setIsLoading(false);
+        setLoadingMessage('');
+      }
+    };
+
+    initFromSlug();
+  }, [searchParams, toast]);
 
   /* ---------- handlers ---------- */
 
@@ -306,6 +346,7 @@ export function CvGeneratorClient() {
 
     setRateLimited(false);
     setRateLimitMessage(null);
+    setGeneratingDocumentId(null);
     setIsLoading(true);
     setWizardStep('result');
     setGeneratedCvOutput(null);
@@ -347,6 +388,19 @@ export function CvGeneratorClient() {
       const res = await apiInstance.post(endpoint, formData);
       const data = res.data.data || res.data;
 
+      // 202: async generation started, poll status API
+      if (res.status === 202 && data?.cvId) {
+        setGeneratingDocumentId(
+          typeof data.cvId === 'string' ? data.cvId : data.cvId?.toString?.(),
+        );
+        toast({
+          title: 'CV Generation Started',
+          description:
+            'Your CV is being generated. We will update when it is ready.',
+        });
+        return;
+      }
+
       const output: CVGenerationOutput = {
         cv: data.cv ?? data,
         atsScore: data.atsScore ?? 0,
@@ -356,12 +410,14 @@ export function CvGeneratorClient() {
       setGeneratedCvOutput(output);
       setCurrentCvContent(output.cv);
 
+      dispatch(savedStudentResumeRequest());
+
       toast({
         title: 'CV Generated & Auto-saved!',
         description: 'Your new CV draft has been added to your saved list.',
       });
     } catch (error: any) {
-      console.log('error triggerd', error);
+      console.error('error triggerd', error);
       if (
         error?.response?.status === 403 &&
         error?.response?.data?.message === 'Profile incomplete'
@@ -479,6 +535,9 @@ export function CvGeneratorClient() {
             planPath="/dashboard/subscriptions"
             title="CV"
             targetLink="/dashboard/my-docs?tab=cvs"
+            documentId={generatingDocumentId ?? undefined}
+            documentType="cv"
+            onStatusCompleted={() => dispatch(savedStudentResumeRequest())}
           />
         );
       default:

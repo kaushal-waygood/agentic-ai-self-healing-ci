@@ -21,6 +21,7 @@ import { StudentCoverLetter } from '../models/students/studentCoverLetter.model.
 import { StudentApplication } from '../models/students/studentApplication.model.js';
 import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
 import { StudentHtmlCV } from '../models/students/studentHtmlCV.model.js';
+import { parseCVData } from './rough.js';
 import { computeATS } from '../utils/calculateATSScore.js';
 import axios from 'axios';
 import { CV_TEMPLATES } from '../utils/cv/cssTemplates.js';
@@ -617,7 +618,6 @@ export const generateCVByJD = async (req, res) => {
 
 export const generateCVByJobId = async (req, res) => {
   const { jobId } = req.body;
-
   if (!jobId) {
     return res.status(400).json({ error: 'Job ID is required' });
   }
@@ -1333,46 +1333,112 @@ export const getSavedApplications = async (req, res) => {
   }
 };
 
+/**
+ * Convert parsed CV data (from parseCVData) to student format for calculateJobMatch
+ */
+function parsedCvToStudentForMatch(parsed) {
+  const experience = parsed.experience || [];
+  const totalExperienceYears = experience.reduce(
+    (sum, exp) => sum + (Number(exp.experienceYrs) || 0),
+    0,
+  );
+  return {
+    skills: (parsed.skills || []).map((s) => ({
+      skill: typeof s === 'string' ? s : s.skill || '',
+    })),
+    experience: experience.map((e) => ({
+      description: e.description || '',
+    })),
+    education: parsed.education || [],
+    projects: parsed.projects || [],
+    totalExperienceYears: Math.round(totalExperienceYears * 10) / 10,
+  };
+}
+
+/**
+ * Strip HTML tags to get plain text for CV parsing
+ */
+// function stripHtmlToText(html) {
+//   if (!html || typeof html !== 'string') return '';
+//   return html
+//     .replace(/<[^>]+>/g, ' ')
+//     .replace(/\s+/g, ' ')
+//     .trim();
+// }
+
 export const calculateJobMatchScore = async (req, res) => {
   try {
-    const { jobDescription } = req.body;
+    const { jobDescription, jobTitle, useProfile, savedCVId } = req.body;
     if (!jobDescription)
       return res.status(400).json({ error: 'Job description required' });
 
     const user = await resolveUser(req.user._id);
+    let student;
 
-    const studentDetails = await Student.findById(req.user._id).lean();
-    const skills = await StudentSkill.find({ student: req.user._id }).lean();
-    const experience = await StudentExperience.find({
-      student: req.user._id,
-    }).lean();
-    const education = await StudentEducation.find({
-      student: req.user._id,
-    }).lean();
-    const projects = await StudentProject.find({
-      student: req.user._id,
-    }).lean();
+    if (savedCVId) {
+      if (!mongoose.Types.ObjectId.isValid(savedCVId)) {
+        return res.status(400).json({ error: 'Invalid savedCVId' });
+      }
+      const saved = await StudentHtmlCV.findOne({
+        _id: savedCVId,
+        student: req.user._id,
+      });
+      if (!saved) {
+        return res.status(404).json({ error: 'Saved CV not found' });
+      }
+      const html = saved.html || saved.content || saved.htmlCV;
+      if (!html || typeof html !== 'string' || !html.trim()) {
+        return res
+          .status(422)
+          .json({ error: 'Saved CV has no usable content' });
+      }
+      const text = stripHtmlToText(html);
+      if (!text || text.length < 50) {
+        return res
+          .status(422)
+          .json({ error: 'Could not extract enough text from saved CV' });
+      }
+      const parsed = await parseCVData(text, req.user._id);
+      student = parsedCvToStudentForMatch(parsed);
+    } else {
+      const studentDetails = await Student.findById(req.user._id).lean();
+      const skills = await StudentSkill.find({ student: req.user._id }).lean();
+      const experience = await StudentExperience.find({
+        student: req.user._id,
+      }).lean();
+      const education = await StudentEducation.find({
+        student: req.user._id,
+      }).lean();
+      const projects = await StudentProject.find({
+        student: req.user._id,
+      }).lean();
 
-    const student = {
-      ...studentDetails,
-      skills,
-      experience,
-      education,
-      projects,
-    };
+      student = {
+        ...studentDetails,
+        skills,
+        experience,
+        education,
+        projects,
+      };
+    }
+
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
-    const result = await calculateJobMatch(jobDescription, student);
+    const result = await calculateJobMatch(
+      jobDescription,
+      student,
+      jobTitle || '',
+    );
 
     if (result) {
       try {
         await User.updateOne(
-          { _id: student._id },
+          { _id: req.user._id },
           { $inc: { 'usageCounters.jobMatching': 1 } },
         );
       } catch (incErr) {
         console.error(
-          `Failed to increment usage for user ${student._id}:`,
+          `Failed to increment usage for user ${req.user._id}:`,
           incErr,
         );
       }
