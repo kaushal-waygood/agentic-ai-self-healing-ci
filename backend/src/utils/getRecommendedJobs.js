@@ -112,7 +112,7 @@ export const getRecommendedJobs = async ({
   );
   context.skipExternalFetch = skipExternalFetch;
   context.includeAppliedInResults = includeAppliedInResults;
-  context.skipCacheForAgent = includeAppliedInResults; // Always fresh results for agent dashboard
+  context.skipCacheForAgent = includeAppliedInResults;
 
   // Merge JobInteraction-based applied/saved if available (e.g. from dashboard)
   const interactionCtx = await buildInteractionContext(studentId);

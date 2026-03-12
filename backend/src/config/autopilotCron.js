@@ -39,6 +39,6 @@ export const runAutopilotTask = async () => {
 
 export const scheduleAutopilotTriggers = () => {
   // We'll run this every 5 minutes for more frequent checks
-  cron.schedule('*/5 * * * *', runAutopilotTask);
+  cron.schedule('*/1 * * * *', runAutopilotTask);
   console.log('🗓️  DB job creation cron job scheduled to run every 5 minutes.');
 };
