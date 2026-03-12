@@ -12,18 +12,45 @@ interface Message {
 }
 
 export function AiAssistantClient() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'init-message',
-      text: "Hello! I'm your AI assistant. How can I help you with zobsai today?",
-      sender: 'ai',
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (typeof window !== 'undefined') {
+      const savedMessages = localStorage.getItem('aiAssistantChatHistory');
+      if (savedMessages) {
+        const parsedMessages: Message[] = JSON.parse(savedMessages);
+        return parsedMessages.map((msg) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp),
+        }));
+      }
+      return [
+        {
+          id: 'init-message',
+          text: "Hello! I'm your AI assistant. How can I help you with zobsai today?",
+          sender: 'ai',
+          timestamp: new Date(),
+        },
+      ];
+    }
+    return [
+      {
+        id: 'init-message',
+        text: "Hello! I'm your AI assistant. How can I help you with zobsai today?",
+        sender: 'ai',
+        timestamp: new Date(),
+      },
+    ];
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false); // For the "AI is thinking..." UI
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // console.log('Saving messages to localStorage:', messages);
+      localStorage.setItem('aiAssistantChatHistory', JSON.stringify(messages));
+    }
+  }, [messages]);
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
