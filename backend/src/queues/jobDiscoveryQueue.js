@@ -1,6 +1,8 @@
 import Queue from 'bull';
 import { AppliedJob } from '../models/AppliedJob.js';
+import { AgentFoundJob } from '../models/AgentFoundJob.js';
 import { StudentAgent } from '../models/students/studentAgent.model.js';
+import { User } from '../models/User.model.js';
 import { getStudentProfileSnapshot } from '../services/getStudentProfileSnapshot.js';
 import { buildEffectiveStudentProfile } from '../utils/profileHydration.js';
 import aiTaskQueue from './aiTaskQueue.js';
@@ -75,10 +77,12 @@ jobDiscoveryQueue.process(async (job) => {
     }
 
     // 4. Build effective profile merging student + agent (e.g. agent's uploaded CV data).
-    const effectiveProfile = buildEffectiveStudentProfile(studentProfile, agent);
+    const effectiveProfile = buildEffectiveStudentProfile(
+      studentProfile,
+      agent,
+    );
 
     // 5. Extract configuration from agent.
-    const applicationsToFind = agent.agentDailyLimit || 5;
     const agentConfig = {
       jobTitle: agent.jobTitle,
       country: agent.country,
@@ -86,17 +90,53 @@ jobDiscoveryQueue.process(async (job) => {
       employmentType: agent.employmentType,
     };
 
-    // 5. Get all jobs this student has ever applied to, to avoid duplicates.
-    const appliedJobIds = (
-      await AppliedJob.find({ student: studentId }).distinct('job')
-    ).map((id) => id.toString());
+    // 5b. Respect user plan limits
+    const user = await User.findById(studentId)
+      .select('usageLimits usageCounters')
+      .lean();
+    const userPlanLimit = user?.usageLimits?.aiAutoApplyDailyLimit || 0;
+    const userUsageCount = user?.usageCounters?.aiAutoApplyDailyLimit || 0;
+    const agentCap = agent.agentDailyLimit || 5;
 
-    // 6. Find recommended jobs using the fetched data.
+    // Calculate how many jobs this agent is allowed to find
+    let applicationsToFind;
+    if (userPlanLimit === -1) {
+      // Unlimited plan – only constrained by agent cap
+      applicationsToFind = agentCap;
+    } else {
+      const remainingForUser = Math.max(0, userPlanLimit - userUsageCount);
+      applicationsToFind = Math.min(agentCap, remainingForUser);
+    }
+
+    if (applicationsToFind <= 0) {
+      console.log(
+        `[JobDiscoveryQueue] Skipping agent ${agentId}: Plan limit reached (Plan: ${userPlanLimit}, Used: ${userUsageCount}).`,
+      );
+      return { skipped: true, reason: 'Plan limit reached' };
+    }
+
+    // 6. Get all jobs this student has ever applied to + already found by agent, to avoid duplicates.
+    const [appliedJobIdsList, alreadyFoundJobs] = await Promise.all([
+      AppliedJob.find({ student: studentId }).distinct('job'),
+      AgentFoundJob.find({ student: studentId, agent: agent._id })
+        .select({ job: 1 })
+        .lean(),
+    ]);
+
+    const appliedJobIds = [
+      ...new Set([
+        ...appliedJobIdsList.map((id) => id.toString()),
+        ...alreadyFoundJobs.map((j) => j.job?.toString()).filter(Boolean),
+      ]),
+    ];
+
+    // 7. Find recommended jobs using the fetched data (only up to allowed limit).
     const recommendedJobs = await getRecommendedJobs({
       studentId,
       agentConfig,
       studentProfile: effectiveProfile,
       appliedJobIds,
+      limit: applicationsToFind,
     });
 
     if (recommendedJobs.length === 0) {
@@ -106,7 +146,7 @@ jobDiscoveryQueue.process(async (job) => {
       return { skipped: true, reason: 'No new unique jobs found' };
     }
 
-    // 7. Score the jobs and take the top N best matches.
+    // 8. Take only up to the allowed limit.
     const jobsToProcess = recommendedJobs.slice(0, applicationsToFind);
 
     // 8. Prepare and queue the chosen jobs for the next stage (AI processing).

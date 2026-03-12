@@ -74,216 +74,187 @@ export const findAndProcessJobs = async () => {
     status: 'completed',
   })
     .select(
-      'student agentId agentName jobTitle agentDailyLimit uploadedCVData employmentType country isRemote',
+      'student agentName jobTitle agentDailyLimit employmentType country isRemote',
     )
     .lean();
 
-  if (!activeAgents?.length) {
-    return { processed: 0, reason: 'no_active_agents' };
+  if (!activeAgents.length) {
+    return { processed: 0, agentsChecked: 0 };
   }
 
-  const agentsByStudent = new Map();
+  let processed = 0;
+
   for (const agent of activeAgents) {
-    const sid = agent.student?.toString();
-    if (!sid) continue;
-    if (!agentsByStudent.has(sid)) agentsByStudent.set(sid, []);
-    agentsByStudent.get(sid).push(agent);
-  }
+    const studentId = new mongoose.Types.ObjectId(agent.student);
 
-  let totalProcessed = 0;
-  const totalStudents = agentsByStudent.size;
+    try {
+      const studentProfile = await getStudentProfileSnapshot(studentId);
+      if (!studentProfile) continue;
 
-  for (const [studentIdStr, agents] of agentsByStudent) {
-    const studentId = new mongoose.Types.ObjectId(studentIdStr);
+      if (studentProfile.settings?.autopilotEnabled === false) continue;
 
-    const user = await User.findById(studentId)
-      .select('usageLimits usageCounters')
-      .lean();
+      // -------- daily limit --------
 
-    const userPlanLimit = user?.usageLimits?.aiAutoApplyDailyLimit || 0;
-    const userUsageCount = user?.usageCounters?.aiAutoApplyDailyLimit || 0;
+      const agentLimit = normalizeLimit(agent.agentDailyLimit, 5, {
+        min: 1,
+        max: 50,
+      });
 
-    const studentProfile = await getStudentProfileSnapshot(studentId);
-    if (!studentProfile) continue;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-    if (studentProfile.settings?.autopilotEnabled === false) continue;
+      const foundToday = await AgentFoundJob.countDocuments({
+        student: studentId,
+        agent: agent._id,
+        foundAt: { $gte: today },
+      });
 
-    const studentPrefLimit = normalizeLimit(
-      studentProfile?.settings?.autopilotLimit,
-      5,
-      { min: 0, max: 200 },
-    );
+      console.log(`[Autopilot] ${agent.agentName} agentLimit: ${agentLimit}`);
+      console.log(`[Autopilot] ${agent.agentName} foundToday: ${foundToday}`);
 
-    const effectiveMaxLimit =
-      userPlanLimit === -1
-        ? studentPrefLimit
-        : Math.min(userPlanLimit, studentPrefLimit);
+      const remaining = Math.max(0, agentLimit - foundToday);
 
-    let remainingForStudent;
-    if (userPlanLimit === -1) {
-      // If unlimited plan limit, rely solely on the student preference
-      remainingForStudent = Math.max(0, studentPrefLimit - userUsageCount);
-    } else {
-      // Otherwise, pick whichever constraint is stricter
-      remainingForStudent = Math.max(0, effectiveMaxLimit - userUsageCount);
-    }
+      console.log(`[Autopilot] ${agent.agentName} remaining: ${remaining}`);
 
-    if (remainingForStudent <= 0) {
-      console.log(
-        `[AutopilotWorker] Skipping student ${studentIdStr}: Limit reached. Plan Limit: ${userPlanLimit}, Pref Limit: ${studentPrefLimit}, Usage: ${userUsageCount}`,
+      if (remaining === 0) {
+        if (process.env.DEBUG_AUTOPILOT === '1') {
+          console.log(`[Autopilot] ${agent.agentName} limit reached`);
+        }
+        continue;
+      }
+
+      // -------- build exclusion set --------
+
+      const [applied, pending, discovered] = await Promise.all([
+        AppliedJob.find({ student: studentId }).select('job').lean(),
+        StudentApplication.find({ student: studentId }).select('job').lean(),
+        AgentFoundJob.find({ student: studentId }).select('job').lean(),
+      ]);
+
+      const excludedIds = new Set([
+        ...applied.map((x) => String(x.job)),
+        ...pending.map((x) => String(x.job)),
+        ...discovered.map((x) => String(x.job)),
+      ]);
+
+      // -------- agent config --------
+
+      const agentConfig = {
+        jobTitle: agent.jobTitle,
+        country: agent.country,
+        isRemote: agent.isRemote,
+        employmentType: agent.employmentType,
+      };
+
+      const effectiveStudent = buildEffectiveStudentProfile(
+        studentProfile,
+        agent,
       );
-      continue;
-    }
 
-    for (const agent of agents) {
-      if (remainingForStudent <= 0) break;
+      // -------- fetch jobs (local first) --------
 
-      try {
-        const [appliedJobs, pendingApplications] = await Promise.all([
-          AppliedJob.find({ student: studentId }).select({ job: 1 }).lean(),
-          StudentApplication.find({ student: studentId })
-            .select({ job: 1 })
-            .lean(),
-        ]);
+      const searchLimit = remaining * 4;
 
-        const appliedJobIds = [
-          ...new Set([
-            ...appliedJobs.map((j) => j.job?.toString()).filter(Boolean),
-            ...pendingApplications
-              .map((j) => j.job?.toString())
-              .filter(Boolean),
-          ]),
-        ].map((id) => new mongoose.Types.ObjectId(id));
+      let jobs = await getRecommendedJobs({
+        studentId,
+        agentConfig,
+        studentProfile: effectiveStudent,
+        appliedJobIds: [...excludedIds],
+        limit: searchLimit,
+        skipExternalFetch: true,
+        skipCacheForAgent: true,
+      });
 
-        const agentConfig = {
-          jobTitle: agent.jobTitle,
-          country: agent.country,
-          isRemote: agent.isRemote,
-          employmentType: agent.employmentType,
+      // -------- fallback to RapidAPI --------
+
+      if (jobs.length < remaining) {
+        // Relax filters: remove employment type
+        const relaxedConfig = {
+          ...agentConfig,
+          employmentType: undefined,
         };
-        const effectiveStudent = buildEffectiveStudentProfile(
-          studentProfile,
-          agent,
-        );
 
-        const agentCap = normalizeLimit(agent.agentDailyLimit, 3, {
-          min: 0,
-          max: 50,
-        });
-        const batchSize = Math.min(remainingForStudent, agentCap);
-
-        if (batchSize <= 0) continue;
-
-        const recommendedJobs = await getRecommendedJobs({
+        let fallbackJobs = await getRecommendedJobs({
           studentId,
-          agentConfig,
+          agentConfig: relaxedConfig,
           studentProfile: effectiveStudent,
-          appliedJobIds,
-          limit: Math.max(batchSize, 20), // Find more jobs for user to review (min 20)
-          skipExternalFetch: true, // avoid RapidAPI 429 when processing many students
+          appliedJobIds: [...excludedIds],
+          limit: searchLimit,
+          skipExternalFetch: false,
         });
 
-        if (!recommendedJobs.length) continue;
+        // If still small, remove country restriction
+        if (fallbackJobs.length < remaining) {
+          const globalConfig = {
+            ...relaxedConfig,
+            country: undefined,
+          };
 
-        // Find-only mode: store jobs by date (don't overwrite), don't auto-apply.
-        // Set AUTOPILOT_AUTO_APPLY=true to restore automatic application.
-        if (!toBool(process.env.AUTOPILOT_AUTO_APPLY || 'false')) {
-          if (agent._id) {
-            for (const job of recommendedJobs) {
-              await AgentFoundJob.findOneAndUpdate(
-                { student: studentId, agent: agent._id, job: job._id },
-                { $setOnInsert: { foundAt: new Date() } },
-                { upsert: true },
-              ).catch(() => {});
-            }
-          }
-          if (process.env.DEBUG_AUTOPILOT === '1') {
-            console.log(
-              `[AutopilotWorker] Stored ${recommendedJobs.length} jobs for agent "${agent.agentName}" (find-only, categorized by date)`,
-            );
-          }
-          continue;
+          const globalJobs = await getRecommendedJobs({
+            studentId,
+            agentConfig: globalConfig,
+            studentProfile: effectiveStudent,
+            appliedJobIds: [...excludedIds],
+            limit: searchLimit,
+            skipExternalFetch: false,
+          });
+
+          fallbackJobs = [...fallbackJobs, ...globalJobs];
         }
 
-        if (!toBool(process.env.AUTOGEN_TAILORED || 'false')) continue;
+        const jobMap = new Map();
 
-        const concurrency = Math.max(
-          1,
-          toInt(process.env.AUTOGEN_CONCURRENCY, 3) || 3,
-        );
+        [...jobs, ...fallbackJobs].forEach((j) => {
+          jobMap.set(String(j._id), j);
+        });
 
-        await runWithConcurrency(
-          recommendedJobs,
-          async (job) => {
-            if (remainingForStudent <= 0) return;
+        jobs = Array.from(jobMap.values());
+        jobs.sort(() => Math.random() - 0.5);
+      }
 
-            const alreadyExists = await AppliedJob.exists({
-              student: studentId,
-              job: job._id,
-            });
-            if (alreadyExists) return;
+      console.log(`[Autopilot] ${agent.agentName} jobs: ${jobs.length}`);
 
-            const existingDraft = await StudentApplication.findOne({
-              student: studentId,
-              job: job._id,
-            });
-            if (existingDraft) return;
+      if (!jobs.length) continue;
 
-            let application;
-            try {
-              application = await StudentApplication.create({
-                student: studentId,
-                job: job._id,
-                jobTitle: job.title,
-                jobCompany: job.company,
-                jobDescription: job.description,
-                status: 'Draft',
-              });
-            } catch (createErr) {
-              if (createErr?.code === 11000) return;
-              throw createErr;
-            }
+      // -------- store jobs safely --------
 
-            const applicationData = buildApplicationData(
-              job,
-              effectiveStudent,
-              '',
-            );
+      let stored = 0;
 
-            const success = await processTailoredApplication(
-              studentId,
-              application._id,
-              applicationData,
-              null,
-            );
+      for (const job of jobs) {
+        if (stored >= remaining) break;
 
-            if (!success) return;
+        if (excludedIds.has(String(job._id))) continue;
 
-            await User.updateOne(
-              { _id: studentId },
-              { $inc: { 'usageCounters.aiAutoApplyDailyLimit': 1 } },
-            );
+        try {
+          await AgentFoundJob.create({
+            student: studentId,
+            agent: agent._id,
+            job: job._id,
+            foundAt: new Date(),
+          });
 
-            remainingForStudent--;
-            totalProcessed++;
+          stored++;
+          processed++;
+        } catch (err) {
+          // ignore duplicate index errors
+          if (err.code !== 11000) {
+            console.error('Job insert error:', err.message);
+          }
+        }
+      }
 
-            await AppliedJob.create({
-              student: studentId,
-              job: job._id,
-              applicationMethod: 'AUTOPILOT',
-              status: 'APPLIED',
-            });
-          },
-          concurrency,
-        );
-      } catch (error) {
-        console.error(
-          `❌ Failed agent "${agent.agentName}":`,
-          error?.message || error,
+      if (process.env.DEBUG_AUTOPILOT === '1') {
+        console.log(
+          `[Autopilot] ${agent.agentName} stored ${stored}/${remaining}`,
         );
       }
+    } catch (err) {
+      console.error(`Autopilot agent failed (${agent.agentName})`, err.message);
     }
   }
 
-  return { processed: totalProcessed, studentsChecked: totalStudents };
+  return {
+    processed,
+    agentsChecked: activeAgents.length,
+  };
 };

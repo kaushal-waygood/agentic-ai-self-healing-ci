@@ -1,4 +1,3 @@
-// src/utils/getRecommendedJobs.js
 import mongoose from 'mongoose';
 import { Student } from '../models/students/student.model.js';
 import {
@@ -11,10 +10,6 @@ import {
 
 const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 
-/**
- * Extract profile.titles and profile.skills from student/studentProfile for jobHelpers context.
- * Used for accurate vector search and intent-based ranking.
- */
 function extractProfileFromStudent(student) {
   const titles = new Set();
   const skills = new Set();
@@ -45,9 +40,6 @@ function extractProfileFromStudent(student) {
   };
 }
 
-/**
- * Build search query string from student profile for keyword/vector search.
- */
 function buildSearchQuery(student, agentConfig) {
   const parts = [];
   const role = agentConfig?.jobTitle || student?.jobRole;
@@ -176,7 +168,6 @@ export const getRecommendedJobs = async ({
       isRemote: !!job.remote,
       rankScore: job.rankScore,
     }));
-    console.log('[Recommended Preview]', preview);
   }
 
   return jobs;
