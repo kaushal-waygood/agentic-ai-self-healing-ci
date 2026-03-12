@@ -22,6 +22,7 @@ import { useSelector } from 'react-redux';
 import HeroSection from './HeroSection';
 import apiInstance from '@/services/api';
 import { Button } from '../ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 // --- VERIFICATION MODAL COMPONENT ---
 const VerificationModal = ({
@@ -34,6 +35,7 @@ const VerificationModal = ({
   user: any;
 }) => {
   const router = useRouter();
+  const { toast } = useToast();
   const [isVerifying, setIsVerifying] = useState(false);
   const [data, setData] = useState<VerificationData>({
     method: 'email',
@@ -63,6 +65,7 @@ const VerificationModal = ({
       );
       if (verifyRes.status === 200) {
         await apiInstance.post('/students/activate-student-plan');
+        toast({ title: 'Verification submitted successfully!' });
         onClose();
         // router.push('/dashboard');
       }
