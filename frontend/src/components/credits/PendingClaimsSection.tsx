@@ -33,7 +33,7 @@ export function PendingClaimsSection({
       </h2>
 
       {pendingClaims.length === 0 ? (
-        <div className="bg-white/80 backdrop-blur border border-gray-200 rounded-lg p-10 text-center shadow-sm">
+        <div className="bg-white/80 backdrop-blur border border-gray-200 rounded-lg p-10 text-center -sm">
           <p className="text-gray-500 text-sm">
             No pending claims available at the moment
           </p>
@@ -55,7 +55,7 @@ export function PendingClaimsSection({
                 group bg-white/90 backdrop-blur
                 border border-gray-200 rounded-lg p-5
                 transition-all duration-300
-                hover:-translate-y-0.5 hover:shadow-xl hover:border-gray-300
+                hover:-translate-y-0.5 hover:-xl hover:border-gray-300
               "
               >
                 <div className="flex items-start justify-between gap-6">
@@ -97,7 +97,7 @@ export function PendingClaimsSection({
                           ? `
                             bg-gradient-to-r from-blue-600 to-blue-700
                             text-white
-                            hover:shadow-lg hover:shadow-blue-500/30
+                            hover:-lg hover:-blue-500/30
                             active:scale-95
                           `
                           : 'bg-gray-100 text-gray-400 cursor-not-allowed'
