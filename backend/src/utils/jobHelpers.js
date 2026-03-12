@@ -646,7 +646,12 @@ export function applyFilters(jobs, context) {
       const titleLower = job.title.toLowerCase();
       const hasTokenMatch = queryTokens.some((t) => {
         if (titleLower.includes(t)) return true;
-        if (t === 'hr' && titleLower.includes('human') && titleLower.includes('resource')) return true;
+        if (
+          t === 'hr' &&
+          titleLower.includes('human') &&
+          titleLower.includes('resource')
+        )
+          return true;
         return false;
       });
       if (!hasTokenMatch) return false;
@@ -838,8 +843,7 @@ export async function retrieveCandidates(context, limit = 300) {
   // Fetch from RapidAPI when local pool is too small (or empty when skipExternalFetch)
   const needsExternalFetch =
     !context.skipExternalFetch && finalPool.length < MIN_POOL;
-  const fallbackWhenEmpty =
-    context.skipExternalFetch && finalPool.length === 0;
+  const fallbackWhenEmpty = context.skipExternalFetch && finalPool.length === 0;
 
   if (needsExternalFetch || fallbackWhenEmpty) {
     const employmentType = normalizeEmploymentTypeForApi(
@@ -1007,7 +1011,9 @@ async function keywordSearch(context, limit = 100, dateFilter = {}) {
 async function vectorSearch(context, limit = 100, dateFilter = {}) {
   const titles = context.profile?.titles?.join(' ') || '';
   const skills = context.profile?.skills?.join(' ') || '';
-  const rawInput = context.query || `${titles} ${skills}`.trim();
+  // const rawInput = context.query || `${titles} ${skills}`.trim();
+  const rawInput =
+    context.queryOverride || context.query || `${titles} ${skills}`;
   const input = stripYearTokens(rawInput) || rawInput;
 
   if (!input) return [];
@@ -1079,7 +1085,12 @@ export function rankJobs(jobs, context) {
           const matchCount = queryTokens.filter((token) => {
             if (titleLower.includes(token)) return true;
             // "hr" -> also match "human resource(s)" in title
-            if (token === 'hr' && titleLower.includes('human') && titleLower.includes('resource')) return true;
+            if (
+              token === 'hr' &&
+              titleLower.includes('human') &&
+              titleLower.includes('resource')
+            )
+              return true;
             return false;
           }).length;
 

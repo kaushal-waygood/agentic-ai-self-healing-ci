@@ -141,6 +141,8 @@ export const findAndProcessJobs = async () => {
         employmentType: agent.employmentType,
       };
 
+      console.log(agentConfig);
+
       const effectiveStudent = buildEffectiveStudentProfile(
         studentProfile,
         agent,
@@ -149,11 +151,16 @@ export const findAndProcessJobs = async () => {
       // -------- fetch jobs (local first) --------
 
       const searchLimit = remaining * 4;
+      const agentQuery = agent.jobTitle || '';
 
       let jobs = await getRecommendedJobs({
         studentId,
         agentConfig,
-        studentProfile: effectiveStudent,
+        studentProfile: {
+          ...effectiveStudent,
+          titles: [agentQuery], // override titles
+        },
+        queryOverride: agentQuery,
         appliedJobIds: [...excludedIds],
         limit: searchLimit,
         skipExternalFetch: true,
@@ -161,6 +168,8 @@ export const findAndProcessJobs = async () => {
       });
 
       // -------- fallback to RapidAPI --------
+
+      console.log(jobs.length);
 
       if (jobs.length < remaining) {
         // Relax filters: remove employment type
