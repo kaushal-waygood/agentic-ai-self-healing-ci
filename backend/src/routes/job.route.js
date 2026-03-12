@@ -32,6 +32,7 @@ import {
   candidatesOrganization,
   getJobCandidateStats,
   getAllAppliedJobList,
+  scrapeRecruitmentEmails,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -44,6 +45,13 @@ import { getDashboardTopJobs } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 
 const router = Router();
+
+router.post(
+  '/scrape-emails',
+  authMiddleware,
+  isGeneralUser,
+  scrapeRecruitmentEmails,
+);
 
 router.get('/get-jobs', authMiddleware, isGeneralUser, getAllAppliedJobList);
 router.post('/mannual', authMiddleware, isAnyAdmin, postManualJob);

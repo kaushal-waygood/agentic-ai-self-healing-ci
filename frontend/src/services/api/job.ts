@@ -105,3 +105,11 @@ export const getRecommendJobs = async (params: {
   );
   return response;
 };
+
+export const scrapeRecruitmentEmail = async (params: {
+  company: string;
+  location?: string | { city?: string; state?: string; country?: string };
+}) => {
+  const response = await apiInstance.post('/jobs/scrape-emails', params);
+  return response.data;
+};

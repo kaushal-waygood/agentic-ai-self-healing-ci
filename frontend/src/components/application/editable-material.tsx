@@ -10,6 +10,8 @@ import {
   Minimize2,
   FileText,
   Mail,
+  Search,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -47,6 +49,16 @@ interface EditableMaterialProps {
   defaultSubject?: string;
   /** Default email body (plain text or HTML) for the send-email dialog */
   defaultBodyHtml?: string;
+  /** Company name for "Find Email" lookup */
+  companyName?: string;
+  /** Location (string or object) for "Find Email" lookup */
+  location?: string | { city?: string; state?: string; country?: string };
+  /** Job ID for "Generate Email Draft" (preferred when available) */
+  jobId?: string;
+  /** Job title for "Generate Email Draft" */
+  jobTitle?: string;
+  /** Job description for "Generate Email Draft" */
+  jobDescription?: string;
 }
 
 const EditableMaterial: FC<EditableMaterialProps> = ({
@@ -60,12 +72,21 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   sendEmailHint,
   defaultSubject = '',
   defaultBodyHtml = '',
+  companyName,
+  location,
+  jobId,
+  jobTitle,
+  jobDescription,
 }) => {
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = useState(false);
   const [recruiterEmailInput, setRecruiterEmailInput] = useState('');
   const [subjectInput, setSubjectInput] = useState('');
   const [bodyInput, setBodyInput] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isFindingEmail, setIsFindingEmail] = useState(false);
+  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+  const [generatedSubject, setGeneratedSubject] = useState<string | null>(null);
+  const [generatedBodyHtml, setGeneratedBodyHtml] = useState<string | null>(null);
 
   const { editorRef, containerRef, state, actions } = useEditableMaterial({
     content,
@@ -90,9 +111,80 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
   const handleSendEmailClick = () => {
     setRecruiterEmailInput('');
-    setSubjectInput(defaultSubject);
-    setBodyInput(defaultBodyHtml ? stripHtml(defaultBodyHtml) : '');
+    setSubjectInput(generatedSubject ?? defaultSubject);
+    setBodyInput(
+      generatedBodyHtml
+        ? stripHtml(generatedBodyHtml)
+        : defaultBodyHtml
+          ? stripHtml(defaultBodyHtml)
+          : '',
+    );
     setIsSendEmailDialogOpen(true);
+  };
+
+  const canGenerateDraft = Boolean(
+    onSendEmail && (jobId || (companyName?.trim() && jobTitle?.trim())),
+  );
+
+  const handleGenerateEmailDraft = async () => {
+    if (!canGenerateDraft) return;
+    if (!jobId && (!companyName?.trim() || !jobTitle?.trim())) {
+      toast({
+        variant: 'destructive',
+        title: 'Company name and job title are required to generate email draft',
+      });
+      return;
+    }
+    setIsGeneratingDraft(true);
+    try {
+      const { generateEmailDraft } = await import('@/services/api/ai');
+      const result = await generateEmailDraft({
+        ...(jobId ? { jobId } : {}),
+        ...(!jobId && companyName && jobTitle
+          ? { jobTitle, companyName, jobDescription }
+          : {}),
+      });
+      const draft = result?.emailDraft ?? result;
+      if (draft?.bodyHtml) {
+        setContent(draft.bodyHtml);
+        setGeneratedSubject(draft.subject ?? null);
+        setGeneratedBodyHtml(draft.bodyHtml);
+        setSubjectInput(draft.subject ?? '');
+        setBodyInput(stripHtml(draft.bodyHtml));
+        toast({ title: 'Email draft generated' });
+      } else {
+        toast({ variant: 'destructive', title: 'Could not generate email draft' });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Failed to generate email draft' });
+    } finally {
+      setIsGeneratingDraft(false);
+    }
+  };
+
+  const handleFindEmail = async () => {
+    if (!companyName?.trim()) {
+      toast({ variant: 'destructive', title: 'Company name is required to find email' });
+      return;
+    }
+    setIsFindingEmail(true);
+    try {
+      const { scrapeRecruitmentEmail } = await import('@/services/api/job');
+      const { email } = await scrapeRecruitmentEmail({
+        company: companyName.trim(),
+        location: location ?? undefined,
+      });
+      if (email) {
+        setRecruiterEmailInput(email);
+        toast({ title: 'Email found' });
+      } else {
+        toast({ variant: 'destructive', title: 'Could not find recruitment email' });
+      }
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Failed to find email' });
+    } finally {
+      setIsFindingEmail(false);
+    }
   };
 
   const handleSendEmailConfirm = async () => {
@@ -235,6 +327,25 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           {onSendEmail && (
             <>
               <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+              {canGenerateDraft && (
+                <button
+                  onClick={handleGenerateEmailDraft}
+                  disabled={state.isEditing || isGeneratingDraft}
+                  title={
+                    state.isEditing
+                      ? 'Confirm edits to enable generation'
+                      : 'Generate email draft with AI'
+                  }
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-violet-600"
+                >
+                  {isGeneratingDraft ? (
+                    <Loader2 className="animate-spin" size={16} />
+                  ) : (
+                    <Sparkles size={16} />
+                  )}
+                  <span className="hidden sm:inline">Generate Email Draft</span>
+                </button>
+              )}
               <button
                 onClick={handleSendEmailClick}
                 disabled={state.isEditing}
@@ -315,16 +426,53 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           <div className="space-y-3 py-2">
             <div>
               <label className="text-sm font-medium text-slate-700 mb-1 block">To</label>
-              <Input
-                type="email"
-                placeholder="recruiter@company.com"
-                value={recruiterEmailInput}
-                onChange={(e) => setRecruiterEmailInput(e.target.value)}
-                disabled={isSendingEmail}
-              />
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="recruiter@company.com"
+                  value={recruiterEmailInput}
+                  onChange={(e) => setRecruiterEmailInput(e.target.value)}
+                  disabled={isSendingEmail}
+                  className="flex-1"
+                />
+                {companyName && onSendEmail && (
+                  <button
+                    type="button"
+                    onClick={handleFindEmail}
+                    disabled={isFindingEmail || isSendingEmail}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    title="Find recruitment email by company and location"
+                  >
+                    {isFindingEmail ? (
+                      <Loader2 className="animate-spin" size={16} />
+                    ) : (
+                      <Search size={16} />
+                    )}
+                    Find
+                  </button>
+                )}
+              </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 mb-1 block">Subject</label>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <label className="text-sm font-medium text-slate-700">Subject</label>
+                {canGenerateDraft && (
+                  <button
+                    type="button"
+                    onClick={handleGenerateEmailDraft}
+                    disabled={isGeneratingDraft || isSendingEmail}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-violet-100 text-violet-700 hover:bg-violet-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    title="Generate subject and message with AI"
+                  >
+                    {isGeneratingDraft ? (
+                      <Loader2 className="animate-spin" size={14} />
+                    ) : (
+                      <Sparkles size={14} />
+                    )}
+                    Generate Email Draft
+                  </button>
+                )}
+              </div>
               <Input
                 placeholder="Job Application"
                 value={subjectInput}

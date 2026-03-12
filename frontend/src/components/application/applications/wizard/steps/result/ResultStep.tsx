@@ -328,6 +328,11 @@ const ResultStep = ({
                   }
                   defaultBodyHtml="Please find my CV attached."
                   sendEmailHint="CV only"
+                  companyName={jobContext && 'companyName' in jobContext ? jobContext.companyName : undefined}
+                  location={jobContext && 'location' in jobContext ? jobContext.location : undefined}
+                  jobId={jobContext?.mode === 'select' ? jobContext.jobId : undefined}
+                  jobTitle={jobContext && 'jobTitle' in jobContext ? jobContext.jobTitle : undefined}
+                  jobDescription={jobContext && 'jobDescription' in jobContext ? jobContext.jobDescription : undefined}
                 />
               </div>
             </div>
@@ -369,6 +374,11 @@ const ResultStep = ({
                 }
                 defaultBodyHtml="Please find my cover letter attached."
                 sendEmailHint="Cover letter only"
+                companyName={jobContext && 'companyName' in jobContext ? jobContext.companyName : undefined}
+                location={jobContext && 'location' in jobContext ? jobContext.location : undefined}
+                jobId={jobContext?.mode === 'select' ? jobContext.jobId : undefined}
+                jobTitle={jobContext && 'jobTitle' in jobContext ? jobContext.jobTitle : undefined}
+                jobDescription={jobContext && 'jobDescription' in jobContext ? jobContext.jobDescription : undefined}
               />
             </div>
           </div>
@@ -428,6 +438,11 @@ const ResultStep = ({
                 }
                 defaultBodyHtml={emailDraft}
                 sendEmailHint="CV + Cover Letter + Email draft"
+                companyName={jobContext && 'companyName' in jobContext ? jobContext.companyName : undefined}
+                location={jobContext && 'location' in jobContext ? jobContext.location : undefined}
+                jobId={jobContext?.mode === 'select' ? jobContext.jobId : undefined}
+                jobTitle={jobContext && 'jobTitle' in jobContext ? jobContext.jobTitle : undefined}
+                jobDescription={jobContext && 'jobDescription' in jobContext ? jobContext.jobDescription : undefined}
               />
             </div>
           </div>

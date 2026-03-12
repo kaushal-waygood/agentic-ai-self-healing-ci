@@ -39,6 +39,7 @@ import { uploadBufferToCloudinary } from '../middlewares/multer.js';
 import { wrapCVHtml } from '../utils/cvTemplate.js';
 import { StudentCoverLetter } from '../models/students/studentCoverLetter.model.js';
 import fs from 'fs'; // Required to read the uploaded files
+import { runEmailScrape } from '../config/geminiCron.js';
 
 // --- Constants ---
 const SEARCH_TTL = 120; // seconds
@@ -240,7 +241,8 @@ export async function searchJobs(req, res) {
 
     // Cache key for the search pool — all pages of the same search
     // share the same diversified pool so pagination is consistent.
-    const poolCacheKey = `search:pool:${crypto
+    // v2: bumped to invalidate stale pools after title-match ranking fix
+    const poolCacheKey = `search:pool:v2:${crypto
       .createHash('md5')
       .update(
         `${context.query}:${country || ''}:${state || ''}:${city || ''}:${employmentType || ''}`,
@@ -253,7 +255,8 @@ export async function searchJobs(req, res) {
         const cached = await redisClient.get(poolCacheKey);
         if (cached) {
           const pool = JSON.parse(cached);
-          const jobs = await attachJobViews(pool.slice(skip, skip + limitNum));
+          const slice = pool.slice(skip, skip + limitNum);
+          const jobs = await attachJobViews(slice);
           return res.status(200).json({
             success: true,
             jobs,
@@ -2083,5 +2086,36 @@ export const applyJob = async (req, res) => {
     }
     console.error(error);
     return res.status(500).json({ message: 'Failed to apply for job' });
+  }
+};
+
+export const scrapeRecruitmentEmails = async (req, res) => {
+  const { company, location } = req.body || {};
+  console.log('COMPANY LOCATION', company, location);
+  if (!company || typeof company !== 'string') {
+    return res.status(400).json({
+      success: false,
+      message: 'company is required (string)',
+    });
+  }
+  try {
+    const { runEmailScrape } = await import('../config/geminiCron.js');
+    const { email } = await runEmailScrape(company.trim(), location);
+
+    console.log(email);
+
+    return res.status(200).json({
+      success: true,
+      email,
+    });
+  } catch (err) {
+    if (err.message?.includes('DEEPSEEK_API_KEY')) {
+      return res.status(503).json({
+        success: false,
+        message: 'DEEPSEEK_API_KEY is not configured',
+      });
+    }
+    console.error('[scrapeRecruitmentEmails]', err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
