@@ -5,7 +5,7 @@ const loginHistorySchema = new Schema(
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false, // Optional for failed attempts when user doesn't exist
       index: true,
     },
 

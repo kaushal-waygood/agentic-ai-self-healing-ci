@@ -1,6 +1,3 @@
-// models/AgentFoundJob.js
-// Stores jobs found by autopilot agents, categorized by date.
-// New finds are added without overwriting existing entries (foundAt preserved).
 import { Schema, model } from 'mongoose';
 
 const agentFoundJobSchema = new Schema(

@@ -10,6 +10,8 @@ import {
   Minimize2,
   FileText,
   Mail,
+  Search,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -47,6 +49,16 @@ interface EditableMaterialProps {
   defaultSubject?: string;
   /** Default email body (plain text or HTML) for the send-email dialog */
   defaultBodyHtml?: string;
+  /** Company name for "Find Email" lookup */
+  companyName?: string;
+  /** Location (string or object) for "Find Email" lookup */
+  location?: string | { city?: string; state?: string; country?: string };
+  /** Job ID for "Generate Email Draft" (preferred when available) */
+  jobId?: string;
+  /** Job title for "Generate Email Draft" */
+  jobTitle?: string;
+  /** Job description for "Generate Email Draft" */
+  jobDescription?: string;
 }
 
 const EditableMaterial: FC<EditableMaterialProps> = ({
@@ -60,12 +72,21 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   sendEmailHint,
   defaultSubject = '',
   defaultBodyHtml = '',
+  companyName,
+  location,
+  jobId,
+  jobTitle,
+  jobDescription,
 }) => {
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = useState(false);
   const [recruiterEmailInput, setRecruiterEmailInput] = useState('');
   const [subjectInput, setSubjectInput] = useState('');
   const [bodyInput, setBodyInput] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isFindingEmail, setIsFindingEmail] = useState(false);
+  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+  const [generatedSubject, setGeneratedSubject] = useState<string | null>(null);
+  const [generatedBodyHtml, setGeneratedBodyHtml] = useState<string | null>(null);
 
   const { editorRef, containerRef, state, actions } = useEditableMaterial({
     content,
@@ -90,9 +111,80 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
   const handleSendEmailClick = () => {
     setRecruiterEmailInput('');
-    setSubjectInput(defaultSubject);
-    setBodyInput(defaultBodyHtml ? stripHtml(defaultBodyHtml) : '');
+    setSubjectInput(generatedSubject ?? defaultSubject);
+    setBodyInput(
+      generatedBodyHtml
+        ? stripHtml(generatedBodyHtml)
+        : defaultBodyHtml
+          ? stripHtml(defaultBodyHtml)
+          : '',
+    );
     setIsSendEmailDialogOpen(true);
+  };
+
+  const canGenerateDraft = Boolean(
+    onSendEmail && (jobId || (companyName?.trim() && jobTitle?.trim())),
+  );
+
+  const handleGenerateEmailDraft = async () => {
+    if (!canGenerateDraft) return;
+    if (!jobId && (!companyName?.trim() || !jobTitle?.trim())) {
+      toast({
+        variant: 'destructive',
+        title: 'Company name and job title are required to generate email draft',
+      });
+      return;
+    }
+    setIsGeneratingDraft(true);
+    try {
+      const { generateEmailDraft } = await import('@/services/api/ai');
+      const result = await generateEmailDraft({
+        ...(jobId ? { jobId } : {}),
+        ...(!jobId && companyName && jobTitle
+          ? { jobTitle, companyName, jobDescription }
+          : {}),
+      });
+      const draft = result?.emailDraft ?? result;
+      if (draft?.bodyHtml) {
+        setContent(draft.bodyHtml);
+        setGeneratedSubject(draft.subject ?? null);
+        setGeneratedBodyHtml(draft.bodyHtml);
+        setSubjectInput(draft.subject ?? '');
+        setBodyInput(stripHtml(draft.bodyHtml));
+        toast({ title: 'Email draft generated' });
+      } else {
+        toast({ variant: 'destructive', title: 'Could not generate email draft' });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Failed to generate email draft' });
+    } finally {
+      setIsGeneratingDraft(false);
+    }
+  };
+
+  const handleFindEmail = async () => {
+    if (!companyName?.trim()) {
+      toast({ variant: 'destructive', title: 'Company name is required to find email' });
+      return;
+    }
+    setIsFindingEmail(true);
+    try {
+      const { scrapeRecruitmentEmail } = await import('@/services/api/job');
+      const { email } = await scrapeRecruitmentEmail({
+        company: companyName.trim(),
+        location: location ?? undefined,
+      });
+      if (email) {
+        setRecruiterEmailInput(email);
+        toast({ title: 'Email found' });
+      } else {
+        toast({ variant: 'destructive', title: 'Could not find recruitment email' });
+      }
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Failed to find email' });
+    } finally {
+      setIsFindingEmail(false);
+    }
   };
 
   const handleSendEmailConfirm = async () => {
@@ -130,7 +222,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       } ${className}`}
     >
       {/* Header Toolbar */}
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 bg-white rounded-t-xl sticky top-0 z-20 shadow-sm">
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 px-4 sm:px-6 py-3.5 bg-white rounded-t-xl sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-3">
           {state.isEditing ? (
             <Edit3 className="w-5 h-5 text-blue-500 shrink-0" />
@@ -140,9 +232,9 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           <h3 className="font-bold text-gray-700">{title}</h3>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           {state.isEditing && (
-            <div className="hidden xl:block border-r border-gray-200 pr-3 mr-2">
+            <div className="hidden xl:block border-r border-gray-200 pr-4 mr-1">
               <EditorToolbar
                 onFontFamily={(f) => actions.execCommand('fontName', f)}
                 onFontSize={(n) => actions.applyFontSize(String(n))}
@@ -165,7 +257,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           {/* Edit / Confirm - primary action */}
           <button
             onClick={actions.toggleEdit}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors active:scale-[0.98] ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors active:scale-[0.98] ${
               state.isEditing
                 ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
                 : 'bg-slate-800 text-white hover:bg-slate-900 shadow-sm'
@@ -175,9 +267,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             {state.isEditing ? 'Confirm Edits' : 'Edit Document'}
           </button>
 
+          <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+
           <button
             onClick={actions.toggleImages}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
               state.showImages
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -191,7 +285,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           <button
             onClick={() => actions.setIsNamingDialogDisplayed(true)}
             disabled={!state.hasChanges || state.isLoading}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
               state.hasChanges
                 ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -201,13 +295,13 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             <Save size={16} /> Final Save
           </button>
 
-          {/* Download buttons - disabled when editing */}
-          <div className="h-5 w-px bg-gray-200 hidden sm:block" aria-hidden />
+          <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+
           <button
             onClick={() => actions.exportFile('pdf')}
             disabled={!!state.loadingType || state.isEditing}
             title={state.isEditing ? 'Confirm edits to enable download' : 'Download as PDF'}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50"
           >
             {state.loadingType === 'pdf' ? (
               <Loader2 className="animate-spin shrink-0" size={16} />
@@ -220,7 +314,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             onClick={() => actions.exportFile('docx')}
             disabled={!!state.loadingType || state.isEditing}
             title={state.isEditing ? 'Confirm edits to enable download' : 'Download as DOCX'}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-50"
           >
             {state.loadingType === 'docx' ? (
               <Loader2 className="animate-spin shrink-0" size={16} />
@@ -231,20 +325,44 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           </button>
 
           {onSendEmail && (
-            <button
-              onClick={handleSendEmailClick}
-              disabled={state.isEditing}
-              title={state.isEditing ? 'Confirm edits to enable send' : 'Send to recruiter'}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
-            >
-              <Mail size={16} />
-              <span className="hidden sm:inline">Send to Recruiter</span>
-            </button>
+            <>
+              <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+              {canGenerateDraft && (
+                <button
+                  onClick={handleGenerateEmailDraft}
+                  disabled={state.isEditing || isGeneratingDraft}
+                  title={
+                    state.isEditing
+                      ? 'Confirm edits to enable generation'
+                      : 'Generate email draft with AI'
+                  }
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-violet-600"
+                >
+                  {isGeneratingDraft ? (
+                    <Loader2 className="animate-spin" size={16} />
+                  ) : (
+                    <Sparkles size={16} />
+                  )}
+                  <span className="hidden sm:inline">Generate Email Draft</span>
+                </button>
+              )}
+              <button
+                onClick={handleSendEmailClick}
+                disabled={state.isEditing}
+                title={state.isEditing ? 'Confirm edits to enable send' : 'Send to recruiter'}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
+              >
+                <Mail size={16} />
+                <span className="hidden sm:inline">Send to Recruiter</span>
+              </button>
+            </>
           )}
+
+          <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
 
           <button
             onClick={actions.toggleFullscreen}
-            className="p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded-lg transition-colors"
+            className="p-2.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded-lg transition-colors"
             title={state.isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           >
             {state.isFullscreen ? (
@@ -258,6 +376,12 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
       {/* Editor Main Canvas */}
       <main className="flex-grow overflow-y-auto p-4 md:p-8 bg-gray-200/50 custom-scrollbar">
+        {/* Base font for all templates - consistent default across CV/CL (templates can override) */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `.resume-editor-canvas { font-family: Arial, Helvetica, "Segoe UI", sans-serif; }`,
+          }}
+        />
         {template?.style && (
           <style dangerouslySetInnerHTML={{ __html: template.style }} />
         )}
@@ -266,8 +390,9 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           ref={editorRef}
           contentEditable={state.isEditing}
           onInput={actions.handleInput}
+          onKeyDown={state.isEditing ? actions.handleEditorKeyDown : undefined}
           suppressContentEditableWarning
-          className={`mx-auto bg-white shadow-sm transition-all duration-300 ${
+          className={`resume-editor-canvas mx-auto bg-white shadow-sm transition-all duration-300 ${
             state.isEditing ? 'ring-2 ring-blue-200 ring-offset-2' : ''
           } ${!state.showImages ? 'hide-editor-images' : ''} w-full max-w-[210mm] focus:outline-none p-[15mm] md:p-[20mm] min-h-[297mm]`}
         />
@@ -301,16 +426,53 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           <div className="space-y-3 py-2">
             <div>
               <label className="text-sm font-medium text-slate-700 mb-1 block">To</label>
-              <Input
-                type="email"
-                placeholder="recruiter@company.com"
-                value={recruiterEmailInput}
-                onChange={(e) => setRecruiterEmailInput(e.target.value)}
-                disabled={isSendingEmail}
-              />
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="recruiter@company.com"
+                  value={recruiterEmailInput}
+                  onChange={(e) => setRecruiterEmailInput(e.target.value)}
+                  disabled={isSendingEmail}
+                  className="flex-1"
+                />
+                {companyName && onSendEmail && (
+                  <button
+                    type="button"
+                    onClick={handleFindEmail}
+                    disabled={isFindingEmail || isSendingEmail}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    title="Find recruitment email by company and location"
+                  >
+                    {isFindingEmail ? (
+                      <Loader2 className="animate-spin" size={16} />
+                    ) : (
+                      <Search size={16} />
+                    )}
+                    Find
+                  </button>
+                )}
+              </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 mb-1 block">Subject</label>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <label className="text-sm font-medium text-slate-700">Subject</label>
+                {canGenerateDraft && (
+                  <button
+                    type="button"
+                    onClick={handleGenerateEmailDraft}
+                    disabled={isGeneratingDraft || isSendingEmail}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-violet-100 text-violet-700 hover:bg-violet-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    title="Generate subject and message with AI"
+                  >
+                    {isGeneratingDraft ? (
+                      <Loader2 className="animate-spin" size={14} />
+                    ) : (
+                      <Sparkles size={14} />
+                    )}
+                    Generate Email Draft
+                  </button>
+                )}
+              </div>
               <Input
                 placeholder="Job Application"
                 value={subjectInput}

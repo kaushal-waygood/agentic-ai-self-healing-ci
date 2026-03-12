@@ -33,6 +33,9 @@ import {
   getStudentEducationRequest,
 } from '@/redux/reducers/studentReducer';
 import { useToast } from '@/hooks/use-toast';
+import { SimplePhoneInput } from '@/components/common/SimplePhoneInput';
+import 'react-phone-number-input/style.css';
+import { isValidPhoneNumber } from 'react-phone-number-input';
 
 const SideSectionProfile = () => {
   const {
@@ -67,6 +70,12 @@ const SideSectionProfile = () => {
       setPreview(profile.avatar || '');
     }
   }, [localIsModalOpen, profile]);
+
+  useEffect(() => {
+    if (localFormData.phone && isValidPhoneNumber(localFormData.phone)) {
+      setErrors((prev) => ({ ...prev, phone: '' }));
+    }
+  }, [localFormData.phone]);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -228,14 +237,13 @@ const SideSectionProfile = () => {
     //   newErrors.phone = 'Phone must be exactly 10 digits.';
     //   isValid = false;
     // }
-    if (!localFormData.phone.trim()) {
+    // if (!localFormData.phone.trim()) {
+    if (!localFormData.phone) {
       newErrors.phone = 'Phone number is required.';
       isValid = false;
-    } else if (!/^\d+$/.test(localFormData.phone)) {
-      newErrors.phone = 'Phone number must contain only digits.';
-      isValid = false;
-    } else if (localFormData.phone.length !== 10) {
-      newErrors.phone = 'Phone must be exactly 10 digits.';
+      // } else if (!/^\d+$/.test(localFormData.phone)) {
+    } else if (!isValidPhoneNumber(localFormData.phone)) {
+      newErrors.phone = 'Please enter a valid international phone number.';
       isValid = false;
     }
 
@@ -482,7 +490,7 @@ const SideSectionProfile = () => {
               <label className="text-xs font-bold uppercase text-gray-500">
                 Phone
               </label>
-              <Input
+              {/* <Input
                 name="phone"
                 value={localFormData.phone || ''}
                 onChange={onChange}
@@ -490,6 +498,12 @@ const SideSectionProfile = () => {
                   errors.phone
                     ? 'border-red-500 focus-visible:ring-red-500'
                     : ''
+                }
+              /> */}
+              <SimplePhoneInput
+                value={localFormData.phone || ''}
+                onChange={(phone) =>
+                  setLocalFormData((prev) => ({ ...prev, phone }))
                 }
               />
               {errors.phone && (

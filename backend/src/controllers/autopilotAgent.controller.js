@@ -23,6 +23,7 @@ import { buildEffectiveStudentProfile } from '../utils/profileHydration.js';
 import { getRecommendedJobs } from '../utils/getRecommendedJobs.js';
 import { buildApplicationData } from '../worker/autopilotWorker.js';
 import { processTailoredApplication } from '../utils/tailoredApply.background.js';
+import { AgentFoundJob } from '../models/AgentFoundJob.js';
 
 // ----------------- helpers -----------------
 const toBool = (v) => {
@@ -62,227 +63,6 @@ const normalizeCountry = (v) => {
 };
 
 const ensureStringId = () => uuidv4();
-
-// ----------------- controllers -----------------
-
-// export const createAutopilotAgent = async (req, res) => {
-//   try {
-//     const { _id: studentId } = req.user;
-
-//     // validate student id
-//     if (!mongoose.Types.ObjectId.isValid(studentId)) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: 'Invalid student ID' });
-//     }
-
-//     // required fields present?
-//     const requiredFields = [
-//       'agentName',
-//       'jobTitle',
-//       'country',
-//       'employmentTypes',
-//     ];
-
-//     const missing = requiredFields.filter((f) => !req.body[f]);
-//     if (missing.length) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Missing required fields',
-//         missingFields: missing,
-//       });
-//     }
-
-//     // student exists?
-//     const studentBefore = await Student.findById(studentId)
-//       .select('cvs autopilotAgent')
-//       .lean();
-//     if (!studentBefore) {
-//       return res
-//         .status(404)
-//         .json({ success: false, message: 'Student not found' });
-//     }
-
-//     // read & sanitize inputs
-//     const agentName = String(req.body.agentName).trim();
-//     const jobTitle = String(req.body.jobTitle).trim();
-//     const employmentType = normalizeEmploymentType(req.body.employmentTypes);
-//     const isRemote = toBool(req.body.isRemote);
-//     const isOnsite = toBool(req.body.isOnsite);
-//     const cvOption =
-//       req.body.cvOption === 'uploaded_pdf' ? 'uploaded_pdf' : 'current_profile';
-//     const jobDescription = (req.body.jobDescription || '').toString();
-//     const autopilotLimit = Math.min(Number(req.body.autopilotLimit || 5), 20);
-//     const countryRaw = String(req.body.country || '').trim();
-//     const country = normalizeCountry(countryRaw);
-
-//     // if cvOption requires file, enforce it
-//     if (cvOption === 'uploaded_pdf' && !req.file) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'CV file is required for uploaded_pdf option',
-//       });
-//     }
-
-//     // employmentType sanity
-//     if (!employmentType) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Invalid employmentType',
-//         valid: [
-//           'FULL_TIME',
-//           'PART_TIME',
-//           'CONTRACT',
-//           'INTERNSHIP',
-//           'TEMPORARY',
-//         ],
-//       });
-//     }
-
-//     // country can be optional if remote; otherwise enforce
-//     if (!country && !isRemote) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Country is required unless isRemote is true',
-//       });
-//     }
-
-//     const agentId = `agent_${uuidv4()}`;
-//     const newAgent = {
-//       agentId,
-//       agentName,
-//       jobTitle,
-//       country,
-//       isRemote,
-//       isOnsite,
-//       employmentType,
-//       cvOption,
-//       autopilotEnabled: true,
-//       autopilotLimit,
-//       jobDescription,
-//       createdAt: new Date(),
-//       updatedAt: new Date(),
-//     };
-
-//     // process CV if present
-//     if (req.file) {
-//       const ext = path.extname(req.file.originalname).toLowerCase();
-//       if (ext !== '.pdf') {
-//         fs.unlinkSync(req.file.path);
-//         return res.status(400).json({
-//           success: false,
-//           message: 'Only PDF files are allowed for CV upload',
-//         });
-//       }
-
-//       if (req.file.size > 5 * 1024 * 1024) {
-//         fs.unlinkSync(req.file.path);
-//         return res.status(400).json({
-//           success: false,
-//           message: 'CV file size must be less than 5MB',
-//         });
-//       }
-
-//       try {
-//         const fileBuffer = fs.readFileSync(req.file.path);
-
-//         const text = await extractTextFromCV({
-//           buffer: fileBuffer,
-//           mimetype: req.file.mimetype,
-//         });
-
-//         const extractedData = await parseCVData(text, studentId);
-//         console.log('extractedData', extractedData);
-
-//         newAgent.uploadedCVData = {
-//           skills:
-//             extractedData.skills?.map((s) => ({
-//               ...s,
-//               skillId: ensureStringId(),
-//             })) || [],
-//           experience:
-//             extractedData.experience?.map((e) => ({
-//               ...e,
-//               experienceId: ensureStringId(),
-//             })) || [],
-//           education:
-//             extractedData.education?.map((e) => ({
-//               ...e,
-//               educationId: ensureStringId(),
-//             })) || [],
-//           projects:
-//             extractedData.projects?.map((p) => ({
-//               ...p,
-//               projectId: ensureStringId(),
-//             })) || [],
-//           jobRole: extractedData.jobRole || '',
-//         };
-//       } catch (err) {
-//         if (req.file?.path && fs.existsSync(req.file.path))
-//           fs.unlinkSync(req.file.path);
-//         return res.status(400).json({
-//           success: false,
-//           message: 'CV extraction failed',
-//           error: err.message,
-//         });
-//       } finally {
-//         if (req.file?.path && fs.existsSync(req.file.path))
-//           fs.unlinkSync(req.file.path);
-//       }
-//     }
-
-//     const isFirstCV =
-//       !Array.isArray(studentBefore.autopilotAgent) ||
-//       studentBefore.autopilotAgent.length === 0;
-
-//     if (isFirstCV) {
-//       addCredits(studentId, CREDIT_EARN.FIRST_AUTO_AGENT_SETUP);
-//     }
-
-//     // create agent on student (push)
-//     const updated = await Student.findByIdAndUpdate(
-//       studentId,
-//       { $push: { autopilotAgent: newAgent } },
-//       { new: true, runValidators: true },
-//     );
-
-//     if (!updated) {
-//       return res
-//         .status(404)
-//         .json({ success: false, message: 'Student not found after update' });
-//     }
-
-//     // increment usage counter (user and student are same actor here)
-//     await User.findByIdAndUpdate(studentId, {
-//       $inc: { 'usageCounters.aiAutoApply': 1 },
-//     });
-
-//     const createdAgent = updated.autopilotAgent.find(
-//       (a) => a.agentId === agentId,
-//     );
-
-//     return res.status(201).json({
-//       success: true,
-//       message: 'Autopilot agent created successfully',
-//       agent: createdAgent,
-//     });
-//   } catch (error) {
-//     // cleanup file if still present
-//     if (req.file?.path && fs.existsSync(req.file.path)) {
-//       try {
-//         fs.unlinkSync(req.file.path);
-//       } catch (e) {
-//         console.error('Failed to remove uploaded file during error cleanup', e);
-//       }
-//     }
-//     console.error('Agent creation error:', error);
-//     return res.status(500).json({
-//       success: false,
-//       message: 'Internal server error',
-//       error: config.nodeEnv === 'local' ? error.message : undefined,
-//     });
-//   }
-// };
 
 export const createAutopilotAgent = async (req, res) => {
   try {
@@ -567,112 +347,63 @@ export const getSinglePilotAgent = async (req, res) => {
  */
 export const getAgentJobs = async (req, res) => {
   const studentId = req.user._id;
-  const { id: agentIdParam } = req.params;
+  const { id: agentId } = req.params;
   const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
 
   try {
-    if (!mongoose.Types.ObjectId.isValid(studentId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid student ID',
-        errorCode: 'INVALID_STUDENT_ID',
-      });
-    }
-
-    const isMongoId =
-      mongoose.Types.ObjectId.isValid(agentIdParam) &&
-      String(agentIdParam).length === 24;
-    const agent = await StudentAgent.findOne(
-      isMongoId
-        ? { _id: agentIdParam, student: studentId }
-        : { agentId: agentIdParam, student: studentId },
-    ).lean();
+    const agent = await StudentAgent.findOne({
+      agentId,
+      student: studentId,
+    }).lean();
 
     if (!agent) {
       return res.status(404).json({
         success: false,
         message: 'Agent not found',
-        errorCode: 'AGENT_NOT_FOUND',
       });
     }
 
-    const studentProfile = await getStudentProfileSnapshot(studentId);
-    if (!studentProfile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student profile not found',
-        errorCode: 'PROFILE_NOT_FOUND',
-      });
-    }
-
-    const effectiveProfile = buildEffectiveStudentProfile(
-      studentProfile,
-      agent,
-    );
-    const appliedJobIds = (
-      await AppliedJob.find({ student: studentId }).distinct('job')
-    ).map((id) => id.toString());
-
-    const tailoredJobIds = (
-      await StudentTailoredApplication.distinct('jobId', {
-        student: studentId,
-        status: { $in: ['pending', 'completed'] },
+    const foundJobs = await AgentFoundJob.find({
+      student: studentId,
+      agent: agent._id,
+    })
+      .sort({ foundAt: -1 })
+      .limit(limit)
+      .populate({
+        path: 'job',
+        select:
+          'title company country location remote jobTypes slug jobPostedAt',
       })
-    ).map((id) => id?.toString?.() || String(id));
-    const tailoredSet = new Set(tailoredJobIds);
+      .lean();
 
-    const agentConfig = {
-      jobTitle: agent.jobTitle,
-      country: agent.country,
-      isRemote: agent.isRemote,
-      employmentType: agent.employmentType,
-    };
-
-    const jobs = await getRecommendedJobs({
-      studentId,
-      agentConfig,
-      studentProfile: effectiveProfile,
-      appliedJobIds,
-      limit,
-      skipExternalFetch: true,
-      includeAppliedInResults: true, // Show all matching jobs including applied (don't drop after find)
-    });
-
-    const sanitized = jobs.map((j) => {
-      const jobIdStr = j._id?.toString?.() || String(j._id);
-      return {
-        _id: j._id,
-        id: jobIdStr,
+    const jobs = foundJobs
+      .map((j) => j.job)
+      .filter(Boolean)
+      .map((j) => ({
+        id: j._id,
         title: j.title,
         company: j.company,
         country: j.country,
-        remote: j.remote,
         location: j.location,
+        remote: j.remote,
         jobTypes: j.jobTypes,
-        jobPosted: j.jobPosted,
         jobPostedAt: j.jobPostedAt,
-        rankScore: j.rankScore,
         slug: j.slug,
-        applyMethod: j.applyMethod,
-        tailoredGenerated: tailoredSet.has(jobIdStr),
-      };
-    });
+      }));
 
     return res.status(200).json({
       success: true,
-      data: { jobs: sanitized },
+      data: { jobs },
       meta: {
         agentId: agent.agentId,
-        count: sanitized.length,
+        count: jobs.length,
       },
     });
   } catch (error) {
-    console.error(`Error fetching jobs for agent ${agentIdParam}:`, error);
+    console.error(error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch jobs for agent',
-      errorCode: 'SERVER_ERROR',
-      systemMessage: config.nodeEnv === 'local' ? error.message : undefined,
+      message: 'Failed to fetch agent jobs',
     });
   }
 };

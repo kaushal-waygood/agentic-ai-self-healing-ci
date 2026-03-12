@@ -13,6 +13,8 @@ export const runAutopilotTask = async () => {
       .select('student agentId agentName')
       .lean();
 
+    console.log(activeAgents);
+
     if (!activeAgents || activeAgents.length === 0) {
       console.log('[Task] No students with active autopilot agents found.');
       return;
@@ -25,9 +27,7 @@ export const runAutopilotTask = async () => {
     }));
 
     if (tasks.length > 0) {
-      await jobDiscoveryQueue.addBulk(
-        tasks.map((t) => ({ data: t })),
-      );
+      await jobDiscoveryQueue.addBulk(tasks.map((t) => ({ data: t })));
       console.log(
         `✅ [Task] Successfully queued ${tasks.length} autopilot tasks for job discovery.`,
       );

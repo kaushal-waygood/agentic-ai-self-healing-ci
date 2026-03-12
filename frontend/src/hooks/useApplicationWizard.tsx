@@ -32,6 +32,10 @@ type JobContext =
   | {
       mode: 'select';
       jobId: string;
+      jobTitle?: string;
+      companyName?: string;
+      jobDescription?: string;
+      location?: string | { city?: string; state?: string; country?: string };
     }
   | {
       mode: 'paste';
@@ -407,12 +411,20 @@ export const useApplicationWizard = () => {
 
     if (!jobsLoading && !isInitialized.current) {
       if (selectedJob) {
+        const loc = selectedJob.location;
+        const locStr =
+          typeof loc === 'string'
+            ? loc
+            : loc
+              ? [loc.city, loc.state, loc.country].filter(Boolean).join(', ')
+              : undefined;
         setJobContext({
           mode: 'select',
           jobId: selectedJob._id,
           jobTitle: selectedJob.title,
           companyName: selectedJob.company,
           jobDescription: selectedJob.description,
+          location: locStr || loc,
         });
         navigateToStep('cv');
         const params = new URLSearchParams(searchParams.toString());
@@ -590,10 +602,22 @@ export const useApplicationWizard = () => {
     const slug = searchParams.get('slug');
     const fetchJob = async () => {
       const response = await apiInstance.get(`/jobs/find/${slug}`);
-
+      const job = response?.data?.job;
+      if (!job) return;
+      const loc = job.location;
+      const locStr =
+        typeof loc === 'string'
+          ? loc
+          : loc
+            ? [loc.city, loc.state, loc.country].filter(Boolean).join(', ')
+            : undefined;
       setJobContext({
         mode: 'select',
-        jobId: response?.data?.job._id,
+        jobId: job._id,
+        jobTitle: job.title,
+        companyName: job.company,
+        jobDescription: job.description,
+        location: locStr || loc,
       });
     };
 

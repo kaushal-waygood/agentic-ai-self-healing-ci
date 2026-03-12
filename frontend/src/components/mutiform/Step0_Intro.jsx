@@ -288,8 +288,19 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
       .then((res) => {
         const data = res?.data?.data ?? {};
         const list = data.jobs ?? [];
-        let byDate = data.byDate ?? { today: [], yesterday: [], lastWeek: [], older: [] };
-        if (list.length > 0 && byDate.today?.length === 0 && byDate.yesterday?.length === 0 && byDate.lastWeek?.length === 0 && byDate.older?.length === 0) {
+        let byDate = data.byDate ?? {
+          today: [],
+          yesterday: [],
+          lastWeek: [],
+          older: [],
+        };
+        if (
+          list.length > 0 &&
+          byDate.today?.length === 0 &&
+          byDate.yesterday?.length === 0 &&
+          byDate.lastWeek?.length === 0 &&
+          byDate.older?.length === 0
+        ) {
           byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
         }
         setJobs(list);
@@ -310,8 +321,19 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
       .then((res) => {
         const data = res?.data?.data ?? {};
         const list = data.jobs ?? [];
-        let byDate = data.byDate ?? { today: [], yesterday: [], lastWeek: [], older: [] };
-        if (list.length > 0 && byDate.today?.length === 0 && byDate.yesterday?.length === 0 && byDate.lastWeek?.length === 0 && byDate.older?.length === 0) {
+        let byDate = data.byDate ?? {
+          today: [],
+          yesterday: [],
+          lastWeek: [],
+          older: [],
+        };
+        if (
+          list.length > 0 &&
+          byDate.today?.length === 0 &&
+          byDate.yesterday?.length === 0 &&
+          byDate.lastWeek?.length === 0 &&
+          byDate.older?.length === 0
+        ) {
           byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
         }
         setJobs(list);
@@ -518,11 +540,7 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
                                   ? 'Tailored generated'
                                   : 'Tailored not generated'}
                               </span>
-                              {job.remote && (
-                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                                  Remote
-                                </span>
-                              )}
+
                               <button
                                 type="button"
                                 onClick={(e) => {
