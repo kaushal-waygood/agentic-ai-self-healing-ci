@@ -109,12 +109,7 @@ export const findAndProcessJobs = async () => {
         foundAt: { $gte: today },
       });
 
-      console.log(`[Autopilot] ${agent.agentName} agentLimit: ${agentLimit}`);
-      console.log(`[Autopilot] ${agent.agentName} foundToday: ${foundToday}`);
-
       const remaining = Math.max(0, agentLimit - foundToday);
-
-      console.log(`[Autopilot] ${agent.agentName} remaining: ${remaining}`);
 
       if (remaining === 0) {
         if (process.env.DEBUG_AUTOPILOT === '1') {
@@ -211,8 +206,6 @@ export const findAndProcessJobs = async () => {
         jobs = Array.from(jobMap.values());
         jobs.sort(() => Math.random() - 0.5);
       }
-
-      console.log(`[Autopilot] ${agent.agentName} jobs: ${jobs.length}`);
 
       if (!jobs.length) continue;
 
