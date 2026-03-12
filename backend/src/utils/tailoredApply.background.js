@@ -10,6 +10,7 @@ import { generateCoverLetterPrompts } from '../prompt/generateCoverletter.js';
 import {
   generateEmailPrompt,
   processEmailResponse,
+  parseEmailDraftResponse,
 } from '../prompt/generateEmail.js';
 
 import { genAIRequest as genAI } from '../config/gemini.js';
@@ -143,15 +144,10 @@ export const processTailoredApplication = async (
 
     const emailPrompt = generateEmailPrompt(applicationData);
     const emailRaw = await genAI(emailPrompt);
-    const emailText = processEmailResponse(emailRaw);
-
-    // Regex for Email parsing
-    const subject =
-      emailText.match(/SUBJECT:\s*(.+)/i)?.[1] || 'Job Application';
-    const body =
-      emailText.match(/BODY:\s*([\s\S]*?)\nSIGNATURE:/i)?.[1] || emailText;
-    const signature =
-      emailText.match(/SIGNATURE:\s*(.+)/i)?.[1] || user.fullName;
+    const parsed = parseEmailDraftResponse(emailRaw);
+    const subject = parsed.subject || 'Job Application';
+    const body = parsed.body || '';
+    const signature = parsed.signature || user.fullName;
 
     const applicationEmail = {
       subject,

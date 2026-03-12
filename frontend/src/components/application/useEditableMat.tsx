@@ -79,6 +79,22 @@ export const useEditableMaterial = ({
     }
   }, []);
 
+  const handleEditorKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+        if (editorRef.current) {
+          const sel = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(editorRef.current);
+          sel?.removeAllRanges();
+          sel?.addRange(range);
+        }
+      }
+    },
+    [],
+  );
+
   const toggleEdit = () => {
     if (isEditing) {
       const finalHtml = purgeInternalStyles(editorRef.current?.innerHTML || '');
@@ -175,6 +191,7 @@ export const useEditableMaterial = ({
       toggleImages: () => setShowImages((prev) => !prev),
       toggleEdit,
       handleInput,
+      handleEditorKeyDown,
       exportFile,
       setIsNamingDialogDisplayed,
       setCvNameInput,

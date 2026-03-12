@@ -49,3 +49,28 @@ ${EMAIL_CSS}
 </body>
 </html>`;
 }
+
+/**
+ * Simple HTML for email draft editor — no full document, no embedded CSS.
+ * Just body paragraphs + signature for clean editing.
+ */
+export function wrapEmailDraftHtml(bodyText, name = '') {
+  const paragraphs = bodyText
+    .split(/\n\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${escapeHtml(p)}</p>`)
+    .join('');
+
+  const parts = [paragraphs];
+  if (name) parts.push(`<p><strong>${escapeHtml(name)}</strong></p>`);
+  return parts.join('');
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}

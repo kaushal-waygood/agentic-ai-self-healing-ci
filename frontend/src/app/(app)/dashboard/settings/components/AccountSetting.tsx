@@ -47,9 +47,12 @@ import apiInstance from '@/services/api';
 export const SecuritySetting = () => {
   const dispatch = useDispatch();
   const { toast } = useToast();
-  const { message, error, loading: isLoading, user } = useSelector(
-    (state: RootState) => state.auth,
-  );
+  const {
+    message,
+    error,
+    loading: isLoading,
+    user,
+  } = useSelector((state: RootState) => state.auth);
   const canSetPassword = !!user?.canSetPassword;
 
   const [showPassword, setShowPassword] = useState(false);
@@ -603,9 +606,11 @@ export const DangerSettings = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="border-red-500 hover:bg-red-500">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-red-500 hover:bg-destructive/90"
               onClick={handleDeleteAccount}
             >
               Yes, delete my account

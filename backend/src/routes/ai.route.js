@@ -19,6 +19,7 @@ import {
   getStudentHTMLLetter,
   getSingleStudentHTMLLetter,
   createTailoredApply,
+  generateEmailDraft,
   calculateJobMatchScore,
   regenerateCV,
   saveTailoredApplication,
@@ -368,6 +369,13 @@ router.post(
   authMiddleware,
   isUserOrUniStudent,
   saveTailoredApplication,
+);
+
+router.post(
+  '/email-draft/generate',
+  authMiddleware,
+  isUserOrUniStudent,
+  generateEmailDraft,
 );
 
 router.get(

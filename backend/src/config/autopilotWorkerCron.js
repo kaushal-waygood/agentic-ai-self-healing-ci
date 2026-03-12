@@ -37,7 +37,7 @@ const runAutopilotWorker = async () => {
  * Schedule the autopilot worker to run periodically.
  * @param {string} schedule - Cron expression (default: every 15 minutes)
  */
-export const startAutopilotWorkerCron = (schedule = '*/15 * * * *') => {
+export const startAutopilotWorkerCron = (schedule = '*/1 * * * *') => {
   if (process.env.AUTOPILOT_CRON_ENABLED === 'false') {
     console.log('[AutopilotCron] Disabled via AUTOPILOT_CRON_ENABLED=false');
     return null;

@@ -633,6 +633,25 @@ export function applyFilters(jobs, context) {
   return jobs.filter((job) => {
     if (!job || !job.isActive) return false;
 
+    // For short search queries (1-2 tokens), require query in title to avoid
+    // irrelevant jobs that only match via "contact HR" etc. in description
+    const rawQuery = (context.query || '').toLowerCase().trim();
+    const queryTokens = rawQuery.split(/\s+/).filter((t) => t.length >= 2);
+    if (
+      context.type === 'search' &&
+      rawQuery &&
+      queryTokens.length <= 2 &&
+      job.title
+    ) {
+      const titleLower = job.title.toLowerCase();
+      const hasTokenMatch = queryTokens.some((t) => {
+        if (titleLower.includes(t)) return true;
+        if (t === 'hr' && titleLower.includes('human') && titleLower.includes('resource')) return true;
+        return false;
+      });
+      if (!hasTokenMatch) return false;
+    }
+
     // Filter out jobs the user has applied to or saved (unless includeAppliedInResults for agent dashboard)
     const jobIdStr = String(job._id);
     if (
@@ -1057,9 +1076,12 @@ export function rankJobs(jobs, context) {
         } else if (titleLower.includes(cleanedQuery)) {
           titleMatchScore = 0.8;
         } else if (queryTokens.length > 0) {
-          const matchCount = queryTokens.filter((token) =>
-            titleLower.includes(token),
-          ).length;
+          const matchCount = queryTokens.filter((token) => {
+            if (titleLower.includes(token)) return true;
+            // "hr" -> also match "human resource(s)" in title
+            if (token === 'hr' && titleLower.includes('human') && titleLower.includes('resource')) return true;
+            return false;
+          }).length;
 
           titleMatchScore = matchCount / queryTokens.length;
         }
@@ -1070,7 +1092,9 @@ export function rankJobs(jobs, context) {
       const vectorScore =
         rawVectorScore > 0 ? rawVectorScore : titleMatchScore * 0.75;
 
-      const relevance = vectorScore * 0.5 + titleMatchScore * 0.5;
+      // Weight title match heavily so jobs with query in title (e.g. "HR") rank
+      // above jobs that only match via vector similarity (e.g. "contact HR" in description)
+      const relevance = vectorScore * 0.3 + titleMatchScore * 0.7;
 
       const rankScore = relevance * 0.6 + freshness * 0.25 + geo * 0.15;
 

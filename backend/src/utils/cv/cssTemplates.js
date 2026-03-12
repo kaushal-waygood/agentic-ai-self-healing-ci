@@ -1,7 +1,7 @@
 export const CV_TEMPLATES = {
   classic: `/* --- GLOBAL CONTAINER --- */
 .resume-container {
-    font-family: "Times New Roman", Times, serif;
+    font-family: "Times New Roman", Times, Georgia, "Liberation Serif", serif;
     line-height: 1.25;
     color: #000;
     background-color: #fff;
@@ -143,7 +143,7 @@ export const CV_TEMPLATES = {
         box-sizing: border-box;
       }
       .resume-container {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, Helvetica, sans-serif;
         line-height: 1.5;
         color: #1a1a1a;
         background-color: #fff;
@@ -349,7 +349,7 @@ export const CV_TEMPLATES = {
       @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
 
       .resume-container {
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, Helvetica, sans-serif;
         line-height: 1.5;
         color: #2d3748;
         background-color: #fff;
@@ -557,7 +557,7 @@ export const CV_TEMPLATES = {
 
   modern: `<style>
       .resume-container {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, Arial, Helvetica, sans-serif;
       }
 
       .resume-container p {
@@ -746,7 +746,7 @@ export const CV_TEMPLATES = {
 
       .skills-section div {
         font-size: 14pt;
-        border-bottom: 1px border #eee;
+        border-bottom: 1px solid #eee;
         line-height: 1.4;
       }
 

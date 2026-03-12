@@ -77,6 +77,19 @@ export const fetchCLs = async () => {
   const response = await apiInstance.get('/students/cls');
   return response;
 };
+export const generateEmailDraft = async (params: {
+  jobId?: string;
+  jobTitle?: string;
+  companyName?: string;
+  jobDescription?: string;
+}) => {
+  const response = await apiInstance.post(
+    '/students/email-draft/generate',
+    params,
+  );
+  return response.data;
+};
+
 export const fetchTailoredApps = async () => {
   const response = await apiInstance.get('/students/tailored-applications');
   return response;

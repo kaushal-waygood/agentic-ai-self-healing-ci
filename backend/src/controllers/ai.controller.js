@@ -34,6 +34,12 @@ import { StudentSkill } from '../models/students/studentSkill.model.js';
 import { StudentExperience } from '../models/students/studentExperience.model.js';
 import { StudentEducation } from '../models/students/studentEducation.model.js';
 import { StudentProject } from '../models/students/studentProject.model.js';
+import {
+  generateEmailPrompt,
+  parseEmailDraftResponse,
+} from '../prompt/generateEmail.js';
+import { wrapEmailHtml, wrapEmailDraftHtml } from '../utils/emailTemplate.js';
+import { getStudentProfileSnapshot } from '../services/getStudentProfileSnapshot.js';
 
 /**
  * Extract plain text from an uploaded file (PDF, DOCX, TXT)
@@ -1283,6 +1289,77 @@ export const createTailoredApply = async (req, res) => {
   } catch (error) {
     console.error('Error initiating tailored application:', error);
     return res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+/**
+ * Generate a professional email draft for a job application.
+ * POST body: { jobId } OR { jobTitle, companyName, jobDescription }
+ * Uses authenticated user's profile as candidate.
+ */
+export const generateEmailDraft = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { jobId, jobTitle, companyName, jobDescription } = req.body || {};
+
+    let job = { title: '', company: '', description: '' };
+    if (jobId) {
+      const doc = await Job.findById(jobId).select('title company description').lean();
+      if (!doc) return res.status(404).json({ error: 'Job not found' });
+      job = { title: doc.title, company: doc.company, description: doc.description || '' };
+    } else if (jobTitle && companyName) {
+      job = {
+        title: jobTitle,
+        company: companyName,
+        description: jobDescription || '',
+      };
+    } else {
+      return res.status(400).json({
+        error: 'Provide jobId or (jobTitle, companyName). jobDescription is optional.',
+      });
+    }
+
+    const snapshot = await getStudentProfileSnapshot(userId);
+    if (!snapshot) return res.status(404).json({ error: 'Student profile not found' });
+
+    const candidate = {
+      fullName: snapshot.fullName,
+      email: snapshot.email,
+      phone: snapshot.phone,
+      location: snapshot.location,
+      education: snapshot.education || [],
+      experience: snapshot.experience || [],
+      skills: snapshot.skills || [],
+      projects: snapshot.projects || [],
+    };
+
+    const prompt = generateEmailPrompt({ job, candidate });
+    const raw = await genAI(prompt);
+    const parsed = parseEmailDraftResponse(raw);
+
+    const subject = parsed.subject || `Application for ${job.title}`;
+    const body = parsed.body || '';
+    const signature = parsed.signature || snapshot.fullName;
+
+    const bodyHtml = wrapEmailDraftHtml(body, signature);
+
+    return res.status(200).json({
+      success: true,
+      emailDraft: {
+        subject,
+        body,
+        signature,
+        bodyHtml,
+      },
+    });
+  } catch (err) {
+    console.error('[generateEmailDraft]', err);
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Failed to generate email draft',
+    });
   }
 };
 

@@ -12,10 +12,10 @@ export function UsageTracker({
   limit?: number | -1;
 }) {
   const isUnlimited = limit === -1;
-  const usedNum = Number(used || 0);
-  const limitNum = isUnlimited ? 0 : Number(limit || 0);
-  const percentage =
-    limitNum > 0 ? Math.min(100, Math.round((usedNum / limitNum) * 100)) : 0;
+  const usedNum = Number.isFinite(Number(used)) ? Number(used) : 0;
+  const limitNum = isUnlimited ? 0 : (Number.isFinite(Number(limit)) ? Number(limit) : 0);
+  const rawPct = limitNum > 0 ? (usedNum / limitNum) * 100 : 0;
+  const percentage = Number.isFinite(rawPct) ? Math.min(100, Math.round(rawPct)) : 0;
 
   return (
     <div className="space-y-1">
