@@ -66,13 +66,6 @@ export default function SentEmailsClient() {
         <div className="p-6 md:p-8 max-w-6xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-3">
-              <Link
-                href="/dashboard"
-                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
-                title="Back to Dashboard"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
               <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
                 <Send className="w-6 h-6 text-white" />
               </div>
@@ -201,11 +194,13 @@ export default function SentEmailsClient() {
                                 Tailored <ExternalLink className="h-3 w-3" />
                               </Link>
                             )}
-                            {!item.cvId && !item.clId && !item.applicationId && (
-                              <span className="text-xs text-slate-400 dark:text-slate-500">
-                                —
-                              </span>
-                            )}
+                            {!item.cvId &&
+                              !item.clId &&
+                              !item.applicationId && (
+                                <span className="text-xs text-slate-400 dark:text-slate-500">
+                                  —
+                                </span>
+                              )}
                           </div>
                         </td>
                       </tr>
@@ -234,9 +229,7 @@ export default function SentEmailsClient() {
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        setPage((p) =>
-                          Math.min(data.pagination.pages, p + 1)
-                        )
+                        setPage((p) => Math.min(data.pagination.pages, p + 1))
                       }
                       disabled={page >= data.pagination.pages}
                     >

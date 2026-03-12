@@ -13,8 +13,8 @@
 // }
 
 // const baseCard =
-//   'cursor-pointer rounded-xl border transition-all duration-300 hover:shadow-lg p-4 sm:p-6';
-// const activeCard = 'ring-2 ring-offset-2 ring-blue-500 shadow-lg scale-[1.01]';
+//   'cursor-pointer rounded-xl border transition-all duration-300 hover:-lg p-4 sm:p-6';
+// const activeCard = 'ring-2 ring-offset-2 ring-blue-500 -lg scale-[1.01]';
 
 // export function StatsGrid({
 //   balance,
@@ -197,7 +197,7 @@ export function StatsGrid({
               className={`px-4 py-2 text-sm font-medium rounded-lg transition-all
                 ${
                   activeTab === item.key
-                    ? 'bg-white shadow text-gray-900'
+                    ? 'bg-white  text-gray-900'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
@@ -242,12 +242,12 @@ export function StatsGrid({
              backdrop-blur 
             p-3 sm:p-4
             transition-all duration-300 ease-out
-            hover:-translate-y-1 hover:shadow-xl
+            hover:-translate-y-1 hover:-xl
             
 
             ${
               activeTab === key
-                ? 'ring-2 ring-offset-2 ring-blue-500 shadow-xl scale-[1.02] bg-blue-100 '
+                ? 'ring-2 ring-offset-2 ring-blue-500 -xl scale-[1.02] bg-blue-100 '
                 : 'bg-white hover:border-gray-300 '
             }
           `}

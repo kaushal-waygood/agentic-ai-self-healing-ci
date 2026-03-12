@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Minus, Plus, Sparkles, Crown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import apiInstance from '@/services/api';
+
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 
@@ -202,7 +202,7 @@ export function SpendCreditsSection({
       </div>
 
       {/* Summary / Action Footer (UI Block 2 Design) */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center gap-4 mb-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-4 -sm flex flex-col justify-between sm:flex-row sm:items-center gap-4 mb-4">
         {/* Left: Totals */}
         <div className="text-sm text-gray-700 flex-shrink-0">
           Selected:{' '}
@@ -245,7 +245,7 @@ export function SpendCreditsSection({
           {/* Premium / Unlimited Button - Highlighted */}
           <button
             onClick={handleGetUnlimitedClick}
-            className="group relative overflow-hidden px-5 py-2.5 rounded-lg text-sm font-bold text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg flex items-center justify-center flex-1 sm:flex-initial
+            className="group relative overflow-hidden px-5 py-2.5 rounded-lg text-sm font-bold text-white -md transition-all duration-300 transform hover:-translate-y-0.5 hover:-lg flex items-center justify-center flex-1 sm:flex-initial
             bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-600 hover:via-orange-600 hover:to-red-600"
           >
             {/* Crown Icon */}
@@ -269,7 +269,7 @@ export function SpendCreditsSection({
           return (
             <div
               key={item.id}
-              className="flex bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-300 flex flex-row justify-between"
+              className="flex bg-white border border-gray-200 rounded-lg p-4 -sm hover:-md hover:border-gray-300 transition-all duration-300 flex flex-row justify-between"
             >
               <div>
                 <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -346,7 +346,7 @@ export function SpendCreditsSection({
           />
 
           {/* Modal */}
-          <div className="relative z-10 w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 animate-in fade-in zoom-in-95">
+          <div className="relative z-10 w-full max-w-lg bg-white rounded-2xl -2xl p-6 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
                 How to Spend Credits
