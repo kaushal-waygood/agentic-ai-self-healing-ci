@@ -10,7 +10,7 @@ export const metadata = {
 export default function AiAssistantPage() {
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-grow flex items-center justify-center">
+      <div className="flex-grow flex items-center justify-center pt-2">
         <AiAssistantClient />
       </div>
     </div>
