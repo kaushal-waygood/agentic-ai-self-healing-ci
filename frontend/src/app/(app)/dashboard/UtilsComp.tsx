@@ -112,7 +112,10 @@ export function UsageTracker({
   used: number;
   limit: number;
 }) {
-  const percentage = limit > 0 ? (used / limit) * 100 : 0;
+  const usedNum = Number.isFinite(Number(used)) ? Number(used) : 0;
+  const limitNum = Number.isFinite(Number(limit)) ? Number(limit) : 0;
+  const rawPct = limitNum > 0 ? (usedNum / limitNum) * 100 : 0;
+  const percentage = Number.isFinite(rawPct) ? rawPct : 0;
   const isUnlimited = limit === -1;
 
   return (
@@ -120,7 +123,7 @@ export function UsageTracker({
       <div className="flex justify-between items-baseline">
         <Label className="text-sm font-medium">{label}</Label>
         <p className="text-sm text-muted-foreground">
-          {isUnlimited ? 'Unlimited' : `${used} / ${limit}`}
+          {isUnlimited ? 'Unlimited' : `${usedNum} / ${limitNum}`}
         </p>
       </div>
       {!isUnlimited && <Progress value={percentage} />}
