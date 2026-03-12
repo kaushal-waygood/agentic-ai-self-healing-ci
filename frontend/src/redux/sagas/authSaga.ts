@@ -96,9 +96,9 @@ function* changePasswordSaga(action: PayloadAction<any>): SagaIterator {
   try {
     const response = yield call(changePassword, action.payload);
     yield put(changePasswordSuccess(response.data));
-  } catch (error: unknown) {
+  } catch (error: any) {
     const errorMessage =
-      error instanceof Error ? error.message : 'Failed to change password';
+      error?.response?.data?.message || 'Failed to change password';
     yield put(changePasswordFailure(errorMessage));
   }
 }
