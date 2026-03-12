@@ -318,6 +318,13 @@ router.post('/pdf/generate-pdf', async (req, res) => {
         `,
     });
 
+    // FIX 4: Wait for fonts (Inter, Plus Jakarta Sans, etc.) to load before PDF
+    // Ensures downloaded PDF matches web preview font-family
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
+    await new Promise((r) => setTimeout(r, 300));
+
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,

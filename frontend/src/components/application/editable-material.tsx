@@ -130,7 +130,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       } ${className}`}
     >
       {/* Header Toolbar */}
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 bg-white rounded-t-xl sticky top-0 z-20 shadow-sm">
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 px-4 sm:px-6 py-3.5 bg-white rounded-t-xl sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-3">
           {state.isEditing ? (
             <Edit3 className="w-5 h-5 text-blue-500 shrink-0" />
@@ -140,9 +140,9 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           <h3 className="font-bold text-gray-700">{title}</h3>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           {state.isEditing && (
-            <div className="hidden xl:block border-r border-gray-200 pr-3 mr-2">
+            <div className="hidden xl:block border-r border-gray-200 pr-4 mr-1">
               <EditorToolbar
                 onFontFamily={(f) => actions.execCommand('fontName', f)}
                 onFontSize={(n) => actions.applyFontSize(String(n))}
@@ -165,7 +165,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           {/* Edit / Confirm - primary action */}
           <button
             onClick={actions.toggleEdit}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors active:scale-[0.98] ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors active:scale-[0.98] ${
               state.isEditing
                 ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
                 : 'bg-slate-800 text-white hover:bg-slate-900 shadow-sm'
@@ -175,9 +175,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             {state.isEditing ? 'Confirm Edits' : 'Edit Document'}
           </button>
 
+          <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+
           <button
             onClick={actions.toggleImages}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
               state.showImages
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -191,7 +193,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           <button
             onClick={() => actions.setIsNamingDialogDisplayed(true)}
             disabled={!state.hasChanges || state.isLoading}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
               state.hasChanges
                 ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -201,13 +203,13 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             <Save size={16} /> Final Save
           </button>
 
-          {/* Download buttons - disabled when editing */}
-          <div className="h-5 w-px bg-gray-200 hidden sm:block" aria-hidden />
+          <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+
           <button
             onClick={() => actions.exportFile('pdf')}
             disabled={!!state.loadingType || state.isEditing}
             title={state.isEditing ? 'Confirm edits to enable download' : 'Download as PDF'}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50"
           >
             {state.loadingType === 'pdf' ? (
               <Loader2 className="animate-spin shrink-0" size={16} />
@@ -220,7 +222,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             onClick={() => actions.exportFile('docx')}
             disabled={!!state.loadingType || state.isEditing}
             title={state.isEditing ? 'Confirm edits to enable download' : 'Download as DOCX'}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-50"
           >
             {state.loadingType === 'docx' ? (
               <Loader2 className="animate-spin shrink-0" size={16} />
@@ -231,20 +233,25 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           </button>
 
           {onSendEmail && (
-            <button
-              onClick={handleSendEmailClick}
-              disabled={state.isEditing}
-              title={state.isEditing ? 'Confirm edits to enable send' : 'Send to recruiter'}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
-            >
-              <Mail size={16} />
-              <span className="hidden sm:inline">Send to Recruiter</span>
-            </button>
+            <>
+              <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+              <button
+                onClick={handleSendEmailClick}
+                disabled={state.isEditing}
+                title={state.isEditing ? 'Confirm edits to enable send' : 'Send to recruiter'}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
+              >
+                <Mail size={16} />
+                <span className="hidden sm:inline">Send to Recruiter</span>
+              </button>
+            </>
           )}
+
+          <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
 
           <button
             onClick={actions.toggleFullscreen}
-            className="p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded-lg transition-colors"
+            className="p-2.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded-lg transition-colors"
             title={state.isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           >
             {state.isFullscreen ? (
@@ -258,6 +265,12 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
       {/* Editor Main Canvas */}
       <main className="flex-grow overflow-y-auto p-4 md:p-8 bg-gray-200/50 custom-scrollbar">
+        {/* Base font for all templates - consistent default across CV/CL (templates can override) */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `.resume-editor-canvas { font-family: Arial, Helvetica, "Segoe UI", sans-serif; }`,
+          }}
+        />
         {template?.style && (
           <style dangerouslySetInnerHTML={{ __html: template.style }} />
         )}
@@ -266,8 +279,9 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           ref={editorRef}
           contentEditable={state.isEditing}
           onInput={actions.handleInput}
+          onKeyDown={state.isEditing ? actions.handleEditorKeyDown : undefined}
           suppressContentEditableWarning
-          className={`mx-auto bg-white shadow-sm transition-all duration-300 ${
+          className={`resume-editor-canvas mx-auto bg-white shadow-sm transition-all duration-300 ${
             state.isEditing ? 'ring-2 ring-blue-200 ring-offset-2' : ''
           } ${!state.showImages ? 'hide-editor-images' : ''} w-full max-w-[210mm] focus:outline-none p-[15mm] md:p-[20mm] min-h-[297mm]`}
         />

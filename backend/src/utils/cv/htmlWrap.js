@@ -1,26 +1,15 @@
-// utils/cvTemplate.js
-import { CV_TEMPLATES, DEFAULT_TEMPLATE } from './cssTemplates.js';
+/**
+ * CV HTML wrapper - re-exports from cvTemplate for consistency.
+ * Use wrapCVHtml from utils/cvTemplate.js as the single source of truth.
+ */
+import { wrapCVHtml as wrapCVHtmlImpl } from '../cvTemplate.js';
+import { DEFAULT_TEMPLATE } from './cssTemplates.js';
 
-export const wrapCVHtml = (
-  innerHtml,
-  title,
-  templateKey = DEFAULT_TEMPLATE,
-) => {
-  // 1. Validate template key, fallback to default if invalid
-  const cssContent =
-    CV_TEMPLATES[templateKey] || CV_TEMPLATES[DEFAULT_TEMPLATE];
-
-  // 2. Return the complete HTML string
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title}</title>
-    ${cssContent}
-</head>
-<body>
-    ${innerHtml}
-</body>
-</html>`;
-};
+/**
+ * Wraps CV body HTML with full document, title, and template styles.
+ * @param {string} innerHtml - CV body HTML
+ * @param {string} title - Document title
+ * @param {string} [templateKey] - Template key (classic, tech, sales, modern). Default: classic
+ */
+export const wrapCVHtml = (innerHtml, title, templateKey = DEFAULT_TEMPLATE) =>
+  wrapCVHtmlImpl(innerHtml, { title, template: templateKey });
