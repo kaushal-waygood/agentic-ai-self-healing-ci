@@ -45,8 +45,8 @@ function* loginSaga(
 ): SagaIterator {
   try {
     const response = yield call(login, action.payload);
-    const { user, accessToken: token, refreshToken } = response.data;
-    yield put(loginSuccess({ user, token, refreshToken }));
+    const { user, accessToken: token } = response.data;
+    yield put(loginSuccess({ user, token }));
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : 'Login failed';
@@ -103,9 +103,9 @@ function* changePasswordSaga(action: PayloadAction<any>): SagaIterator {
   }
 }
 
-function* getGetMeSaga(token: string): SagaIterator {
+function* getGetMeSaga(action: PayloadAction<string>): SagaIterator {
   try {
-    const response = yield call(getMe, token.payload);
+    const response = yield call(getMe, action.payload);
 
     yield put(getGetMeSuccess(response.data));
   } catch (error: unknown) {
@@ -116,14 +116,15 @@ function* getGetMeSaga(token: string): SagaIterator {
 }
 
 function* logoutSaga(): SagaIterator {
-  const Router = require('next/router');
   const { clearDashboardCache } = require('@/lib/dashboardCache');
   try {
     clearDashboardCache();
     localStorage.removeItem('persist:root');
     localStorage.clear();
     yield put(logoutSuccess());
-    Router.push('/login');
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : 'Logout failed';
@@ -136,8 +137,8 @@ function* verifyEmailSaga(
 ): SagaIterator {
   try {
     const response = yield call(verifyEmail, action.payload);
-    const { user, accessToken: token, refreshToken } = response.data;
-    yield put(verifyEmailSuccess({ user, token, refreshToken }));
+    const { user, accessToken: token } = response.data;
+    yield put(verifyEmailSuccess({ user, token }));
   } catch (error: any) {
     const errorMessage =
       error?.response?.data?.message || error.message || 'Verification failed';

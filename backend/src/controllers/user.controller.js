@@ -19,12 +19,12 @@ import axios from 'axios';
 import qs from 'querystring';
 import { addCredits, CREDIT_EARN } from '../utils/credits.js';
 import { Feedback } from '../models/feedback.model.js';
+import { RecruiterEmailSent } from '../models/RecruiterEmailSent.model.js';
 
 import { v4 as uuidv4 } from 'uuid';
 import { LoginHistory } from '../models/analyics/loginHistory.model.js';
-import {
-  prefetchRecommendedJobsForUser,
-} from '../utils/prefetchRecommendedJobs.js';
+import { prefetchRecommendedJobsForUser } from '../utils/prefetchRecommendedJobs.js';
+import { deleteUserCascade } from '../services/deleteUserCascade.js';
 
 /* -------------------------
    Initialization
@@ -42,18 +42,20 @@ const EMAIL_CHANGE_OTP_EXP_MS = 10 * 60 * 1000; // 10 minutes
 const DEFAULT_RESET_EXP_MS = 60 * 60 * 1000; // 1 hour
 
 const BACKEND_API_BASE_URL =
-  process.env.NODE_ENV === 'production'
+  process.env.BACKEND_URL ||
+  (process.env.NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
     : process.env.NODE_ENV === 'development'
       ? 'https://api.dev.zobsai.com'
-      : 'http://127.0.0.1:8080';
+      : `http://127.0.0.1:${process.env.PORT || 8080}`);
 
 const FRONTEND_URL =
-  process.env.NODE_ENV === 'production'
+  process.env.FRONTEND_URL ||
+  (process.env.NODE_ENV === 'production'
     ? 'https://zobsai.com'
     : process.env.NODE_ENV === 'development'
       ? 'https://dev.zobsai.com'
-      : 'http://127.0.0.1:3000';
+      : 'http://127.0.0.1:3000');
 
 /* -------------------------
    Helper Utilities
@@ -428,13 +430,11 @@ export const firebaseGoogleSignup = async (req, res) => {
     }
 
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
     // setAccessTokenCookie(res, accessToken);
 
     return res.status(201).json({
       success: true,
       accessToken,
-      refreshToken,
       user: {
         id: user._id,
         email: user.email,
@@ -488,13 +488,11 @@ export const firebaseGoogleLogin = async (req, res) => {
 
     // Success
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
     // setAccessTokenCookie(res, accessToken);
 
     return res.status(200).json({
       success: true,
       accessToken,
-      refreshToken,
       user: {
         id: user._id,
         email: user.email,
@@ -567,7 +565,6 @@ export const linkedInCallback = async (req, res) => {
 
     const sessionId = uuidv4();
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
 
     await LoginHistory.create({
       userId: user._id,
@@ -580,7 +577,6 @@ export const linkedInCallback = async (req, res) => {
 
     const params = new URLSearchParams({
       token: accessToken,
-      refreshToken,
       new: isNewUser,
     });
     return res.redirect(
@@ -713,7 +709,6 @@ export const verifyEmail = async (req, res) => {
     await user.save();
 
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
     // setAccessTokenCookie(res, accessToken);
 
     // Send Welcome Email
@@ -736,7 +731,6 @@ export const verifyEmail = async (req, res) => {
     return res.status(200).json({
       message: 'Email verified successfully',
       accessToken,
-      refreshToken,
       user,
     });
   } catch (error) {
@@ -954,7 +948,6 @@ export const signInUser = async (req, res) => {
     const sessionId = uuidv4();
 
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
 
     const userObject = user.toObject();
     delete userObject.password;
@@ -979,7 +972,6 @@ export const signInUser = async (req, res) => {
       message: 'Signed in successfully',
       user: userObject,
       accessToken,
-      refreshToken,
       sessionId,
     });
   } catch (error) {
@@ -1079,44 +1071,12 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-export const refreshTokens = async (req, res) => {
-  try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) {
-      return res.status(400).json({ message: 'Refresh token is required' });
-    }
-
-    const decoded = jwt.verify(
-      refreshToken,
-      process.env.REFRESH_TOKEN_SECRET || process.env.ACCESS_TOKEN_SECRET,
-    );
-    if (decoded.type !== 'refresh') {
-      return res.status(403).json({ message: 'Invalid refresh token' });
-    }
-
-    const user = await User.findById(decoded._id);
-    if (!user) {
-      return res.status(401).json({ message: 'User not found' });
-    }
-
-    const accessToken = user.generateAccessToken();
-    const newRefreshToken = user.generateRefreshToken();
-
-    return res.status(200).json({
-      accessToken,
-      refreshToken: newRefreshToken,
-      expiresIn: 3600,
-    });
-  } catch (err) {
-    if (err.name === 'TokenExpiredError') {
-      return res.status(403).json({ message: 'Refresh token expired' });
-    }
-    if (err.name === 'JsonWebTokenError') {
-      return res.status(403).json({ message: 'Invalid refresh token' });
-    }
-    console.error('Refresh token error:', err);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
+/** @deprecated Refresh tokens are no longer used. */
+export const refreshTokens = async (_req, res) => {
+  return res.status(410).json({
+    message:
+      'Refresh tokens are no longer supported. Please sign in again to get a new access token.',
+  });
 };
 
 export const signout = async (req, res) => {
@@ -1137,14 +1097,23 @@ export const signout = async (req, res) => {
 export const getUserProfile = async (req, res) => {
   try {
     const { _id: userId } = req.user;
-    const cacheKey = `user:profile:${userId}`;
 
     const userData = await User.findById(userId).populate(
       'organization',
       '-__v -apiKey',
     );
     if (!userData) throw new Error('User not found');
-    return res.status(200).json(userData);
+
+    const obj = userData.toObject ? userData.toObject() : userData;
+    const isOAuth =
+      obj.authMethod === 'google' ||
+      obj.authMethod === 'linkedin' ||
+      obj.authMethod === 'firebase';
+    const u = await User.findById(userId).select('+password').lean();
+    const hasPassword = !!u?.password;
+    obj.canSetPassword = isOAuth && !hasPassword;
+
+    return res.status(200).json(obj);
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return res.status(500).json({ message: error.message });
@@ -1152,21 +1121,63 @@ export const getUserProfile = async (req, res) => {
 };
 
 export const changePassword = async (req, res) => {
-  const { currentPassword, newPassword, confirmNewPassword } = req.body;
+  const {
+    currentPassword,
+    oldPassword,
+    newPassword,
+    confirmNewPassword,
+    confirmPassword,
+  } = req.body;
   const { _id } = req.user;
 
+  const currPwd = currentPassword || oldPassword;
+  const confirmPwd = confirmNewPassword || confirmPassword;
+
   try {
-    const user = await User.findById(_id).select('+password');
+    const user = await User.findById(_id).select('+password authMethod');
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const isPasswordCorrect = await user.isPasswordCorrect(currentPassword);
-    if (!isPasswordCorrect)
-      return res.status(401).json({ message: 'Invalid credentials' });
+    const isOAuthUser =
+      user.authMethod === 'google' ||
+      user.authMethod === 'linkedin' ||
+      user.authMethod === 'firebase';
 
-    if (currentPassword === newPassword)
-      return res.status(400).json({ message: 'New password cannot be same' });
-    if (newPassword !== confirmNewPassword)
-      return res.status(400).json({ message: 'Passwords do not match' });
+    if (isOAuthUser && !user.password) {
+      // OAuth user has no password yet — allow "Set password" (no current password required)
+      if (!newPassword || !confirmPwd) {
+        return res
+          .status(400)
+          .json({ message: 'New password and confirmation are required' });
+      }
+      if (newPassword !== confirmPwd) {
+        return res.status(400).json({ message: 'Passwords do not match' });
+      }
+    } else {
+      // Local user or OAuth user who already has a password — require current password
+      if (!currPwd) {
+        return res
+          .status(400)
+          .json({ message: 'Current password is required' });
+      }
+      const isPasswordCorrect = await user.isPasswordCorrect(currPwd);
+      if (!isPasswordCorrect) {
+        return res.status(401).json({ message: 'Invalid current password' });
+      }
+      if (currPwd === newPassword) {
+        return res
+          .status(400)
+          .json({ message: 'New password cannot be the same as current' });
+      }
+      if (newPassword !== confirmPwd) {
+        return res.status(400).json({ message: 'Passwords do not match' });
+      }
+    }
+
+    if (!newPassword || newPassword.length < 8) {
+      return res
+        .status(400)
+        .json({ message: 'Password must be at least 8 characters' });
+    }
 
     user.password = newPassword;
     await user.save();
@@ -1178,12 +1189,16 @@ export const changePassword = async (req, res) => {
         name: user.fullName,
         dateTime: new Date().toISOString(),
         loginUrl: process.env.DASHBOARD_URL,
+        companyUrl: 'https://zobsai.com',
+        companyAddress: 'ZobsAI Pvt Ltd',
+        unsubscribeUrl: 'https://zobsai.com/unsubscribe',
       },
       subjectOverride: 'Password Updated',
     });
 
     return res.status(200).json({ message: 'Password changed successfully' });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -1194,12 +1209,18 @@ export const sendEmails = async (req, res) => {
     bodyHtml,
     htmlResume: resumeHtml,
     htmlCoverLetter: coverLetterHtml,
+    recruiterEmail,
+    jobTitle,
+    companyName,
+    applicationId,
+    cvId,
+    clId,
   } = req.body;
 
   if (!req.user)
     return res.status(401).json({ message: 'Unauthorized session.' });
 
-  const receiverEmails = [
+  const defaultReceivers = [
     req.user.email,
     'infozobsai@gmail.com',
     'prakhar@zobsai.com',
@@ -1207,12 +1228,27 @@ export const sendEmails = async (req, res) => {
     'rahul@zobsai.com',
   ];
 
+  const receiverEmails = recruiterEmail
+    ? [recruiterEmail.trim(), req.user.email]
+    : defaultReceivers;
+
   if (!subject || !bodyHtml) {
     return res.status(400).json({ message: 'Subject and Body required.' });
   }
 
+  if (
+    recruiterEmail &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recruiterEmail.trim())
+  ) {
+    return res
+      .status(400)
+      .json({ message: 'Invalid recruiter email address.' });
+  }
+
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select(
+      '+googleAuth.refreshToken',
+    );
     if (!user || !user.googleAuth?.refreshToken) {
       return res
         .status(400)
@@ -1245,6 +1281,22 @@ export const sendEmails = async (req, res) => {
       to: receiverEmails,
     });
 
+    if (recruiterEmail) {
+      await RecruiterEmailSent.create({
+        user: user._id,
+        recruiterEmail: recruiterEmail.trim(),
+        subject,
+        sentCv: !!resumeHtml,
+        sentCoverLetter: !!coverLetterHtml,
+        sentEmailDraft: !!bodyHtml,
+        jobTitle: jobTitle || null,
+        companyName: companyName || null,
+        applicationId: applicationId || null,
+        cvId: cvId || null,
+        clId: clId || null,
+      });
+    }
+
     return res.status(200).json({ message: 'Emails sent successfully!' });
   } catch (error) {
     console.error('Failed to send email:', error);
@@ -1257,21 +1309,70 @@ export const sendEmails = async (req, res) => {
   }
 };
 
+export const getSentRecruiterEmails = async (req, res) => {
+  if (!req.user) return res.status(401).json({ message: 'Unauthorized.' });
+
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      RecruiterEmailSent.find({ user: req.user._id })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      RecruiterEmailSent.countDocuments({ user: req.user._id }),
+    ]);
+
+    return res.status(200).json({
+      items,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    console.error('getSentRecruiterEmails error:', error);
+    return res.status(500).json({ message: 'Failed to fetch sent emails.' });
+  }
+};
+
 /* -------------------------
    OAuth Flow Endpoints
    ------------------------- */
 
 export const oAuth2Callback = async (req, res) => {
   const { code, state: userId } = req.query;
+  const redirectUri = oauth2Client.redirect_uri;
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[OAuth] Callback received', {
+      hasCode: !!code,
+      userId,
+      redirectUri,
+      backendUrl: BACKEND_API_BASE_URL,
+      frontendUrl: FRONTEND_URL,
+    });
+  }
+
   if (!code || !userId) {
+    console.warn('[OAuth] Missing code or userId');
     return res.redirect(
       `${FRONTEND_URL}/dashboard/settings?error=auth_failed_param`,
     );
   }
 
   try {
-    const { tokens } = await oauth2Client.getToken(code);
+    const { tokens } = await oauth2Client.getToken({
+      code: typeof code === 'string' ? code : code[0],
+      redirect_uri: redirectUri,
+    });
     oauth2Client.setCredentials(tokens);
+
+    if (!tokens.refresh_token) {
+      console.warn(
+        '[OAuth] No refresh_token in response - Gmail send may not work. User may need to revoke app access and reconnect.',
+      );
+    }
 
     const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
     const { data: userInfo } = await oauth2.userinfo.get();
@@ -1280,25 +1381,39 @@ export const oAuth2Callback = async (req, res) => {
 
     const user = await User.findById(userId);
     if (!user) {
+      console.warn('[OAuth] User not found:', userId);
       return res.redirect(
         `${FRONTEND_URL}/dashboard/settings?error=user_not_found`,
       );
     }
 
     user.googleAuth = {
-      refreshToken: tokens.refresh_token,
+      refreshToken: tokens.refresh_token || user.googleAuth?.refreshToken,
       accessToken: tokens.access_token,
       expiryDate: tokens.expiry_date,
     };
     await user.save();
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[OAuth] Success - Google connected for user:', user.email);
+    }
     return res.redirect(
       `${FRONTEND_URL}/dashboard/settings?success=google_connected`,
     );
   } catch (err) {
-    console.error('OAuth callback error:', err);
+    console.error('[OAuth] Callback error:', err?.message || err);
+    if (err?.response?.data) {
+      console.error(
+        '[OAuth] Google API error:',
+        JSON.stringify(err.response.data),
+      );
+    }
+    const errorCode =
+      err?.response?.data?.error === 'invalid_grant'
+        ? 'invalid_grant'
+        : err?.code || 'auth_failed_internal';
     return res.redirect(
-      `${FRONTEND_URL}/dashboard/settings?error=auth_failed_internal`,
+      `${FRONTEND_URL}/dashboard/settings?error=${errorCode}`,
     );
   }
 };
@@ -1357,7 +1472,9 @@ export const testSendEmail = async (req, res) => {
   const bodyHtml = '<h1>Works!</h1><p>Gmail API integration active.</p>';
 
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select(
+      '+googleAuth.refreshToken',
+    );
     if (!user || !user.googleAuth?.refreshToken) {
       return res.status(400).json({ message: 'Google account not linked.' });
     }
@@ -1536,6 +1653,34 @@ export const getVerifiedUser = async (req, res) => {
     return res.status(200).json(user);
   } catch (error) {
     return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const deleteUserAccount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    await deleteUserCascade(userId);
+
+    // Clear auth cookies
+    res.clearCookie('accessToken', { path: '/' });
+    res.clearCookie('refreshToken', { path: '/' });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Account and all associated data deleted successfully',
+    });
+  } catch (error) {
+    console.error('deleteUserAccount error:', error);
+    if (error.message === 'User not found') {
+      return res
+        .status(404)
+        .json({ success: false, message: 'User not found' });
+    }
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete account',
+    });
   }
 };
 

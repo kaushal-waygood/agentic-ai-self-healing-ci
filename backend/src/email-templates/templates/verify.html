@@ -1,35 +1,34 @@
-<table role="presentation" width="100%" style="border-collapse: collapse">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse">
   <tr>
-    <td class="body">
-      <h2 style="margin-top: 0">Dear, {{name}}!</h2>
-      <p>
-        Thanks for signing up for <strong>{{brandName}}</strong>. Please verify
+    <td class="body" style="padding: 32px 32px; font-size: 15px;">
+      <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700; color: #0f172a;">Hi {{name}}! 👋</h2>
+      <p style="margin: 0 0 20px 0; color: #475569;">
+        Thanks for signing up for <strong style="color: #0f172a;">{{brandName}}</strong>. Please verify
         your email address using the code below. It expires in
-        {{otpExpiryMinutes}} minutes.
+        <strong>15 minutes</strong>.
       </p>
 
-      <div style="text-align: center; margin: 22px 0">
-        <div
-          style="
-            display: inline-block;
-            padding: 18px 26px;
-            border-radius: 10px;
-            background: #f3f8ff;
-            font-weight: 700;
-            font-size: 22px;
-            letter-spacing: 6px;
-          "
-        >
-          {{otp}}
-        </div>
-      </div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 24px 0;">
+        <tr>
+          <td style="text-align: center; padding: 24px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 0 auto; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #0ea5e9; border-radius: 12px; padding: 20px 32px;">
+              <tr>
+                <td style="font-weight: 700; font-size: 28px; letter-spacing: 8px; color: #0f172a;">{{otp}}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
 
-      <p>
-        If you didn't create an account, ignore this message or contact support
-        at <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.
+      <p style="margin: 0 0 20px 0; color: #64748b; font-size: 14px;">
+        If you didn't create an account, you can safely ignore this email or contact support at
+        <a href="mailto:{{supportEmail}}" style="color: #0ea5e9; text-decoration: none;">{{supportEmail}}</a>.
       </p>
 
-      <p style="margin-top: 18px">Best,<br />{{brandName}} Team</p>
+      <p style="margin: 24px 0 0 0; color: #475569;">
+        Best regards,<br />
+        <strong style="color: #0f172a;">The {{brandName}} Team</strong>
+      </p>
     </td>
   </tr>
 </table>

@@ -266,6 +266,7 @@ export const useApplicationWizard = () => {
     tailoredCl: '',
     emailDraft: '',
   });
+  const [applicationId, setApplicationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [selectedCvId, setSelectedCvId] = useState('');
@@ -680,16 +681,17 @@ export const useApplicationWizard = () => {
       );
 
       const result = response.data;
+      const appId = result.applicationId;
 
-      setGeneratedData({
-        refinedCv: result.tailoredCV,
-        tailoredCl: result.tailoredCoverLetter,
-        emailDraft: result.applicationEmail,
-      });
+      if (appId) {
+        setApplicationId(appId);
+      }
 
       toast({
         title: 'Success!',
-        description: 'Your tailored documents are ready.',
+        description: appId
+          ? 'Your application is being generated. We\'ll notify you when it\'s ready.'
+          : 'Your tailored documents are ready.',
       });
 
       navigateToStep('result');
@@ -779,6 +781,7 @@ export const useApplicationWizard = () => {
     setJobContext(null);
     setCvContext(null);
     setClContext(null);
+    setApplicationId(null);
     setGeneratedData({ refinedCv: '', tailoredCl: '', emailDraft: '' });
     router.push('/apply?step=job');
     toast({
@@ -787,20 +790,121 @@ export const useApplicationWizard = () => {
     });
   }, [router, toast]);
 
-  const handleSendEmail = useCallback(() => {
-    apiInstance.post('/user/send-email', {
-      senderEmail: student?.email,
-      recieverEmail: 'arsalan@helpstudyabroad.com', // This should likely be a variable
-      subject: jobContext?.jobTitle,
-      bodyHtml: generatedData.emailDraft,
-      htmlResume: generatedData.refinedCv,
-      htmlCoverLetter: generatedData.tailoredCl,
-    });
-    toast({
-      title: 'Email Sent',
-      description: 'An email has been sent to your linked account.',
-    });
-  }, [student, jobContext, generatedData, toast]);
+  const handleSendEmail = useCallback(
+    async (
+      recruiterEmail: string,
+      options?: {
+        documentId?: string;
+        mode?: 'cv' | 'cl' | 'tailored';
+        subject?: string;
+        bodyHtml?: string;
+      },
+    ) => {
+      const mode = options?.mode ?? 'tailored';
+      const documentId = options?.documentId;
+      const userSubject = options?.subject;
+      const userBodyHtml = options?.bodyHtml;
+
+      try {
+        let subject = '';
+        let bodyHtml = '';
+        let htmlResume = '';
+        let htmlCoverLetter = '';
+
+        let fetchedApp: { savedCVId?: string; savedCoverLetterId?: string } | null = null;
+        if (documentId) {
+          const { data } = await apiInstance.get(
+            `/students/tailored-application/${documentId}`,
+          );
+          const app = data?.application;
+          fetchedApp = app;
+          if (!app) {
+            toast({
+              variant: 'destructive',
+              title: 'Document not found',
+              description: 'Unable to load application. Please try again.',
+            });
+            return;
+          }
+          subject =
+            userSubject ||
+            app.applicationEmail?.subject ||
+            `Job Application - ${app.jobTitle} at ${app.companyName}`;
+          bodyHtml =
+            userBodyHtml ||
+            app.applicationEmail?.html ||
+            app.applicationEmail?.body ||
+            'Please find my CV and cover letter attached.';
+          htmlResume = app.tailoredCV?.cv || '';
+          htmlCoverLetter = app.tailoredCoverLetter?.html || '';
+        } else {
+          subject =
+            userSubject ||
+            (jobContext && 'jobTitle' in jobContext
+              ? jobContext.jobTitle
+              : 'Job Application') ||
+            'Job Application';
+          htmlResume = generatedData.refinedCv;
+          htmlCoverLetter = generatedData.tailoredCl;
+          if (mode === 'cv') {
+            bodyHtml = userBodyHtml || 'Please find my CV attached.';
+            htmlCoverLetter = '';
+          } else if (mode === 'cl') {
+            bodyHtml = userBodyHtml || 'Please find my cover letter attached.';
+            htmlResume = '';
+          } else {
+            bodyHtml =
+              userBodyHtml ||
+              generatedData.emailDraft ||
+              'Please find my CV and cover letter attached.';
+          }
+        }
+
+        if (!bodyHtml && !htmlResume && !htmlCoverLetter) {
+          toast({
+            variant: 'destructive',
+            title: 'No content to send',
+            description: 'Please wait for the document to be ready.',
+          });
+          return;
+        }
+
+        if (!bodyHtml) {
+          bodyHtml = 'Please find my CV and cover letter attached.';
+        }
+
+        const appId = documentId || applicationId || undefined;
+
+        await apiInstance.post('/user/send-email', {
+          subject,
+          bodyHtml,
+          htmlResume,
+          htmlCoverLetter,
+          recruiterEmail,
+          jobTitle: jobContext?.jobTitle,
+          companyName: jobContext?.companyName,
+          applicationId: appId,
+          cvId: fetchedApp?.savedCVId,
+          clId: fetchedApp?.savedCoverLetterId,
+        });
+
+        toast({
+          title: 'Email Sent',
+          description: 'Your application has been sent to the recruiter.',
+        });
+      } catch (error: any) {
+        const msg =
+          error?.response?.data?.message || error?.message || 'Failed to send email';
+        toast({
+          variant: 'destructive',
+          title: 'Send Failed',
+          description: msg,
+        });
+        throw error;
+      }
+    },
+    [student, jobContext, generatedData, applicationId, toast],
+  );
 
   // Inside your useApplicationWizard hook...
 
@@ -843,6 +947,7 @@ export const useApplicationWizard = () => {
       student,
       resume,
       selectedCvId,
+      applicationId,
       rateLimited,
       rateLimitMessage,
     },

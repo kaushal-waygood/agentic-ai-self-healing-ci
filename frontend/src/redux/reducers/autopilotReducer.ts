@@ -1,8 +1,14 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { create } from 'lodash';
+
+interface PlanUsage {
+  applicationsToday: number;
+  dailyLimit: number | string;
+  totalApplied: number;
+  totalLimit: number | string;
+}
 
 interface AutopilotState {
-  autopilot: any[];
+  autopilot: any[] | { agents: any[]; planUsage: PlanUsage | null };
   loading: boolean;
   error: string | null;
 }
@@ -23,7 +29,13 @@ const autopilotSlice = createSlice({
     },
     getAutopilotSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
-      state.autopilot = action.payload;
+      const payload = action.payload;
+      state.autopilot =
+        payload && typeof payload === 'object' && 'agents' in payload
+          ? payload
+          : Array.isArray(payload)
+            ? { agents: payload, planUsage: null }
+            : { agents: [], planUsage: null };
       state.error = null;
     },
     getAutopilotFailure: (state, action: PayloadAction<string>) => {
@@ -37,7 +49,12 @@ const autopilotSlice = createSlice({
     },
     createAutopilotSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
-      state.autopilot = action.payload;
+      // Create returns agentId, not full list; getAutopilotRequest refetches
+      if (action.payload?.agents) {
+        state.autopilot = action.payload;
+      } else if (Array.isArray(action.payload)) {
+        state.autopilot = { agents: action.payload, planUsage: null };
+      }
       state.error = null;
     },
     createAutopilotFailure: (state, action: PayloadAction<string>) => {

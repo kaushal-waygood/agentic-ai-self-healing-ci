@@ -633,9 +633,13 @@ export function applyFilters(jobs, context) {
   return jobs.filter((job) => {
     if (!job || !job.isActive) return false;
 
-    // Filter out jobs the user has applied to or saved
+    // Filter out jobs the user has applied to or saved (unless includeAppliedInResults for agent dashboard)
     const jobIdStr = String(job._id);
-    if (job._id && (applied.has(jobIdStr) || saved.has(jobIdStr))) {
+    if (
+      !context.includeAppliedInResults &&
+      job._id &&
+      (applied.has(jobIdStr) || saved.has(jobIdStr))
+    ) {
       return false;
     }
 
@@ -792,9 +796,10 @@ export async function buildSearchContext(req) {
 // 7. CANDIDATE RETRIEVAL (REFILLS WITH INDIA DATA)
 // --------------------
 export async function retrieveCandidates(context, limit = 300) {
-  const cacheKey = context.query
-    ? `cand:search:${context.userId || 'anon'}:${context.query}:${context.filters?.country}`
-    : null;
+  const cacheKey =
+    context.query && !context.skipCacheForAgent
+      ? `cand:search:${context.userId || 'anon'}:${context.query}:${context.filters?.country}`
+      : null;
 
   if (cacheKey) {
     const cached = await redisClient.get(cacheKey);

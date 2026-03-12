@@ -17,7 +17,6 @@ const GoogleAuthCallback = () => {
 
   useEffect(() => {
     const token = searchParams.get('token');
-    const refreshToken = searchParams.get('refreshToken');
     const error = searchParams.get('error');
     const isNew = searchParams.get('new');
 
@@ -27,7 +26,6 @@ const GoogleAuthCallback = () => {
           dispatch(
             googleLoginSuccess({
               token,
-              refreshToken: refreshToken || undefined,
             }),
           );
           // Flush persist so token is in localStorage before dashboard requests run

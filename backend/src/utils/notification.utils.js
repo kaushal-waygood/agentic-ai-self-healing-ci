@@ -108,7 +108,7 @@ export const notificationTemplates = {
     type: 'success',
     priority: 'medium',
     category: 'application',
-    actionUrl: `/dashboard/my-docs/application//${applicationId}`,
+    actionUrl: `/dashboard/my-docs/application/${applicationId}`,
   }),
 
   TAILORED_APPLICATION_GENERATED_FAILED: (message, error) => ({

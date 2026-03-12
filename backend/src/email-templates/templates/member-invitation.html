@@ -1,45 +1,33 @@
-<p>Dear {{name}},</p>
-
-<p>
-  You have been added as a <strong>{{role}}</strong> to
-  <strong>{{organizationName}}</strong> on the HelpStudyAbroad platform.
-</p>
-
-<p>Here are your temporary login credentials:</p>
-
-<table style="border: 1px solid #ccc; padding: 10px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse">
   <tr>
-    <td><strong>Email:</strong></td>
-    <td>{{email}}</td>
-  </tr>
-  <tr>
-    <td><strong>Temporary Password:</strong></td>
-    <td>{{password}}</td>
+    <td class="body" style="padding: 32px 32px; font-size: 15px;">
+      <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700; color: #0f172a;">Welcome, {{name}}! 🎉</h2>
+
+      <p style="margin: 0 0 20px 0; color: #475569;">
+        You've been added to a workspace on <strong style="color: #0f172a;">{{brandName}}</strong>.
+      </p>
+
+      <p style="margin: 0 0 24px 0; color: #475569;">
+        Complete your signup to access your workspace and start collaborating with your team.
+      </p>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 28px 0;">
+        <tr>
+          <td style="text-align: center;">
+            <a href="{{dashboardUrl}}" class="btn">Get Started — Dashboard</a>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin: 0 0 20px 0; font-size: 14px; color: #64748b;">
+        Need help? Contact our support team at
+        <a href="mailto:{{supportEmail}}" style="color: #0ea5e9; text-decoration: none;">{{supportEmail}}</a>.
+      </p>
+
+      <p style="margin: 24px 0 0 0; color: #475569;">
+        Thanks,<br />
+        <strong style="color: #0f172a;">The {{brandName}} Team</strong>
+      </p>
+    </td>
   </tr>
 </table>
-
-<p>Please log in immediately and change your password:</p>
-
-<p>
-  <a
-    href="{{loginLink}}"
-    style="
-      display: inline-block;
-      padding: 10px 20px;
-      background-color: #6a0dad;
-      color: white;
-      text-decoration: none;
-      border-radius: 5px;
-      font-weight: bold;
-    "
-  >
-    Go to Login Page
-  </a>
-</p>
-
-<p>
-  This password is temporary. You will be prompted to change it upon your first
-  login.
-</p>
-
-<p>Thanks,<br />The HelpStudyAbroad Team</p>

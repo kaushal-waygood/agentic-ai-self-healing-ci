@@ -38,6 +38,7 @@ import {
   setPrefetchedJobs,
 } from '../utils/prefetchCache.js';
 import { StudentSkill } from '../models/students/studentSkill.model.js';
+import { StudentAgent } from '../models/students/studentAgent.model.js';
 import { makeTop4Key } from '../utils/dashboardKeys.js';
 
 const PROFILE_SECTION_ACTIONS = {
@@ -2871,7 +2872,10 @@ export const getCreditsSummary = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    const user = await User.findById(userId).lean();
+    const [user, agentCount] = await Promise.all([
+      User.findById(userId).lean(),
+      StudentAgent.countDocuments({ student: userId }),
+    ]);
     if (!user) {
       res.status(404);
       throw new Error('User not found');
@@ -2993,10 +2997,7 @@ export const getCreditsSummary = async (req, res) => {
       });
     }
 
-    if (
-      !hasClaimedKind('FIRST_AUTO_AGENT_SETUP') &&
-      (!Array.isArray(user.autopilotAgent) || user.autopilotAgent.length === 0)
-    ) {
+    if (!hasClaimedKind('FIRST_AUTO_AGENT_SETUP') && agentCount === 0) {
       pending.push({
         action: 'FIRST_AUTO_AGENT_SETUP',
         credits: CREDIT_EARN.FIRST_AUTO_AGENT_SETUP || 0,

@@ -303,23 +303,49 @@ export const getAllCLs = async (req, res) => {
   }
 };
 
+/** Map StudentApplication status to StudentTailoredApplication status format */
+const mapAgentStatusToTailored = (status) => {
+  if (!status) return 'pending';
+  const m = { Draft: 'pending', Applied: 'completed', Failed: 'failed' };
+  return m[status] || (status === 'Interviewing' || status === 'Offered' || status === 'Shortlist' ? 'completed' : 'pending');
+};
+
+/** Normalize StudentApplication to match StudentTailoredApplication format for frontend */
+const normalizeAgentApplication = (app) => ({
+  _id: app._id,
+  student: app.student,
+  jobId: app.job,
+  jobTitle: app.jobTitle,
+  companyName: app.jobCompany,
+  jobDescription: app.jobDescription,
+  status: mapAgentStatusToTailored(app.status),
+  tailoredCV: app.cvContent ? { cv: app.cvContent } : {},
+  tailoredCoverLetter: app.coverLetterContent ? { html: app.coverLetterContent } : {},
+  applicationEmail: app.emailContent ? { html: app.emailContent } : {},
+  completedAt: app.completedAt,
+  createdAt: app.createdAt,
+  updatedAt: app.updatedAt,
+  flag: 'agent',
+});
+
 export const getAllTailoredApplications = async (req, res) => {
   try {
     const { _id } = req.user;
-    const applications = await StudentTailoredApplication.find({
-      student: _id,
-    }).sort({
-      createdAt: -1,
-    });
 
-    if (!applications) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    const [tailoredApps, agentApps] = await Promise.all([
+      StudentTailoredApplication.find({ student: _id }).sort({ createdAt: -1 }).lean(),
+      StudentApplication.find({ student: _id }).sort({ createdAt: -1 }).lean(),
+    ]);
 
-    res.status(200).json({ tailoredApplications: applications });
+    const normalizedAgent = agentApps.map(normalizeAgentApplication);
+    const merged = [...tailoredApps, ...normalizedAgent].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+    );
+
+    res.status(200).json({ tailoredApplications: merged });
   } catch (error) {
-    console.error('Error fetching CVs:', error);
-    res.status(500).json({ error: 'Failed to retrieve CVs' });
+    console.error('Error fetching tailored applications:', error);
+    res.status(500).json({ error: 'Failed to retrieve tailored applications' });
   }
 };
 
@@ -376,22 +402,32 @@ export const getSingleTailoredApplication = async (req, res) => {
     const { applicationId } = req.params;
     const { _id: userId } = req.user;
 
-    const student = await StudentTailoredApplication.findOne({
+    let application = await StudentTailoredApplication.findOne({
       student: userId,
       _id: applicationId,
-    });
+    }).lean();
 
-    if (!student) {
-      return res.status(404).json({ error: 'CV not found' });
+    if (!application) {
+      const agentApp = await StudentApplication.findOne({
+        student: userId,
+        _id: applicationId,
+      }).lean();
+      if (agentApp) {
+        application = normalizeAgentApplication(agentApp);
+      }
+    }
+
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
     }
 
     res.status(200).json({
       success: true,
-      application: student,
+      application,
     });
   } catch (error) {
-    console.error('Error fetching CV:', error);
-    res.status(500).json({ error: 'Failed to retrieve CV' });
+    console.error('Error fetching tailored application:', error);
+    res.status(500).json({ error: 'Application not found' });
   }
 };
 
@@ -436,23 +472,28 @@ export const deleteSingleTailoredApplication = async (req, res) => {
     const { appId } = req.params;
     const { _id: userId } = req.user;
 
-    // First find the student to get the tailored application details
-    const student = await StudentTailoredApplication.deleteOne({
+    const tailoredResult = await StudentTailoredApplication.deleteOne({
       student: userId,
       _id: appId,
     });
 
-    if (!student) {
-      return res.status(404).json({ error: 'Tailored application not found' });
+    if (tailoredResult.deletedCount === 0) {
+      const agentResult = await StudentApplication.deleteOne({
+        student: userId,
+        _id: appId,
+      });
+      if (agentResult.deletedCount === 0) {
+        return res.status(404).json({ error: 'Application not found' });
+      }
     }
 
     res.status(200).json({
       success: true,
-      message: 'Tailored application deleted successfully',
+      message: 'Application deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting tailored application:', error);
-    res.status(500).json({ error: 'Failed to delete tailored application' });
+    console.error('Error deleting application:', error);
+    res.status(500).json({ error: 'Failed to delete application' });
   }
 };
 
@@ -1225,7 +1266,7 @@ export const createTailoredApply = async (req, res) => {
       preferences: finalTouch || '',
     };
 
-    const io = req.app.get('io');
+    const io = req.app?.get?.('io') ?? null;
 
     // Trigger background process
     processTailoredApplication(
@@ -1498,6 +1539,7 @@ export const getDocumentCounts = async (req, res) => {
       generatedCLCount,
       savedCLCount,
       tailoredCount,
+      agentAppCount,
     ] = await Promise.all([
       // CV Counts
       StudentCV.countDocuments({ student: studentId }),
@@ -1507,9 +1549,13 @@ export const getDocumentCounts = async (req, res) => {
       StudentCL.countDocuments({ student: studentId }),
       StudentCoverLetter.countDocuments({ student: studentId }),
 
-      // Tailored Application Counts
+      // Tailored Application Counts (manual flow)
       StudentTailoredApplication.countDocuments({ student: studentId }),
+      // Agent-generated applications
+      StudentApplication.countDocuments({ student: studentId }),
     ]);
+
+    const totalTailored = tailoredCount + agentAppCount;
 
     const stats = {
       cv: {
@@ -1518,14 +1564,13 @@ export const getDocumentCounts = async (req, res) => {
         total: generatedCVCount + savedCVCount,
       },
       cl: {
-        // Fixed key name from 'cv' to 'cl' based on your requirement logic
         generated: generatedCLCount,
         saved: savedCLCount,
         total: generatedCLCount + savedCLCount,
       },
       tailored: {
-        generated: tailoredCount,
-        total: tailoredCount,
+        generated: totalTailored,
+        total: totalTailored,
       },
     };
 

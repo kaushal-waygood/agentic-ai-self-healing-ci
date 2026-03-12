@@ -28,7 +28,7 @@ const schema = new Schema(
     applicationEmail: Object,
 
     error: String,
-    flag: { type: String, enum: ['web', 'app', 'extension'] },
+    flag: { type: String, enum: ['web', 'app', 'extension', 'agent'] },
 
     completedAt: Date,
   },

@@ -53,7 +53,6 @@ import {
   useCachedBillingData,
   useCachedAIActivity,
   useCachedTopJobs,
-  useCachedStudentDetails,
 } from '@/hooks/useCachedDashboardData';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
@@ -624,7 +623,7 @@ export default function DashboardPage() {
   const { data: billingData = [] } = useCachedBillingData(!!authUser);
   const { data: recentAI } = useCachedAIActivity(!!authUser);
   const { data: topJobsRecommendations = [] } = useCachedTopJobs(!!authUser);
-  const { data: studentDetails } = useCachedStudentDetails();
+  // Student details from app-header getStudentDetailsRequest (Redux state.student)
 
   const searchParams = useSearchParams();
   const fromOnboarding = searchParams.get('from') === 'onboarding';
