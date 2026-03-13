@@ -1,10 +1,22 @@
 # ---------------------------
-# Build Stage (CI/CD optimized)
+# Stage 1: Dependencies
+# ---------------------------
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+# ---------------------------
+# Stage 2: Builder
 # ---------------------------
 FROM node:20-alpine AS builder
 WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 
-# Arguments for Build-time Env Vars
+# Build-time environment variables
 ARG NEXT_PUBLIC_NODE_ENV
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
@@ -21,37 +33,36 @@ ENV NEXT_PUBLIC_LOGROCKET_ID=$NEXT_PUBLIC_LOGROCKET_ID
 ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 ENV NEXT_PUBLIC_LINKEDIN_CLIENT_ID=$NEXT_PUBLIC_LINKEDIN_CLIENT_ID
 
-COPY package*.json ./
-# Use 'npm ci' for faster, more reliable CI/CD builds
-RUN npm ci 
-
-COPY . .
 RUN npm run build
 
 # ---------------------------
-# Runtime Stage
+# Stage 3: Runner (Production)
 # ---------------------------
-FROM node:20-slim
+FROM node:20-alpine AS runner
 WORKDIR /app
-
-# Install PM2 globally in the runtime image
-RUN npm install pm2 -g
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-# Copy necessary production files
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/.next ./.next
+# Create a non-root user for security
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy only necessary files from builder
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.ts ./next.config.ts
 
-# Install only production dependencies
-RUN npm install --only=production
+# Set correct permissions for the .next directory
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
 
-# Expose port
+# Automatically leverages output: 'standalone' from next.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
 EXPOSE 3000
 
-# Use PM2 to run the application
-# 'pm2-runtime' is designed specifically for Docker containers
-CMD ["pm2-runtime", "start", "npm", "--", "start"]
+# Start using the standalone server
+CMD ["node", "server.js"]
