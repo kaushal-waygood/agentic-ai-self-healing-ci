@@ -25,6 +25,7 @@ import apiInstance from '@/services/api';
 import PersonalInfoStep from './PersonalInfoStep';
 import EducationStep from './EducationStep';
 import SkillsExperienceStep from './SkillsExperienceStep';
+
 import ProjectsStep from './ProjectsStep';
 import JobPreferencesStep from './JobPreferencesStep';
 import AvailabilityStep from './AvailabilityStep';
@@ -32,6 +33,7 @@ import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import { RootState } from '@/redux/rootReducer';
 import { useSelector, useDispatch } from 'react-redux';
 import { start } from 'repl';
+import { useToast } from '@/hooks/use-toast';
 
 // --- START: TYPE DEFINITIONS ---
 type EducationEntry = {
@@ -90,6 +92,7 @@ const OnboardingPage = () => {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState('forward');
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const totalSteps = 6;
 
@@ -165,6 +168,10 @@ const OnboardingPage = () => {
 
     // --- Job Preferences ---
     preferredLocation: '', // FIXED: Renamed to avoid collision
+    preferredCity: '', // Add this
+    preferredCountry: '', // Add this
+    mustHaveSkills: [] as string[], // Add this
+    educationLevel: '', // Add this
     expectedSalary: '',
   });
 
@@ -197,6 +204,26 @@ const OnboardingPage = () => {
   ) => {
     if (!Array.isArray(formData[arrayName])) return;
 
+    // --- START DUPLICATE SKILL CHECK ---
+    if (arrayName === 'skills' && field === 'skill') {
+      const isDuplicate = formData.skills.some(
+        (item, i) =>
+          i !== index &&
+          item.skill.trim().toLowerCase() === value.trim().toLowerCase() &&
+          value.trim() !== '',
+      );
+
+      if (isDuplicate) {
+        toast({
+          variant: 'destructive',
+          title: 'Skill Already Added',
+          description: 'This skill has already been added.',
+        });
+
+        return; // Stop the update
+      }
+    }
+    // --- END DUPLICATE SKILL CHECK ---
     const newArray = [...(formData[arrayName] as T[])];
     newArray[index] = { ...newArray[index], [field]: value };
     setFormData((prev) => ({ ...prev, [arrayName]: newArray }));
@@ -535,15 +562,12 @@ const OnboardingPage = () => {
 
       case 5:
         return (
-          Array.isArray(formData.preferredCities) &&
-          formData.preferredCities.length > 0 &&
-          Array.isArray(formData.preferredCountries) &&
-          formData.preferredCountries.length > 0 &&
+          safeTrim(formData.preferredCity) !== '' &&
+          safeTrim(formData.preferredCountry) !== '' &&
           Array.isArray(formData.mustHaveSkills) &&
           formData.mustHaveSkills.length > 0 &&
-          safeTrim(formData.educationLevel)
+          safeTrim(formData.educationLevel) !== ''
         );
-
       case 6:
         return Boolean(selectedOptions.availability);
 

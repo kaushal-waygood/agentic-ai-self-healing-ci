@@ -252,7 +252,9 @@ export default function DocumentsPage() {
     try {
       await apiInstance.delete(`/students/cv/${cvId}`);
       toast({ title: 'Success', description: 'CV deleted successfully' });
+
       fetchCVs();
+      dispatch(getDocumentCountsRequest());
     } catch {
       toast({
         variant: 'destructive',
@@ -266,7 +268,9 @@ export default function DocumentsPage() {
     try {
       await apiInstance.delete(`/students/cl/${clId}`);
       toast({ title: 'Success', description: 'Cover letter deleted' });
+
       fetchCoverLetters();
+      dispatch(getDocumentCountsRequest());
     } catch {
       toast({
         variant: 'destructive',
@@ -350,6 +354,7 @@ export default function DocumentsPage() {
       await apiInstance.delete(`/students/tailored-applications/${appId}`);
       toast({ title: 'Success', description: 'Application deleted' });
       fetchApplications();
+      dispatch(getDocumentCountsRequest());
     } catch {
       toast({
         variant: 'destructive',

@@ -344,6 +344,7 @@ const JobPreferencesStep = ({
   handleInputChange,
   attemptedNext,
 }: any) => {
+  console.log('form data', formData);
   // --- Local State for Inputs ---
   const [skillInput, setSkillInput] = useState('');
   // const [cityInput, setCityInput] = useState('');
@@ -354,11 +355,11 @@ const JobPreferencesStep = ({
   const skills = Array.isArray(formData.mustHaveSkills)
     ? formData.mustHaveSkills
     : [];
-  const cities = Array.isArray(formData.preferredCities)
-    ? formData.preferredCities
+  const cities = Array.isArray(formData.preferredCity)
+    ? formData.preferredCity
     : [];
-  const countries = Array.isArray(formData.preferredCountries)
-    ? formData.preferredCountries
+  const countries = Array.isArray(formData.preferredCountry)
+    ? formData.preferredCountry
     : [];
 
   // --- Generic Handler to Add Item ---
@@ -404,24 +405,6 @@ const JobPreferencesStep = ({
        addItem={addItem}
        removeItem={removeItem}
      /> */}
-      <div>
-        <label className="block text-md font-semibold text-gray-700 mb-2 ml-1">
-          Preferred City
-        </label>
-        <CitySelector
-          countryCode={formData.preferredCountry || ''}
-          value={formData.preferredCity || ''}
-          onChange={(value) => handleInputChange('preferredCity', value)}
-          className="w-full"
-        />
-        {attemptedNext &&
-          !formData.preferredCity &&
-          formData.preferredCountry && (
-            <p className="text-xs text-red-500 mt-1">
-              Preferred city is required
-            </p>
-          )}
-      </div>
       {/* 2. Preferred Countries */}
       {/* <MultiInput
        label="Preferred Countries"
@@ -449,6 +432,24 @@ const JobPreferencesStep = ({
             Preferred country is required
           </p>
         )}
+      </div>
+      <div>
+        <label className="block text-md font-semibold text-gray-700 mb-2 ml-1">
+          Preferred City
+        </label>
+        <CitySelector
+          countryCode={formData.preferredCountry || ''}
+          value={formData.preferredCity || ''}
+          onChange={(value) => handleInputChange('preferredCity', value)}
+          className="w-full"
+        />
+        {attemptedNext &&
+          !formData.preferredCity &&
+          formData.preferredCountry && (
+            <p className="text-xs text-red-500 mt-1">
+              Preferred city is required
+            </p>
+          )}
       </div>
       {/* 3. Must-have Skills */}
       <MultiInput

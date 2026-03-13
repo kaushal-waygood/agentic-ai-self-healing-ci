@@ -291,13 +291,13 @@ export default function StudentOfferPage() {
 
   const unlimitedFeatures = ['Job Search', 'Job Matching', 'Job Application'];
   const monthlyFeatures = [
-    { title: 'AI CV Creation', count: 5 },
-    { title: 'AI Cover Letter', count: 5 },
-    { title: 'AI Tailored Application', count: 5 },
-    { title: 'AI Auto Application', count: 10 },
-    { title: 'Auto-Apply Daily limit', count: 5 },
-    { title: 'AI Job Match Score', count: 5 },
-    { title: 'AI ATS Score', count: 5 },
+    { title: 'AI CV Creation', count: 'Unlimited' },
+    { title: 'AI Cover Letter', count: 'Unlimited' },
+    { title: 'AI Tailored Application', count: 'Unlimited' },
+    { title: 'AI Auto Application', count: 'Unlimited' },
+    { title: 'Auto-Apply Daily limit', count: 'Unlimited' },
+    { title: 'AI Job Match Score', count: 'Unlimited' },
+    { title: 'AI ATS Score', count: 'Unlimited' },
   ];
 
   useEffect(() => {
@@ -336,25 +336,6 @@ export default function StudentOfferPage() {
               Unlock 12 months of Pro access to land your dream job. No credit
               card, no catch.
             </p>
-
-            {/* <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-indigo-100/50 border border-indigo-50">
-              <div className="flex justify-between items-end mb-4 text-sm font-bold">
-                <span className="text-gray-500 uppercase tracking-widest">
-                  Seats Remaining
-                </span>
-                <span className="text-indigo-600 text-2xl font-black">
-                  432 / 1,000
-                </span>
-              </div>
-              <div className="h-4 bg-indigo-50 rounded-full overflow-hidden p-1">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: '43.2%' }}
-                  transition={{ duration: 1 }}
-                  className="h-full bg-indigo-500 rounded-full"
-                />
-              </div>
-            </div> */}
           </div>
 
           {/* Right Column: Plan Details */}

@@ -10,6 +10,7 @@ import { Metadata } from 'next';
 import NextTopLoader from 'nextjs-toploader';
 import Clarity from '@microsoft/clarity';
 import { Suspense } from 'react';
+import { Toaster } from '@/components/ui/toaster';
 
 // 1. Fully Expanded Metadata
 export const metadata: Metadata = {
@@ -142,7 +143,9 @@ export default function RootLayout({
           shadow="0 0 10px #2563eb,0 0 5px #2563eb"
         />
         <LayoutPage>
-          <Suspense fallback={null}>{children}</Suspense>
+          <Suspense fallback={null}>
+            {children} <Toaster />
+          </Suspense>
         </LayoutPage>
       </body>
     </html>

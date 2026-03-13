@@ -98,11 +98,6 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
     return Object.values(obj).some((v) => safeTrim(v));
   };
 
-  /**
-   * Validate if:
-   * - user clicked Next
-   * - AND (this row is filled OR it's the first row)
-   */
   const shouldValidate = (obj?: Record<string, unknown>, index?: number) =>
     attemptedNext && (isFilled(obj) || index === 0);
 
@@ -215,7 +210,7 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
                 <p className="text-xs text-red-500">Company name is required</p>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1  gap-3">
                 <Input
                   value={exp.title}
                   onChange={(e) =>
@@ -229,71 +224,71 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
                 {showError(exp.title, exp, index) && (
                   <p className="text-xs text-red-500">title is required</p>
                 )}
-
-                {(() => {
-                  const { start, end } = parseDuration(exp.duration);
-
-                  return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Input
-                        type="month"
-                        value={start}
-                        onChange={(e) => {
-                          const newStart = e.target.value;
-                          const newEnd = end;
-
-                          const formatted =
-                            newStart && newEnd
-                              ? `${formatMonth(newStart)} - ${formatMonth(
-                                  newEnd,
-                                )}`
-                              : newStart
-                              ? `${formatMonth(newStart)} - Present`
-                              : '';
-
-                          onExperienceChange(index, 'duration', formatted);
-                        }}
-                        className={`h-11 ${
-                          showError(start, exp, index) ? 'border-red-500 ' : ''
-                        }`}
-                      />
-                      {showError(start, exp, index) && (
-                        <p className="text-xs text-red-500">
-                          Start date is required
-                        </p>
-                      )}
-
-                      <Input
-                        type="month"
-                        value={end}
-                        onChange={(e) => {
-                          const newEnd = e.target.value;
-                          const newStart = start;
-
-                          const formatted =
-                            newStart && newEnd
-                              ? `${formatMonth(newStart)} - ${formatMonth(
-                                  newEnd,
-                                )}`
-                              : newStart
-                              ? `${formatMonth(newStart)} - Present`
-                              : '';
-
-                          onExperienceChange(index, 'duration', formatted);
-                        }}
-                        className={`h-11 ${
-                          showError(end, exp, index) ? 'border-red-500 ' : ''
-                        }`}
-                      />
-                      {showError(end, exp, index) && (
-                        <p className="text-xs text-red-500">
-                          End date is required
-                        </p>
-                      )}
-                    </div>
-                  );
-                })()}
               </div>
+
+              {(() => {
+                const { start, end } = parseDuration(exp.duration);
+
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Input
+                      type="month"
+                      value={start}
+                      onChange={(e) => {
+                        const newStart = e.target.value;
+                        const newEnd = end;
+
+                        const formatted =
+                          newStart && newEnd
+                            ? `${formatMonth(newStart)} - ${formatMonth(
+                                newEnd,
+                              )}`
+                            : newStart
+                              ? `${formatMonth(newStart)} - Present`
+                              : '';
+
+                        onExperienceChange(index, 'duration', formatted);
+                      }}
+                      className={`h-11 ${
+                        showError(start, exp, index) ? 'border-red-500 ' : ''
+                      }`}
+                    />
+                    {showError(start, exp, index) && (
+                      <p className="text-xs text-red-500">
+                        Start date is required
+                      </p>
+                    )}
+
+                    <Input
+                      type="month"
+                      value={end}
+                      onChange={(e) => {
+                        const newEnd = e.target.value;
+                        const newStart = start;
+
+                        const formatted =
+                          newStart && newEnd
+                            ? `${formatMonth(newStart)} - ${formatMonth(
+                                newEnd,
+                              )}`
+                            : newStart
+                              ? `${formatMonth(newStart)} - Present`
+                              : '';
+
+                        onExperienceChange(index, 'duration', formatted);
+                      }}
+                      className={`h-11 ${
+                        showError(end, exp, index) ? 'border-red-500 ' : ''
+                      }`}
+                    />
+                    {showError(end, exp, index) && (
+                      <p className="text-xs text-red-500">
+                        End date is required
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
               <Textarea
                 value={exp.description}
                 onChange={(e) =>
@@ -305,6 +300,7 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
             </div>
           ))}
         </div>
+
         <Button
           type="button"
           onClick={onAddExperience}
