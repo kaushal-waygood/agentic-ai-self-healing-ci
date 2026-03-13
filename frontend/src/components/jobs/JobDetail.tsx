@@ -1321,8 +1321,18 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             <summary className="hidden" />
             <div className="px-1 pb-4">
               {/* {renderJobDescription(cleanHtmlDescription(job.description))} */}
-              {renderJobDescription(job.description)}
-
+              {job.description ? (
+                renderJobDescription(job.description)
+              ) : (
+                <div className="flex flex-col items-center justify-center min-h-[280px] py-12 px-6 text-center">
+                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                    <FileText className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">
+                    No job description provided
+                  </h3>
+                </div>
+              )}
               {/* {renderJobDescription(job.description)} */}
             </div>
           </details>

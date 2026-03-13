@@ -22,6 +22,7 @@ import { useSelector } from 'react-redux';
 import HeroSection from './HeroSection';
 import apiInstance from '@/services/api';
 import { Button } from '../ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 // --- VERIFICATION MODAL COMPONENT ---
 const VerificationModal = ({
@@ -34,7 +35,9 @@ const VerificationModal = ({
   user: any;
 }) => {
   const router = useRouter();
+  const { toast } = useToast();
   const [isVerifying, setIsVerifying] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [data, setData] = useState<VerificationData>({
     method: 'email',
     email: '',
@@ -43,7 +46,18 @@ const VerificationModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (hasSubmitted) {
+      toast({
+        title: 'Verification already submitted',
+        description: 'Please wait for the previous submission to be processed.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsVerifying(true);
+    setHasSubmitted(true);
 
     try {
       const formData = new FormData();
@@ -63,12 +77,19 @@ const VerificationModal = ({
       );
       if (verifyRes.status === 200) {
         await apiInstance.post('/students/activate-student-plan');
+        toast({ title: 'Verification submitted successfully!' });
         onClose();
         // router.push('/dashboard');
       }
     } catch (err) {
       console.error(err);
-      alert('Verification failed');
+      // alert('Verification failed');
+      toast({
+        title: 'Verification failed',
+        description: 'An error occurred during verification. Please try again.',
+        variant: 'destructive',
+      });
+      setHasSubmitted(false);
     } finally {
       setIsVerifying(false);
     }
