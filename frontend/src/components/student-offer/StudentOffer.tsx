@@ -37,6 +37,7 @@ const VerificationModal = ({
   const router = useRouter();
   const { toast } = useToast();
   const [isVerifying, setIsVerifying] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [data, setData] = useState<VerificationData>({
     method: 'email',
     email: '',
@@ -45,7 +46,18 @@ const VerificationModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (hasSubmitted) {
+      toast({
+        title: 'Verification already submitted',
+        description: 'Please wait for the previous submission to be processed.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsVerifying(true);
+    setHasSubmitted(true);
 
     try {
       const formData = new FormData();
@@ -71,7 +83,13 @@ const VerificationModal = ({
       }
     } catch (err) {
       console.error(err);
-      alert('Verification failed');
+      // alert('Verification failed');
+      toast({
+        title: 'Verification failed',
+        description: 'An error occurred during verification. Please try again.',
+        variant: 'destructive',
+      });
+      setHasSubmitted(false);
     } finally {
       setIsVerifying(false);
     }

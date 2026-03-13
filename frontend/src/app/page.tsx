@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import { Navigation } from '@/components/layout/site-header';
 import { Footer } from '@/components/layout/footer';
 import { Hero } from '@/components/home/Hero';
-import RedirectGuard from '@/hooks/useHome';
+// import RedirectGuard from '@/hooks/useHome';
 
 // HIGH PERFORMANCE: Lazily load heavy sections below the fold
 const PainPoints = dynamic(() =>
@@ -30,8 +30,7 @@ export default function HomePage() {
   return (
     <>
       {/* Logic-only client component */}
-      <RedirectGuard />
-
+      {/* <RedirectGuard /> */}
       <Navigation />
       <div className="flex flex-col min-h-screen">
         <main className="flex-1">

@@ -82,7 +82,8 @@ apiInstance.interceptors.response.use(
 
     // On 401 or Token expired 403, simply logout immediately.
     const isTokenError =
-      status === 401 ||
+      (status === 401 &&
+        !error.config?.url?.includes('/user/me/password/change')) ||
       status === 402 ||
       (status === 403 &&
         (message.includes('expired') ||
