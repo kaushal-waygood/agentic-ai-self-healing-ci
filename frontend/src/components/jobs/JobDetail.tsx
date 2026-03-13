@@ -468,14 +468,14 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   };
 
   const handleGetATSScore = useCallback(async () => {
-    if (!profile.uploadedCV) {
-      toast({
-        title: 'CV not found',
-        description: 'Please upload or select a CV to calculate ATS Score.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    // if (!profile.uploadedCV) {
+    //   toast({
+    //     title: 'CV not found',
+    //     description: 'Please upload or select a CV to calculate ATS Score.',
+    //     variant: 'destructive',
+    //   });
+    //   return;
+    // }
     if (!job?.description) return;
 
     setIsLoadingAtsScore(true);
@@ -895,7 +895,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   <SelectTrigger className="w-[180px] h-10 border border-input bg-background-white text-sm">
                     <SelectValue placeholder="Match against" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="  bg-white text-sm">
                     <SelectItem value="profile">My Profile</SelectItem>
                     {savedCvs.map((cv) => (
                       <SelectItem key={cv._id} value={cv._id}>
