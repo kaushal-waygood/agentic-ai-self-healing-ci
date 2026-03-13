@@ -1,7 +1,8 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // output: 'export',
+  // Enables standalone folder creation for Docker
+  output: 'standalone',
   typescript: {
     ignoreBuildErrors: true,
   },
