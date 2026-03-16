@@ -77,7 +77,6 @@
     "k6-html-reporter": "^0.0.4",
     "mammoth": "^1.11.0",
     "mongoose": "^8.16.2",
-    "mongoose-id-validator": "^0.6.0",
     "mongoose-paginate-v2": "^1.9.1",
     "morgan": "^1.10.0",
     "multer": "^2.0.2",

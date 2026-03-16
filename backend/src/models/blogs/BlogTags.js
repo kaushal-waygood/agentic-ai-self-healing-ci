@@ -5,7 +5,6 @@
 
 import mongoose from 'mongoose';
 import mongoosePaginate from 'mongoose-paginate-v2';
-import idValidator from 'mongoose-id-validator';
 
 const myCustomLabels = {
   totalDocs: 'itemCount',
@@ -25,14 +24,14 @@ const schema = new Schema(
   {
     ownerType: {
       type: String,
-      enum: ['super-admin'],
+      enum: ['super-admin', 'organization'],
       required: true,
     },
 
     // If org created the blog tag → required
     organizationId: {
       type: Schema.Types.ObjectId,
-      ref: 'organization',
+      ref: 'Organization',
       default: null,
       index: true,
     },
@@ -89,7 +88,6 @@ schema.index({
 
 // Plugins
 schema.plugin(mongoosePaginate);
-schema.plugin(idValidator);
 
 // Model export
 const blogTags = mongoose.model('blogTags', schema);

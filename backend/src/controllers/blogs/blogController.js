@@ -156,7 +156,7 @@ function resolveOwnership(req) {
   const { role, organization } = req.user;
   const body = req.body;
 
-  if (role === 'super-admin' || role === 'admin') {
+  if (role === 'super-admin' || role === 'org-admin') {
     if (body.organizationId) {
       return { ownerType: 'organization', organizationId: body.organizationId };
     }
@@ -183,7 +183,39 @@ function resolveOwnership(req) {
  */
 export const createBlog = async (req, res) => {
   try {
-    const data = { ...req.body };
+    const {
+      title,
+      slug,
+      shortDescription,
+      fullDescription,
+      author,
+      category,
+      tags,
+      publishStatus,
+      publishDate,
+      allowComments,
+      isActive,
+      seo,
+      organizationId: bodyOrganizationId,
+    } = req.body;
+
+    const data = {
+      ...(title !== undefined && { title }),
+      ...(slug !== undefined && { slug }),
+      ...(shortDescription !== undefined && { shortDescription }),
+      ...(fullDescription !== undefined && { fullDescription }),
+      ...(author !== undefined && { author }),
+      ...(category !== undefined && { category }),
+      ...(tags !== undefined && { tags }),
+      ...(publishStatus !== undefined && { publishStatus }),
+      ...(publishDate !== undefined && { publishDate }),
+      ...(allowComments !== undefined && { allowComments }),
+      ...(isActive !== undefined && { isActive }),
+      ...(seo !== undefined && { seo }),
+      ...(bodyOrganizationId !== undefined && {
+        organizationId: bodyOrganizationId,
+      }),
+    };
 
     // Resolve ownership
     const { ownerType, organizationId } = resolveOwnership(req);
@@ -202,16 +234,22 @@ export const createBlog = async (req, res) => {
     // Parse category/tags arrays if sent as string (multipart)
     if (typeof data.category === 'string') {
       try {
-        data.category = JSON.parse(data.category);
+        data.category = JSON.parse(data.category.replace(/'/g, '"'));
       } catch {
-        data.category = [data.category];
+        data.category = data.category
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
       }
     }
     if (typeof data.tags === 'string') {
       try {
-        data.tags = JSON.parse(data.tags);
+        data.tags = JSON.parse(data.tags.replace(/'/g, '"'));
       } catch {
-        data.tags = [data.tags];
+        data.tags = data.tags
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
       }
     }
 
@@ -294,7 +332,39 @@ export const getBlogById = async (req, res) => {
 export const updateBlog = async (req, res) => {
   try {
     const { id } = req.params;
-    const data = { ...req.body };
+    const {
+      title,
+      slug,
+      shortDescription,
+      fullDescription,
+      author,
+      category,
+      tags,
+      publishStatus,
+      publishDate,
+      allowComments,
+      isActive,
+      seo,
+      organizationId: bodyOrganizationId,
+    } = req.body;
+
+    const data = {
+      ...(title !== undefined && { title }),
+      ...(slug !== undefined && { slug }),
+      ...(shortDescription !== undefined && { shortDescription }),
+      ...(fullDescription !== undefined && { fullDescription }),
+      ...(author !== undefined && { author }),
+      ...(category !== undefined && { category }),
+      ...(tags !== undefined && { tags }),
+      ...(publishStatus !== undefined && { publishStatus }),
+      ...(publishDate !== undefined && { publishDate }),
+      ...(allowComments !== undefined && { allowComments }),
+      ...(isActive !== undefined && { isActive }),
+      ...(seo !== undefined && { seo }),
+      ...(bodyOrganizationId !== undefined && {
+        organizationId: bodyOrganizationId,
+      }),
+    };
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid blog ID.' });
@@ -328,16 +398,22 @@ export const updateBlog = async (req, res) => {
     // Parse category/tags arrays
     if (typeof data.category === 'string') {
       try {
-        data.category = JSON.parse(data.category);
+        data.category = JSON.parse(data.category.replace(/'/g, '"'));
       } catch {
-        data.category = [data.category];
+        data.category = data.category
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
       }
     }
     if (typeof data.tags === 'string') {
       try {
-        data.tags = JSON.parse(data.tags);
+        data.tags = JSON.parse(data.tags.replace(/'/g, '"'));
       } catch {
-        data.tags = [data.tags];
+        data.tags = data.tags
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
       }
     }
 
@@ -580,26 +656,6 @@ export const listWebsiteBlogs = async (req, res) => {
 
     const query = { isDeleted: false, isActive: true };
 
-    // Tenant-domain-based scoping (for white-label agency sites)
-    const tenantDomain = req.get('x-tenant-domain');
-    if (tenantDomain) {
-      // Lookup organization by custom/sub domain
-      const { Organization } =
-        await import('../../models/Organization.model.js');
-      const org = await Organization.findOne({
-        $or: [{ 'profile.website': new RegExp(tenantDomain, 'i') }],
-      }).select('_id');
-
-      if (org) {
-        query.ownerType = 'ORGANIZATION';
-        query.organizationId = org._id;
-      } else {
-        return res.status(400).json({ message: 'Invalid tenant domain.' });
-      }
-    } else {
-      query.ownerType = 'super-admin';
-    }
-
     if (search) {
       const rx = new RegExp(search, 'i');
       query.$or = [
@@ -657,22 +713,7 @@ export const websiteBlogFilterTags = async (req, res) => {
   try {
     const query = { isDeleted: false, isActive: true };
 
-    const tenantDomain = req.get('x-tenant-domain');
-    if (tenantDomain) {
-      const { Organization } =
-        await import('../../models/Organization.model.js');
-      const org = await Organization.findOne({
-        $or: [{ 'profile.website': new RegExp(tenantDomain, 'i') }],
-      }).select('_id');
-      if (org) {
-        query.ownerType = 'ORGANIZATION';
-        query.organizationId = org._id;
-      } else {
-        return res.status(400).json({ message: 'Invalid tenant domain.' });
-      }
-    } else {
-      query.ownerType = 'super-admin';
-    }
+    query.ownerType = 'super-admin';
 
     const tags = await BlogTags.find(query).select('title slug').lean();
 
@@ -691,22 +732,7 @@ export const websiteBlogFilterCategories = async (req, res) => {
   try {
     const query = { isDeleted: false, isActive: true };
 
-    const tenantDomain = req.get('x-tenant-domain');
-    if (tenantDomain) {
-      const { Organization } =
-        await import('../../models/Organization.model.js');
-      const org = await Organization.findOne({
-        $or: [{ 'profile.website': new RegExp(tenantDomain, 'i') }],
-      }).select('_id');
-      if (org) {
-        query.ownerType = 'ORGANIZATION';
-        query.organizationId = org._id;
-      } else {
-        return res.status(400).json({ message: 'Invalid tenant domain.' });
-      }
-    } else {
-      query.ownerType = 'super-admin';
-    }
+    query.ownerType = 'super-admin';
 
     const categories = await BlogCategory.find(query)
       .select('title slug')
@@ -726,7 +752,20 @@ export const websiteBlogFilterCategories = async (req, res) => {
  */
 export const createBlogCategory = async (req, res) => {
   try {
-    const data = { ...req.body };
+    const {
+      title,
+      slug,
+      isActive,
+      organizationId: bodyOrganizationId,
+    } = req.body;
+    const data = {
+      ...(title !== undefined && { title }),
+      ...(slug !== undefined && { slug }),
+      ...(isActive !== undefined && { isActive }),
+      ...(bodyOrganizationId !== undefined && {
+        organizationId: bodyOrganizationId,
+      }),
+    };
     const { ownerType, organizationId } = resolveOwnership(req);
     data.ownerType = ownerType;
     if (organizationId) data.organizationId = organizationId;
@@ -784,7 +823,20 @@ export const getBlogCategoryById = async (req, res) => {
 export const updateBlogCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const data = { ...req.body };
+    const {
+      title,
+      slug,
+      isActive,
+      organizationId: bodyOrganizationId,
+    } = req.body;
+    const data = {
+      ...(title !== undefined && { title }),
+      ...(slug !== undefined && { slug }),
+      ...(isActive !== undefined && { isActive }),
+      ...(bodyOrganizationId !== undefined && {
+        organizationId: bodyOrganizationId,
+      }),
+    };
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid category ID.' });
@@ -948,8 +1000,15 @@ export const updateBlogCategoryStatus = async (req, res) => {
  * POST /blog/tag
  */
 export const createBlogTag = async (req, res) => {
+  console.log('req.user', req.user.organization);
+  const { organization: organizationId } = req.user;
   try {
-    const data = { ...req.body };
+    const { title, slug, isActive } = req.body;
+    const data = {
+      ...(title !== undefined && { title }),
+      ...(slug !== undefined && { slug }),
+      ...(isActive !== undefined && { isActive }),
+    };
     const { ownerType, organizationId } = resolveOwnership(req);
     data.ownerType = ownerType;
     if (organizationId) data.organizationId = organizationId;
@@ -1002,7 +1061,20 @@ export const getBlogTagById = async (req, res) => {
 export const updateBlogTag = async (req, res) => {
   try {
     const { id } = req.params;
-    const data = { ...req.body };
+    const {
+      title,
+      slug,
+      isActive,
+      organizationId: bodyOrganizationId,
+    } = req.body;
+    const data = {
+      ...(title !== undefined && { title }),
+      ...(slug !== undefined && { slug }),
+      ...(isActive !== undefined && { isActive }),
+      ...(bodyOrganizationId !== undefined && {
+        organizationId: bodyOrganizationId,
+      }),
+    };
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid tag ID.' });

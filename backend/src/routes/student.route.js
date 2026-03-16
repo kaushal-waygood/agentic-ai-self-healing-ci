@@ -57,7 +57,6 @@ import {
 } from '../controllers/credit.controller.js';
 import { upload } from '../middlewares/multer.js';
 import multer from 'multer';
-import { logToFile } from '../utils/logFile.js';
 
 const router = Router();
 
@@ -346,8 +345,6 @@ router.post('/pdf/generate-pdf', async (req, res) => {
       'Content-Disposition',
       `attachment; filename="zobsai_${safeTitle}.pdf"`,
     );
-
-    logToFile(html, 'pdf.txt');
 
     console.log('PDF generated successfully');
 
