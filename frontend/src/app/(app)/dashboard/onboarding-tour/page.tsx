@@ -80,6 +80,14 @@ type ProjectEntry = {
 
 // --- END: TYPE DEFINITIONS ---
 
+const normalizeSkillName = (value: unknown): string => {
+  if (typeof value !== 'string') return '';
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s\-'.,&]+/g, '');
+};
+
 // Helper function to format duration
 const formatDuration = (start?: string, end?: string | null): string => {
   if (!start) return '';
@@ -217,12 +225,19 @@ const OnboardingPage = () => {
 
     // --- START DUPLICATE SKILL CHECK ---
     if (arrayName === 'skills' && field === 'skill') {
-      const isDuplicate = formData.skills.some(
-        (item, i) =>
-          i !== index &&
-          item.skill.trim().toLowerCase() === value.trim().toLowerCase() &&
-          value.trim() !== '',
-      );
+      //  const isDuplicate = formData.skills.some(
+      //    (item, i) =>
+      //      i !== index &&
+      //      item.skill.trim().toLowerCase() === value.trim().toLowerCase() &&
+      //      value.trim() !== '',
+      //  );
+      const nextNormalized = normalizeSkillName(value);
+      const isDuplicate =
+        nextNormalized.length > 0 &&
+        formData.skills.some(
+          (item, i) =>
+            i !== index && normalizeSkillName(item.skill) === nextNormalized,
+        );
 
       if (isDuplicate) {
         toast({

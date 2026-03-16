@@ -24,6 +24,14 @@ type ExperienceEntry = {
 
 const TEXT_ONLY_REGEX = /^[a-zA-Z\s\-'.,&]+$/;
 
+const normalizeSkillName = (value: unknown): string => {
+  if (typeof value !== 'string') return '';
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s\-'.,&]+/g, '');
+};
+
 const isValidMonth = (value: string) => {
   if (!value) return false;
   const match = /^(\d{4})-(\d{2})$/.exec(value);
@@ -64,9 +72,11 @@ export const getSkillEntryErrors = (
   else if (!TEXT_ONLY_REGEX.test(skill)) {
     errors.skill = 'Only letters, spaces, and basic punctuation allowed';
   } else {
-    const lower = skill.toLowerCase();
+    // const lower = skill.toLowerCase();
+    const normalized = normalizeSkillName(skill);
     const firstIndex = skills.findIndex(
-      (s) => (s?.skill ?? '').trim().toLowerCase() === lower,
+      // (s) => (s?.skill ?? '').trim().toLowerCase() === lower,
+      (s) => normalizeSkillName(s?.skill ?? '') === normalized,
     );
     if (firstIndex !== -1 && firstIndex !== index) {
       errors.skill = 'This skill has already been added';

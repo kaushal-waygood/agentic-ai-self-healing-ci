@@ -153,7 +153,7 @@ export default function ViewAllBlogs() {
             {blogListdata?.map((blog) => (
               <Link
                 key={blog._id}
-                href={`/blogs/${blog.slug}`}
+                href={`/blog/${blog.slug}`}
                 className="group"
               >
                 <Card className="h-[450px] overflow-hidden border border-border transition-all duration-300 hover:-translate-y-2 hover:shadow-lg flex flex-col">
