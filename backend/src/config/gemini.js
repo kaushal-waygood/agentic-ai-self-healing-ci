@@ -1,5 +1,8 @@
 import { GeminiUsage } from '../models/GeminiUsage.js';
-import { getLLMProvider, generateWithFallback } from '../llm/providerFactory.js';
+import {
+  getLLMProvider,
+  generateWithFallback,
+} from '../llm/providerFactory.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -10,33 +13,6 @@ const RETRY_CONFIG = {
   baseDelay: 1000,
   maxDelay: 10000,
 };
-
-// ===== PROMPT LOGGING SETUP =====
-const PROMPT_LOG_DIR = path.resolve(process.cwd(), 'logs');
-const PROMPT_LOG_FILE = path.join(PROMPT_LOG_DIR, 'prompt.txt');
-
-function logPromptToFile(prompt, meta = {}) {
-  try {
-    if (!fs.existsSync(PROMPT_LOG_DIR)) {
-      fs.mkdirSync(PROMPT_LOG_DIR, { recursive: true });
-    }
-
-    const entry = `
-==============================
-TIMESTAMP: ${new Date().toISOString()}
-USER_ID: ${meta.userId || 'N/A'}
-ENDPOINT: ${meta.endpoint || 'N/A'}
-==============================
-${prompt}
-
-`;
-
-    fs.appendFile(PROMPT_LOG_FILE, entry, () => {});
-  } catch {
-    // Silent failure. Logging must never break generation.
-  }
-}
-// ===============================
 
 function estimateTokens(text, mode = 'text') {
   if (!text) return 0;
@@ -78,7 +54,6 @@ export async function generateContent(
   } = {},
 ) {
   // 🔥 LOG PROMPT HERE
-  logPromptToFile(prompt, { userId, endpoint });
 
   const promptChars = String(prompt || '').length;
 

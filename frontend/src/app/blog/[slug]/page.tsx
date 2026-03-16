@@ -3,8 +3,9 @@ import type { Metadata } from 'next';
 
 import BlogsAllDetail from '@/sections/website/blog/blog-details';
 
+// NEXT.JS 15 CHANGE: params is now a Promise
 type PageProps = {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 };
 
 type BlogSeo = {
@@ -34,23 +35,29 @@ type BlogData = {
   seo?: BlogSeo;
 } & Record<string, unknown>;
 
-const getBlogViewPath = (slug: string) => `/api/v1/blog/view/${encodeURIComponent(slug)}`;
-
-// Helper function to fetch blog data
 const getBlogData = async (slug: string): Promise<BlogData | null> => {
   try {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
-    const url = apiBaseUrl ? `${apiBaseUrl}${getBlogViewPath(slug)}` : getBlogViewPath(slug);
-    const { data: resp } = await axios.get(url);
-    return resp?.data;
+    const API_BASE_URL =
+      process.env.NEXT_PUBLIC_NODE_ENV === 'production'
+        ? 'https://api.zobsai.com'
+        : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
+          ? 'https://api.dev.zobsai.com'
+          : 'http://127.0.0.1:8080';
+
+    const resp = await axios.get(`${API_BASE_URL}/api/v1/blog/view/${slug}`);
+
+    return resp?.data?.data;
   } catch (error) {
     console.error('Error fetching blog data:', error);
     return null;
   }
 };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = params;
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  // FIX: Await params before destructuring
+  const { slug } = await params;
   const blogData = await getBlogData(slug);
 
   if (!blogData) {
@@ -84,9 +91,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ? seo.openGraph.ogType
       : 'article';
 
-  const twitterCardCandidates = new Set(['summary', 'summary_large_image', 'app', 'player']);
+  const twitterCardCandidates = new Set([
+    'summary',
+    'summary_large_image',
+    'app',
+    'player',
+  ]);
+
   const twitterCard =
-    seo?.twitter?.twitterCard && twitterCardCandidates.has(seo.twitter.twitterCard)
+    seo?.twitter?.twitterCard &&
+    twitterCardCandidates.has(seo.twitter.twitterCard)
       ? seo.twitter.twitterCard
       : 'summary_large_image';
 
@@ -106,19 +120,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: seo?.openGraph?.ogDescription ?? description,
       type: openGraphType as any,
       ...(seo?.openGraph?.ogUrl ? { url: seo.openGraph.ogUrl } : {}),
-      ...(seo?.openGraph?.ogImage ? { images: [{ url: seo.openGraph.ogImage }] } : {}),
+      ...(seo?.openGraph?.ogImage
+        ? { images: [{ url: seo.openGraph.ogImage }] }
+        : {}),
     },
     twitter: {
       card: twitterCard as any,
       title: seo?.twitter?.twitterTitle ?? title,
       description: seo?.twitter?.twitterDescription ?? description,
-      ...(seo?.twitter?.twitterImage ? { images: [seo.twitter.twitterImage] } : {}),
+      ...(seo?.twitter?.twitterImage
+        ? { images: [seo.twitter.twitterImage] }
+        : {}),
     },
   };
 }
 
 export default async function Page({ params }: PageProps) {
-  const { slug } = params;
+  const { slug } = await params;
   const blogDetails = await getBlogData(slug);
 
   return (
