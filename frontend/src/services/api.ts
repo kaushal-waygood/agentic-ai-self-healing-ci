@@ -79,7 +79,9 @@ apiInstance.interceptors.response.use(
   async (error) => {
     const status = error.response?.status;
     const message = (error.response?.data?.message || '').toLowerCase();
+    const url = error.config?.url || '';
 
+    const isPublicRoute = url.includes('/jobs') || url.includes('/jobs/find');
     // On 401 or Token expired 403, simply logout immediately.
     const isTokenError =
       (status === 401 &&
@@ -89,7 +91,13 @@ apiInstance.interceptors.response.use(
         (message.includes('expired') ||
           message.includes('invalid or expired')));
 
-    if (isTokenError && !isLoggingOut) {
+    // if (isTokenError && !isLoggingOut) {
+    //   isLoggingOut = true;
+    //   delete apiInstance.defaults.headers.common['Authorization'];
+    //   store.dispatch(logoutRequest());
+    // }
+
+    if (isTokenError && !isLoggingOut && !isPublicRoute) {
       isLoggingOut = true;
       delete apiInstance.defaults.headers.common['Authorization'];
       store.dispatch(logoutRequest());

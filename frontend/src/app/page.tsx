@@ -34,10 +34,7 @@ export default function HomePage() {
       <Navigation />
       <div className="flex flex-col min-h-screen">
         <main className="flex-1">
-          {/* Hero is imported normally because it's at the top (LCP) */}
           <Hero />
-
-          {/* These are now code-split and loaded only when needed */}
           <PainPoints />
           <Solutions />
           <BeforeAfter />

@@ -4,7 +4,7 @@ import { getToken } from '@/hooks/useToken';
 import { Menu, X, Search } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
 export const Navigation = () => {
@@ -14,6 +14,8 @@ export const Navigation = () => {
   const [token, setToken] = useState<string | undefined>(undefined);
   const router = useRouter();
   const tokens = getToken();
+  const pathname = usePathname();
+  const isJobSearchPage = pathname.includes('/search-jobs');
 
   // On component mount, check if the access token cookie exists
   useEffect(() => {
@@ -30,19 +32,17 @@ export const Navigation = () => {
 
   const handleSearchSubmit = () => {
     const trimmedQuery = searchQuery.trim();
-
+    if (!trimmedQuery) return;
     const encodedQuery = trimmedQuery ? encodeURIComponent(trimmedQuery) : '';
 
     setSearchQuery('');
 
     if (token) {
       router.push(
-        `/dashboard/search-jobs${encodedQuery ? `?query=${encodedQuery}` : ''}`,
+        `/dashboard/search-jobs${encodedQuery ? `?q=${encodedQuery}` : ''}`,
       );
     } else {
-      router.push(
-        `/search-jobs${encodedQuery ? `?query=${encodedQuery}` : ''}`,
-      );
+      router.push(`/search-jobs${encodedQuery ? `?q=${encodedQuery}` : ''}`);
     }
 
     setIsOpen(false);
@@ -92,35 +92,37 @@ export const Navigation = () => {
           </div>
 
           {/* Enhanced Desktop Search Box */}
-          <div className="hidden lg:flex flex-1 max-w-lg mx-8">
-            <div className="relative w-full group">
-              <div className="relative">
-                <div className="input-search-box-div">
-                  <button
-                    onClick={handleSearchSubmit}
-                    aria-label="Search"
-                    className="input-search-icon"
-                  >
-                    <Search />
-                  </button>
-                  <input
-                    type="text"
-                    placeholder="economist in New York, NY | system design in San Francisco, CA"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => setIsSearchFocused(true)}
-                    onBlur={() => setIsSearchFocused(false)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleSearchSubmit();
-                      }
-                    }}
-                    className="input-search py-2 "
-                  />
+          {!isJobSearchPage && (
+            <div className="hidden lg:flex flex-1 max-w-lg mx-8">
+              <div className="relative w-full group">
+                <div className="relative">
+                  <div className="input-search-box-div">
+                    <button
+                      onClick={handleSearchSubmit}
+                      aria-label="Search"
+                      className="input-search-icon"
+                    >
+                      <Search />
+                    </button>
+                    <input
+                      type="text"
+                      placeholder="economist in New York, NY | system design in San Francisco, CA"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onFocus={() => setIsSearchFocused(true)}
+                      onBlur={() => setIsSearchFocused(false)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSearchSubmit();
+                        }
+                      }}
+                      className="input-search py-2"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Enhanced Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
@@ -215,7 +217,8 @@ export const Navigation = () => {
 
             <div className="relative p-8 space-y-8">
               {/* Enhanced Mobile Search */}
-              <div className="relative group">
+
+              {/* <div className="relative group">
                 <div
                   className={`absolute -inset-1 bg-gradient-to-r from-violet-500/30 to-cyan-500/30 rounded-2xl blur transition-all duration-300 ${
                     isSearchFocused
@@ -249,7 +252,45 @@ export const Navigation = () => {
                     />
                   </div>
                 </div>
-              </div>
+              </div> */}
+              {/* 5. Conditional Mobile Search */}
+              {!isJobSearchPage && (
+                <div className="relative group">
+                  <div
+                    className={`absolute -inset-1 bg-gradient-to-r from-violet-500/30 to-cyan-500/30 rounded-2xl blur transition-all duration-300 ${
+                      isSearchFocused
+                        ? 'opacity-100 scale-105'
+                        : 'opacity-50 scale-100'
+                    }`}
+                  ></div>
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-white/10 rounded-2xl"></div>
+                    <div className="relative flex items-center">
+                      <button
+                        onClick={handleSearchSubmit}
+                        aria-label="Search"
+                        className="absolute left-4 w-5 h-5 text-gray-400 transition-colors duration-200 group-hover:text-violet-500 focus:outline-none"
+                      >
+                        <Search />
+                      </button>
+                      <input
+                        type="text"
+                        placeholder="Search jobs..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onFocus={() => setIsSearchFocused(true)}
+                        onBlur={() => setIsSearchFocused(false)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleSearchSubmit();
+                          }
+                        }}
+                        className="w-full pl-12 pr-6 py-4 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-white/30 transition-all duration-300 hover:bg-white/15 text-sm font-medium"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Enhanced mobile navigation items */}
               <div className="space-y-2">

@@ -167,6 +167,7 @@ export const SearchFilters = ({
             placeholder="economist in New York, NY | system design in San Francisco, CA"
             value={localFilters.query}
             onChange={(e) => handleInputChange('query', e.target.value)}
+            autoFocus
             onKeyDown={handleKeyDown}
             className="pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all border-2"
             aria-label="Search jobs"

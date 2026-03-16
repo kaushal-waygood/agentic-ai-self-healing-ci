@@ -772,6 +772,7 @@ export default function DashboardPage() {
               <Input
                 placeholder="Search Jobs..."
                 value={searchQuery}
+                autoFocus
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 className="flex-1 h-10 border-none bg-transparent p-0 text-slate-700 placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-base"

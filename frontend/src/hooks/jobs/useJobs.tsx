@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { getToken } from '@/hooks/useToken';
 import { debounce } from 'lodash';
 import {
   getRecommendJobsRequest,
@@ -16,6 +17,7 @@ export const useJobs = () => {
   const dispatch = useDispatch();
   const searchParams = useSearchParams();
   const pathName = usePathname();
+  const tokens = getToken();
   const router = useRouter();
 
   const {
@@ -114,10 +116,21 @@ export const useJobs = () => {
     // Update ref IMMEDIATELY before dispatching
     fetchedKeyRef.current = key;
 
+    console.log('token', tokens);
     if (isEmpty) {
-      const cacheKey = makeCacheKey('recommend', { page: 1 });
-      if (getCache(cacheKey)) dispatch(setCacheHit(true));
-      dispatch(getRecommendJobsRequest({ page: 1, append: false }));
+      // --- UPDATED LOGIC HERE ---
+      // Only call Recommended API if the user is authenticated
+      if (tokens) {
+        const cacheKey = makeCacheKey('recommend', { page: 1 });
+        if (getCache(cacheKey)) dispatch(setCacheHit(true));
+
+        dispatch(getRecommendJobsRequest({ page: 1, append: false }));
+      } else {
+        // OPTIONAL: If no token and no search query,
+        // you could either do nothing or call searchJobRequest with
+        // a empty/default query to show general jobs
+        console.log('No token found, skipping recommendations.');
+      }
     } else {
       const payload = {
         query: q,
