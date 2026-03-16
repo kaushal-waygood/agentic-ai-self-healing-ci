@@ -1,11 +1,21 @@
 import { Input } from '@/components/ui/input';
 import { SimplePhoneInput } from '@/components/common/SimplePhoneInput';
 import { isValidPhoneNumber } from 'react-phone-number-input';
+import {
+  ArrowRight,
+  CheckCircle2,
+  Edit,
+  Loader,
+  Loader2,
+  Upload,
+} from 'lucide-react';
 
 const PersonalInfoStep = ({
   formData,
   handleInputChange,
   attemptedNext,
+  handleResumeExtract,
+  isLoading,
 }: any) => {
   const LOCATION_REGEX = /^[a-zA-Z\s,.'-]+$/;
   const DESIGNATION_REGEX = /^[a-zA-Z\s]+$/;
@@ -39,6 +49,96 @@ const PersonalInfoStep = ({
 
   return (
     <div className="space-y-5">
+      {/* <div className="space-y-4">
+        {!isLoading ? (
+          <label className="block text-left w-full cursor-pointer rounded-lg border-2 bg-white p-6 transition-all duration-300 hover:border-blue-400 hover:-translate-y-1">
+            <div className="flex items-center">
+              <div className="p-3 bg-blue-50 rounded-lg mr-4">
+                <Upload className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg text-gray-900">
+                  Auto-fill with Resume
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Upload your resume and we’ll do the heavy lifting.
+                </p>
+              </div>
+              <ArrowRight className="ml-auto w-5 h-5 text-gray-400" />
+            </div>
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={(e) => handleResumeExtract(e.target.files?.[0] || null)}
+              className="hidden"
+            />
+          </label>
+        ) : (
+          <div className="w-full rounded-lg border-2 border-blue-100 bg-blue-50/50 p-6 flex flex-col items-center justify-center space-y-3 animate-pulse">
+            <div className="relative">
+              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+              <div className="absolute inset-0 bg-blue-400/20 blur-xl rounded-full animate-ping"></div>
+            </div>
+            <div className="text-center">
+              <h3 className="font-semibold text-blue-900">
+                Extracting information...
+              </h3>
+              <p className="text-sm text-blue-600/80">
+                Processing your resume in the background
+              </p>
+            </div>
+          </div>
+        )}
+      </div> */}
+
+      <div className="space-y-4">
+        {!isLoading ? (
+          /* Step 1: Initial Upload State */
+          <label className="block text-left w-full cursor-pointer rounded-lg border-2 bg-white  sm:p-6 p-2 transition-all duration-300 hover:border-blue-400 hover:-translate-y-1">
+            <div className="flex items-center">
+              <div className="p-3 bg-blue-50 rounded-lg mr-4">
+                <Upload className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg text-gray-900">
+                  Auto-fill with Resume
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Upload your resume and we’ll do the heavy lifting.
+                </p>
+              </div>
+              <ArrowRight className="hidden sm:block ml-auto w-5 h-5 text-gray-400" />
+            </div>
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={(e) => handleResumeExtract(e.target.files?.[0] || null)}
+              className="hidden"
+            />
+          </label>
+        ) : (
+          /* Step 2: Processing / Success State */
+          <div className="w-full   p-6 flex items-center animate-in fade-in zoom-in duration-300">
+            <div className="p-3 bg-green-100 rounded-lg mr-4">
+              <CheckCircle2 className="w-6 h-6 text-green-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg text-green-900">
+                Resume Uploaded
+              </h3>
+              <p className="text-sm text-green-700">
+                Your information is being extracted in the background...
+              </p>
+            </div>
+            {/* Subtle pulse to show it's still "thinking" even without a spinner */}
+            <div className="flex space-x-1 ml-auto">
+              <span className="h-2 w-2 bg-green-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="h-2 w-2 bg-green-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="h-2 w-2 bg-green-400 rounded-full animate-bounce"></span>
+            </div>
+          </div>
+        )}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Full Name */}
         <Input
