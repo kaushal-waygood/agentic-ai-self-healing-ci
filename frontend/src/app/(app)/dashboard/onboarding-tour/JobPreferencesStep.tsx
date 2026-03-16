@@ -285,6 +285,8 @@ const MultiInput = ({
   addItem,
   removeItem,
   errorMsg,
+  inlineError,
+  onValueChange,
 }: any) => {
   const hasError = attemptedNext && list.length === 0;
 
@@ -296,13 +298,19 @@ const MultiInput = ({
       <div className="flex gap-2">
         <Input
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          // onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            const next = e.target.value;
+            setValue(next);
+            if (onValueChange) onValueChange(next);
+          }}
           onKeyDown={(e) =>
             e.key === 'Enter' && addItem(field, list, value, setValue)
           }
           placeholder={placeholder}
           className={`h-11 text-base border-2 rounded-lg px-4 ${
-            hasError ? 'border-red-500' : 'bg-white/50'
+            //  hasError ? 'border-red-500' : 'bg-white/50'
+            hasError || inlineError ? 'border-red-500' : 'bg-white/50'
           }`}
         />
         <button
@@ -316,6 +324,9 @@ const MultiInput = ({
 
       {/* Error Message */}
       {hasError && <p className="text-xs text-red-500 mt-1">{errorMsg}</p>}
+      {!hasError && inlineError && (
+        <p className="text-xs text-red-500 mt-1">{inlineError}</p>
+      )}
 
       {/* Tags List */}
       <div className="flex flex-wrap gap-2 mt-3">
@@ -347,6 +358,7 @@ const JobPreferencesStep = ({
   console.log('form data', formData);
   // --- Local State for Inputs ---
   const [skillInput, setSkillInput] = useState('');
+  const [skillDuplicateError, setSkillDuplicateError] = useState('');
   // const [cityInput, setCityInput] = useState('');
   // const [countryInput, setCountryInput] = useState('');
 
@@ -372,14 +384,28 @@ const JobPreferencesStep = ({
     const trimmed = value.trim();
     if (!trimmed) return;
 
+    if (field === 'mustHaveSkills') {
+      // Catch inputs like "js js" (duplicate word separated by spaces)
+      const parts = trimmed.toLowerCase().split(/\s+/).filter(Boolean);
+      if (parts.length > 1 && new Set(parts).size !== parts.length) {
+        setSkillDuplicateError('This skill has already been added');
+        setFn('');
+        return;
+      }
+    }
+
     // Check for duplicates (case-insensitive optional)
     if (list.some((item) => item.toLowerCase() === trimmed.toLowerCase())) {
+      if (field === 'mustHaveSkills') {
+        setSkillDuplicateError('This skill has already been added');
+      }
       setFn(''); // Clear input even if duplicate
       return;
     }
 
     handleInputChange(field, [...list, trimmed]);
     setFn('');
+    if (field === 'mustHaveSkills') setSkillDuplicateError('');
   };
 
   // --- Generic Handler to Remove Item ---
@@ -463,6 +489,8 @@ const JobPreferencesStep = ({
         errorMsg="Add at least one must-have skill"
         addItem={addItem}
         removeItem={removeItem}
+        inlineError={skillDuplicateError}
+        onValueChange={() => setSkillDuplicateError('')}
       />{' '}
       {/* 4. Education Level */}
       <div>
