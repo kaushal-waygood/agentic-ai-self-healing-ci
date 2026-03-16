@@ -20,27 +20,38 @@ import {
   BookCopy,
 } from 'lucide-react';
 import apiInstance from '@/services/api';
+import { isValidPhoneNumber } from 'react-phone-number-input';
 
 // --- Import all step components ---
 import PersonalInfoStep from './PersonalInfoStep';
-import EducationStep from './EducationStep';
-import SkillsExperienceStep from './SkillsExperienceStep';
+// import EducationStep from './EducationStep';
+import EducationStep, { isEducationEntryValid } from './EducationStep';
+// import SkillsExperienceStep from './SkillsExperienceStep';
+import SkillsExperienceStep, {
+  isExperienceEntryValid,
+  isSkillsListValid,
+} from './SkillsExperienceStep';
+
 import ProjectsStep from './ProjectsStep';
+import { isProjectEntryValid } from './ProjectsStep';
 import JobPreferencesStep from './JobPreferencesStep';
 import AvailabilityStep from './AvailabilityStep';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import { RootState } from '@/redux/rootReducer';
 import { useSelector, useDispatch } from 'react-redux';
 import { start } from 'repl';
+import { useToast } from '@/hooks/use-toast';
 
 // --- START: TYPE DEFINITIONS ---
 type EducationEntry = {
   institute: string;
   degree: string;
-  graduationYear: string;
+  fieldOfStudy: string;
+  country: string;
   startDate: string;
   endDate: string;
   grade: string;
+  graduationYear?: string;
 };
 
 type ExperienceEntry = {
@@ -90,6 +101,7 @@ const OnboardingPage = () => {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState('forward');
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const totalSteps = 6;
 
@@ -135,6 +147,8 @@ const OnboardingPage = () => {
       {
         institute: '',
         degree: '',
+        fieldOfStudy: '',
+        country: '',
         graduationYear: '',
         grade: '',
         startDate: '',
@@ -165,6 +179,10 @@ const OnboardingPage = () => {
 
     // --- Job Preferences ---
     preferredLocation: '', // FIXED: Renamed to avoid collision
+    preferredCity: '', // Add this
+    preferredCountry: '', // Add this
+    mustHaveSkills: [] as string[], // Add this
+    educationLevel: '', // Add this
     expectedSalary: '',
   });
 
@@ -197,6 +215,26 @@ const OnboardingPage = () => {
   ) => {
     if (!Array.isArray(formData[arrayName])) return;
 
+    // --- START DUPLICATE SKILL CHECK ---
+    if (arrayName === 'skills' && field === 'skill') {
+      const isDuplicate = formData.skills.some(
+        (item, i) =>
+          i !== index &&
+          item.skill.trim().toLowerCase() === value.trim().toLowerCase() &&
+          value.trim() !== '',
+      );
+
+      if (isDuplicate) {
+        toast({
+          variant: 'destructive',
+          title: 'Skill Already Added',
+          description: 'This skill has already been added.',
+        });
+
+        return; // Stop the update
+      }
+    }
+    // --- END DUPLICATE SKILL CHECK ---
     const newArray = [...(formData[arrayName] as T[])];
     newArray[index] = { ...newArray[index], [field]: value };
     setFormData((prev) => ({ ...prev, [arrayName]: newArray }));
@@ -493,15 +531,30 @@ const OnboardingPage = () => {
 
   const isStepValid = () => {
     switch (step) {
-      case 1:
+      case 1: {
+        const designation = formData.designation.trim();
+        const location = formData.location.trim();
+        const isDesignationValid =
+          designation.length >= 2 &&
+          designation.length <= 30 &&
+          /^[a-zA-Z\s]+$/.test(designation);
+        const isLocationValid =
+          location.length >= 2 &&
+          location.length <= 50 &&
+          /^[a-zA-Z\s,.'-]+$/.test(location);
+
         return (
           formData.fullName.trim() &&
           formData.email.trim() &&
           formData.phone.trim() &&
-          formData.designation.trim() &&
-          formData.location.trim()
+          //   formData.designation.trim() &&
+          // formData.location.trim()
+          isValidPhoneNumber(formData.phone) &&
+          isDesignationValid &&
+          isLocationValid
           // formData.preferredLocation.trim()
         );
+      }
 
       case 2: {
         const filledEducations = formData.education.filter((edu) =>
@@ -510,40 +563,72 @@ const OnboardingPage = () => {
 
         if (filledEducations.length === 0) return false;
 
-        return filledEducations.every(
-          (edu) =>
-            safeTrim(edu.institute) &&
-            safeTrim(edu.degree) &&
-            safeTrim(edu.fieldOfStudy) &&
-            safeTrim(edu.startDate) &&
-            // safeTrim(edu.endDate) &&
-            safeTrim(edu.country) &&
-            safeTrim(edu.grade),
+        return filledEducations.every((edu) =>
+          //       safeTrim(edu.institute) &&
+          //       safeTrim(edu.degree) &&
+          //       safeTrim(edu.fieldOfStudy) &&
+          //       safeTrim(edu.startDate) &&
+          //       // safeTrim(edu.endDate) &&
+          //       safeTrim(edu.country) &&
+          //       safeTrim(edu.grade),
+          //   );
+          // }
+          isEducationEntryValid(edu),
         );
       }
 
-      case 3:
+      case 3: {
+        const filledSkills = formData.skills.filter((s) =>
+          Object.values(s).some((v) => safeTrim(v)),
+        );
+        const filledExperience = formData.experience.filter((e) =>
+          Object.values(e).some((v) => safeTrim(v)),
+        );
+
+        if (filledSkills.length === 0 || filledExperience.length === 0) {
+          return false;
+        }
+
         return (
-          formData.skills.every((s) => s.skill) &&
-          formData.experience.every((e) => e.company && e.title && e.duration)
+          //   formData.skills.every((s) => s.skill) &&
+          // formData.experience.every((e) => e.company && e.title && e.duration)
+          isSkillsListValid(filledSkills) &&
+          filledExperience.every((e) => isExperienceEntryValid(e))
+        );
+      }
+
+      case 4: {
+        // return formData.projects.every(
+        //   (p) => p.projectName && p.description && p.technologies,
+        // );
+        const filledProjects = formData.projects.filter((p) =>
+          Object.values(p).some((v) => safeTrim(v)),
         );
 
-      case 4:
-        return formData.projects.every(
-          (p) => p.projectName && p.description && p.technologies,
-        );
+        if (filledProjects.length === 0) return false;
 
-      case 5:
+        return filledProjects.every((p) => isProjectEntryValid(p));
+      }
+
+      case 5: {
+        const mustHaveSkills = Array.isArray(formData.mustHaveSkills)
+          ? formData.mustHaveSkills
+          : [];
+        const normalized = mustHaveSkills
+          .map((s) => safeTrim(s).toLowerCase())
+          .filter(Boolean);
+        const hasUniqueSkills = new Set(normalized).size === normalized.length;
+
         return (
-          Array.isArray(formData.preferredCities) &&
-          formData.preferredCities.length > 0 &&
-          Array.isArray(formData.preferredCountries) &&
-          formData.preferredCountries.length > 0 &&
-          Array.isArray(formData.mustHaveSkills) &&
-          formData.mustHaveSkills.length > 0 &&
-          safeTrim(formData.educationLevel)
+          safeTrim(formData.preferredCity) !== '' &&
+          safeTrim(formData.preferredCountry) !== '' &&
+          // Array.isArray(formData.mustHaveSkills) &&
+          // formData.mustHaveSkills.length > 0 &&
+          normalized.length > 0 &&
+          hasUniqueSkills &&
+          safeTrim(formData.educationLevel) !== ''
         );
-
+      }
       case 6:
         return Boolean(selectedOptions.availability);
 
@@ -569,7 +654,8 @@ const OnboardingPage = () => {
             education={formData.education}
             onchange={handleArrayChange.bind(null, 'education')}
             onAdd={addArrayItem.bind(null, 'education', {
-              institution: '',
+              // institution: '',
+              institute: '',
               degree: '',
               fieldOfStudy: '',
               graduationYear: '',

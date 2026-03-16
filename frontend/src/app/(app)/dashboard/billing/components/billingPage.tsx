@@ -358,9 +358,9 @@ export default function BillingPage() {
                         <p className="text-[10px] md:text-xs text-gray-400">
                           {formatDate(record.createdAt)}
                         </p>
-                        <button className="text-blue-600 text-sm font-medium md:opacity-0 md:group-hover:opacity-100 transition-opacity mt-1">
+                        {/* <button className="text-blue-600 text-sm font-medium md:opacity-0 md:group-hover:opacity-100 transition-opacity mt-1">
                           View Receipt
-                        </button>
+                        </button> */}
                       </div>
                     </div>
                   ))}

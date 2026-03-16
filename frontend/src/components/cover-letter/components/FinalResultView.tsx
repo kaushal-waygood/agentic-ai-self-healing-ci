@@ -64,7 +64,8 @@ export default function FinalResultView({
 
   // Poll status API when documentId is provided; stop when status is completed
   useEffect(() => {
-    if (!documentId || rateLimited || incompleteProfile || statusCompleted) return;
+    if (!documentId || rateLimited || incompleteProfile || statusCompleted)
+      return;
 
     const getEndpoint = () => {
       switch (documentType) {
@@ -103,7 +104,13 @@ export default function FinalResultView({
       clearTimeout(timer);
       clearInterval(interval);
     };
-  }, [documentId, documentType, rateLimited, incompleteProfile, statusCompleted]);
+  }, [
+    documentId,
+    documentType,
+    rateLimited,
+    incompleteProfile,
+    statusCompleted,
+  ]);
 
   const handleRedirectDocs = () => {
     if (typeof targetLink === 'string' && targetLink.length > 0) {
@@ -218,7 +225,9 @@ export default function FinalResultView({
               </div>
 
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                {statusCompleted ? 'Document ready!' : 'Document is being generated'}
+                {statusCompleted
+                  ? 'Document ready!'
+                  : 'Document is being generated'}
               </h2>
 
               <div className="flex flex-col gap-4 mb-8 max-w-xs mx-auto text-left">
@@ -232,27 +241,39 @@ export default function FinalResultView({
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${statusCompleted ? 'bg-green-100 text-green-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                  <div
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${statusCompleted ? 'bg-green-100 text-green-600' : 'bg-indigo-100 text-indigo-600'}`}
+                  >
                     {statusCompleted ? (
                       <CheckCircle className="h-4 h-4" />
                     ) : (
                       <div className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse" />
                     )}
                   </div>
-                  <span className={`text-sm font-medium ${statusCompleted ? 'text-gray-700' : 'font-bold text-indigo-600'}`}>
-                    {statusCompleted ? 'Processing complete' : 'Added to queue & processing'}
+                  <span
+                    className={`text-sm font-medium ${statusCompleted ? 'text-gray-700' : 'font-bold text-indigo-600'}`}
+                  >
+                    {statusCompleted
+                      ? 'Processing complete'
+                      : 'Added to queue & processing'}
                   </span>
                 </div>
 
-                <div className={`flex items-center gap-3 ${statusCompleted ? '' : 'opacity-40'}`}>
-                  <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${statusCompleted ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                <div
+                  className={`flex items-center gap-3 ${statusCompleted ? '' : 'opacity-40'}`}
+                >
+                  <div
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${statusCompleted ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
+                  >
                     {statusCompleted ? (
                       <CheckCircle className="h-4 h-4" />
                     ) : (
                       <div className="h-2 w-2 rounded-full bg-gray-400" />
                     )}
                   </div>
-                  <span className={`text-sm font-medium ${statusCompleted ? 'text-gray-700' : 'text-gray-500'}`}>
+                  <span
+                    className={`text-sm font-medium ${statusCompleted ? 'text-gray-700' : 'text-gray-500'}`}
+                  >
                     Document ready
                   </span>
                 </div>
@@ -267,7 +288,7 @@ export default function FinalResultView({
               </div>
 
               <div className="flex gap-3 flex-col">
-                {showSendEmail && statusCompleted && onSendEmail && (
+                {/* {showSendEmail && statusCompleted && onSendEmail && (
                   <button
                     onClick={handleSendEmailClick}
                     disabled={isSendingEmail}
@@ -285,12 +306,12 @@ export default function FinalResultView({
                       </>
                     )}
                   </button>
-                )}
+                )} */}
 
                 <button
                   onClick={handleRedirectDocs}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 px-6 rounded-xl shadow-md transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!statusCompleted && !!documentId}
+                  disabled={!statusCompleted && !documentId}
                 >
                   {statusCompleted ? 'View Document' : 'View Live Status'}
                 </button>
