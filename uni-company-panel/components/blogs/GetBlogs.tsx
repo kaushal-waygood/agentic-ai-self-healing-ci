@@ -244,10 +244,16 @@ const BlogsPage = () => {
         </div>
         <div className="flex gap-3">
           <Button
+            onClick={() => router.push('/dashboard/blog/tags')}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            Tags
+          </Button>
+          <Button
             onClick={() => router.push('/dashboard/blog/category')}
             className="bg-indigo-600 hover:bg-indigo-700"
           >
-            Create Category
+            Category
           </Button>
           <Button
             onClick={() => router.push('/dashboard/blog/post')}
