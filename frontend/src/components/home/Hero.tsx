@@ -120,7 +120,7 @@ export const Hero = () => {
               {FEATURES.map((feature, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-4 p-3 bg-white/60 backdrop-blur-lg rounded-2xl border border-white/80 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-100 cursor-pointer group hover:bg-white/80"
+                  className="flex items-center gap-4 p-3 bg-white/60 backdrop-blur-lg rounded-2xl border border-white/80 shadow-lg  group"
                 >
                   <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl">
                     <Sparkles className="w-5 h-5 text-white" />

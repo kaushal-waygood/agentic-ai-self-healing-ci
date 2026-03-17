@@ -5,7 +5,6 @@
 
 import mongoose from 'mongoose';
 import mongoosePaginate from 'mongoose-paginate-v2';
-import idValidator from 'mongoose-id-validator';
 
 const myCustomLabels = {
   totalDocs: 'itemCount',
@@ -40,6 +39,11 @@ const schema = new Schema(
       ref: 'Comment',
       default: null, // null = top-level comment
       index: true,
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true,
     },
 
     content: {
@@ -80,7 +84,6 @@ schema.index({ parentComment: 1 });
 
 // Plugins
 schema.plugin(mongoosePaginate);
-schema.plugin(idValidator);
 
 // Model export
 const blogComments = mongoose.model('blogComments', schema);

@@ -80,6 +80,14 @@ type ProjectEntry = {
 
 // --- END: TYPE DEFINITIONS ---
 
+const normalizeSkillName = (value: unknown): string => {
+  if (typeof value !== 'string') return '';
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s\-'.,&]+/g, '');
+};
+
 // Helper function to format duration
 const formatDuration = (start?: string, end?: string | null): string => {
   if (!start) return '';
@@ -98,12 +106,12 @@ const formatDuration = (start?: string, end?: string | null): string => {
 
 const OnboardingPage = () => {
   const router = useRouter();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(1);
   const [direction, setDirection] = useState('forward');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const totalSteps = 6;
+  const totalSteps = 3;
 
   const { students } = useSelector((state: RootState) => state.student);
   const { user } = useSelector((state: RootState) => state.auth);
@@ -217,12 +225,19 @@ const OnboardingPage = () => {
 
     // --- START DUPLICATE SKILL CHECK ---
     if (arrayName === 'skills' && field === 'skill') {
-      const isDuplicate = formData.skills.some(
-        (item, i) =>
-          i !== index &&
-          item.skill.trim().toLowerCase() === value.trim().toLowerCase() &&
-          value.trim() !== '',
-      );
+      //  const isDuplicate = formData.skills.some(
+      //    (item, i) =>
+      //      i !== index &&
+      //      item.skill.trim().toLowerCase() === value.trim().toLowerCase() &&
+      //      value.trim() !== '',
+      //  );
+      const nextNormalized = normalizeSkillName(value);
+      const isDuplicate =
+        nextNormalized.length > 0 &&
+        formData.skills.some(
+          (item, i) =>
+            i !== index && normalizeSkillName(item.skill) === nextNormalized,
+        );
 
       if (isDuplicate) {
         toast({
@@ -430,8 +445,8 @@ const OnboardingPage = () => {
       console.error('Failed to extract data from resume:', error);
     } finally {
       setIsLoading(false);
-      setDirection('forward');
-      setStep(1);
+      // setDirection('forward');
+      // setStep(1);
     }
   };
 
@@ -490,31 +505,31 @@ const OnboardingPage = () => {
           subtitle: "Let's get to know you better",
           Icon: User,
         };
+      // case 2:
+      //   return {
+      //     title: 'Education',
+      //     subtitle: 'Your academic background',
+      //     Icon: GraduationCap,
+      //   };
       case 2:
-        return {
-          title: 'Education',
-          subtitle: 'Your academic background',
-          Icon: GraduationCap,
-        };
-      case 3:
         return {
           title: 'Skills & Experience',
           subtitle: 'Showcase your expertise',
           Icon: Code,
         };
-      case 4:
-        return {
-          title: 'Projects',
-          subtitle: 'Show off your best work',
-          Icon: BookCopy,
-        };
-      case 5:
-        return {
-          title: 'Job Preferences',
-          subtitle: 'What are you looking for?',
-          Icon: Briefcase,
-        };
-      case 6:
+      // case 4:
+      //   return {
+      //     title: 'Projects',
+      //     subtitle: 'Show off your best work',
+      //     Icon: BookCopy,
+      //   };
+      // case 5:
+      //   return {
+      //     title: 'Job Preferences',
+      //     subtitle: 'What are you looking for?',
+      //     Icon: Briefcase,
+      //   };
+      case 3:
         return {
           title: 'Availability',
           subtitle: 'When can you start?',
@@ -547,37 +562,23 @@ const OnboardingPage = () => {
           formData.fullName.trim() &&
           formData.email.trim() &&
           formData.phone.trim() &&
-          //   formData.designation.trim() &&
-          // formData.location.trim()
           isValidPhoneNumber(formData.phone) &&
           isDesignationValid &&
           isLocationValid
-          // formData.preferredLocation.trim()
         );
       }
+
+      // case 2: {
+      //   const filledEducations = formData.education.filter((edu) =>
+      //     Object.values(edu).some((v) => safeTrim(v)),
+      //   );
+
+      //   if (filledEducations.length === 0) return false;
+
+      //   return filledEducations.every((edu) => isEducationEntryValid(edu));
+      // }
 
       case 2: {
-        const filledEducations = formData.education.filter((edu) =>
-          Object.values(edu).some((v) => safeTrim(v)),
-        );
-
-        if (filledEducations.length === 0) return false;
-
-        return filledEducations.every((edu) =>
-          //       safeTrim(edu.institute) &&
-          //       safeTrim(edu.degree) &&
-          //       safeTrim(edu.fieldOfStudy) &&
-          //       safeTrim(edu.startDate) &&
-          //       // safeTrim(edu.endDate) &&
-          //       safeTrim(edu.country) &&
-          //       safeTrim(edu.grade),
-          //   );
-          // }
-          isEducationEntryValid(edu),
-        );
-      }
-
-      case 3: {
         const filledSkills = formData.skills.filter((s) =>
           Object.values(s).some((v) => safeTrim(v)),
         );
@@ -597,39 +598,36 @@ const OnboardingPage = () => {
         );
       }
 
-      case 4: {
-        // return formData.projects.every(
-        //   (p) => p.projectName && p.description && p.technologies,
-        // );
-        const filledProjects = formData.projects.filter((p) =>
-          Object.values(p).some((v) => safeTrim(v)),
-        );
+      // case 4: {
+      //   const filledProjects = formData.projects.filter((p) =>
+      //     Object.values(p).some((v) => safeTrim(v)),
+      //   );
 
-        if (filledProjects.length === 0) return false;
+      //   if (filledProjects.length === 0) return false;
 
-        return filledProjects.every((p) => isProjectEntryValid(p));
-      }
+      //   return filledProjects.every((p) => isProjectEntryValid(p));
+      // }
 
-      case 5: {
-        const mustHaveSkills = Array.isArray(formData.mustHaveSkills)
-          ? formData.mustHaveSkills
-          : [];
-        const normalized = mustHaveSkills
-          .map((s) => safeTrim(s).toLowerCase())
-          .filter(Boolean);
-        const hasUniqueSkills = new Set(normalized).size === normalized.length;
+      // case 5: {
+      //   const mustHaveSkills = Array.isArray(formData.mustHaveSkills)
+      //     ? formData.mustHaveSkills
+      //     : [];
+      //   const normalized = mustHaveSkills
+      //     .map((s) => safeTrim(s).toLowerCase())
+      //     .filter(Boolean);
+      //   const hasUniqueSkills = new Set(normalized).size === normalized.length;
 
-        return (
-          safeTrim(formData.preferredCity) !== '' &&
-          safeTrim(formData.preferredCountry) !== '' &&
-          // Array.isArray(formData.mustHaveSkills) &&
-          // formData.mustHaveSkills.length > 0 &&
-          normalized.length > 0 &&
-          hasUniqueSkills &&
-          safeTrim(formData.educationLevel) !== ''
-        );
-      }
-      case 6:
+      //   return (
+      //     safeTrim(formData.preferredCity) !== '' &&
+      //     safeTrim(formData.preferredCountry) !== '' &&
+      //     // Array.isArray(formData.mustHaveSkills) &&
+      //     // formData.mustHaveSkills.length > 0 &&
+      //     normalized.length > 0 &&
+      //     hasUniqueSkills &&
+      //     safeTrim(formData.educationLevel) !== ''
+      //   );
+      // }
+      case 3:
         return Boolean(selectedOptions.availability);
 
       default:
@@ -645,30 +643,32 @@ const OnboardingPage = () => {
             formData={formData}
             handleInputChange={handleInputChange}
             handleFileUpload={handleFileUpload}
+            handleResumeExtract={handleResumeExtract}
             attemptedNext={attemptedNext}
+            isLoading={isLoading}
           />
         );
+      // case 2:
+      //   return (
+      //     <EducationStep
+      //       education={formData.education}
+      //       onchange={handleArrayChange.bind(null, 'education')}
+      //       onAdd={addArrayItem.bind(null, 'education', {
+      //         // institution: '',
+      //         institute: '',
+      //         degree: '',
+      //         fieldOfStudy: '',
+      //         graduationYear: '',
+      //         grade: '',
+      //         country: '',
+      //         startDate: '',
+      //         endDate: '',
+      //       })}
+      //       onRemove={removeArrayItem.bind(null, 'education')}
+      //       attemptedNext={attemptedNext}
+      //     />
+      //   );
       case 2:
-        return (
-          <EducationStep
-            education={formData.education}
-            onchange={handleArrayChange.bind(null, 'education')}
-            onAdd={addArrayItem.bind(null, 'education', {
-              // institution: '',
-              institute: '',
-              degree: '',
-              fieldOfStudy: '',
-              graduationYear: '',
-              grade: '',
-              country: '',
-              startDate: '',
-              endDate: '',
-            })}
-            onRemove={removeArrayItem.bind(null, 'education')}
-            attemptedNext={attemptedNext}
-          />
-        );
-      case 3:
         return (
           <SkillsExperienceStep
             skills={formData.skills}
@@ -692,34 +692,34 @@ const OnboardingPage = () => {
             attemptedNext={attemptedNext}
           />
         );
-      case 4:
-        return (
-          <ProjectsStep
-            projects={formData.projects}
-            onchange={handleArrayChange.bind(null, 'projects')}
-            onAdd={addArrayItem.bind(null, 'projects', {
-              projectName: '',
-              description: '',
-              technologies: '',
-              startDate: '',
-              endDate: '',
-              link: '',
-            })}
-            onRemove={removeArrayItem.bind(null, 'projects')}
-            attemptedNext={attemptedNext}
-          />
-        );
-      case 5:
-        return (
-          <JobPreferencesStep
-            formData={formData}
-            handleInputChange={handleInputChange}
-            selectedOptions={selectedOptions}
-            toggleOption={toggleOption}
-            attemptedNext={attemptedNext}
-          />
-        );
-      case 6:
+      // case 4:
+      //   return (
+      //     <ProjectsStep
+      //       projects={formData.projects}
+      //       onchange={handleArrayChange.bind(null, 'projects')}
+      //       onAdd={addArrayItem.bind(null, 'projects', {
+      //         projectName: '',
+      //         description: '',
+      //         technologies: '',
+      //         startDate: '',
+      //         endDate: '',
+      //         link: '',
+      //       })}
+      //       onRemove={removeArrayItem.bind(null, 'projects')}
+      //       attemptedNext={attemptedNext}
+      //     />
+      //   );
+      // case 5:
+      //   return (
+      //     <JobPreferencesStep
+      //       formData={formData}
+      //       handleInputChange={handleInputChange}
+      //       selectedOptions={selectedOptions}
+      //       toggleOption={toggleOption}
+      //       attemptedNext={attemptedNext}
+      //     />
+      //   );
+      case 3:
         return (
           <AvailabilityStep
             selectedOptions={selectedOptions}
@@ -732,23 +732,23 @@ const OnboardingPage = () => {
   };
 
   // --- RENDER: Loading State ---
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center p-4">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-16 h-16 text-blue-600 mx-auto animate-spin" />
+  // if (isLoading) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center p-4">
+  //       <div className="text-center space-y-4">
+  //         <Loader2 className="w-16 h-16 text-blue-600 mx-auto animate-spin" />
 
-          <h2 className="text-2xl font-bold text-gray-700 transition-all duration-500">
-            {ANALYSIS_MESSAGES[analysisMessageIndex]}
-          </h2>
+  //         <h2 className="text-2xl font-bold text-gray-700 transition-all duration-500">
+  //           {ANALYSIS_MESSAGES[analysisMessageIndex]}
+  //         </h2>
 
-          <p className="text-gray-500">
-            Please wait while we extract your information.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  //         <p className="text-gray-500">
+  //           Please wait while we extract your information.
+  //         </p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // --- RENDER: Main View Switcher ---
   const renderMainView = () => {
@@ -854,7 +854,7 @@ const OnboardingPage = () => {
 
         return (
           <div className="min-h-screen  flex items-center justify-center p-4 overflow-hidden relative">
-            <Card className="w-full max-w-3xl shadow-2xl border-0 bg-white/70 backdrop-blur-xl relative z-10">
+            <Card className="w-full max-w-3xl  border-4 bg-white/70 backdrop-blur-xl relative z-10">
               <div className="p-6 md:p-10 lg:p-12">
                 {/* Progress Bar */}
                 <div className="mb-5">

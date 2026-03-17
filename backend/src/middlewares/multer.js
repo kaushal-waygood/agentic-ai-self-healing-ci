@@ -4,18 +4,41 @@ import fs from 'fs';
 import { cloudinary } from '../config/cloudinary.js';
 import streamifier from 'streamifier';
 
-// Define paths and ensure directories exist
+/* ------------------------------------------------ */
+/* Ensure directories exist                         */
+/* ------------------------------------------------ */
+
 const formUploadDir = 'public/form';
+const tmpDir = 'public/tmp';
+const blogDir = 'public/blog';
+
 if (!fs.existsSync(formUploadDir)) {
   fs.mkdirSync(formUploadDir, { recursive: true });
 }
 
-const tmpDir = 'public/tmp';
 if (!fs.existsSync(tmpDir)) {
   fs.mkdirSync(tmpDir, { recursive: true });
 }
 
-// Storage config remains the same
+if (!fs.existsSync(blogDir)) {
+  fs.mkdirSync(blogDir, { recursive: true });
+}
+
+/* ------------------------------------------------ */
+/* Common field groups                              */
+/* ------------------------------------------------ */
+
+const blogImageFields = [
+  'bannerImage',
+  'thumbnailImage',
+  'ogImage',
+  'twitterImage',
+];
+
+/* ------------------------------------------------ */
+/* Storage configuration                            */
+/* ------------------------------------------------ */
+
 const storage = multer.diskStorage({
   destination(req, file, cb) {
     if (file.fieldname === 'profileImage') {
@@ -30,17 +53,22 @@ const storage = multer.diskStorage({
       cb(null, 'public/idCard');
     } else if (file.fieldname === 'org-logo') {
       cb(null, 'public/org-logo');
+    } else if (blogImageFields.includes(file.fieldname)) {
+      cb(null, blogDir);
     } else {
-      // SAFE fallback, do not throw
-      cb(null, 'public/tmp');
+      cb(null, tmpDir);
     }
   },
+
   filename(req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname);
   },
 });
-  
-// File filter (UNCHANGED LOGIC)
+
+/* ------------------------------------------------ */
+/* File filter                                      */
+/* ------------------------------------------------ */
+
 const fileFilter = (req, file, cb) => {
   if (file.fieldname === 'profileImage') {
     if (['image/jpeg', 'image/png'].includes(file.mimetype)) {
@@ -92,18 +120,29 @@ const fileFilter = (req, file, cb) => {
     } else {
       cb(new Error('Invalid logo file type'));
     }
+  } else if (blogImageFields.includes(file.fieldname)) {
+    if (['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid blog image type'));
+    }
   } else {
     cb(new Error('Unknown file field'));
   }
 };
 
-// EXISTING memoryUpload (UNCHANGED)
+/* ------------------------------------------------ */
+/* CV memory upload                                 */
+/* ------------------------------------------------ */
+
 export const memoryUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (file.fieldname !== 'cv')
+    if (file.fieldname !== 'cv') {
       return cb(new Error('This route expects field "cv"'));
+    }
+
     const allowed = [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -112,13 +151,17 @@ export const memoryUpload = multer({
       'image/png',
       'application/octet-stream',
     ];
+
     allowed.includes(file.mimetype)
       ? cb(null, true)
       : cb(new Error('Invalid CV file type'));
   },
 });
 
-// Upload buffer -> Cloudinary (UNCHANGED)
+/* ------------------------------------------------ */
+/* Upload buffer to Cloudinary                      */
+/* ------------------------------------------------ */
+
 export function uploadBufferToCloudinary(buffer, options = {}) {
   return new Promise((resolve, reject) => {
     if (!buffer) {
@@ -139,19 +182,23 @@ export function uploadBufferToCloudinary(buffer, options = {}) {
   });
 }
 
-// EXISTING disk upload (UNCHANGED)
+/* ------------------------------------------------ */
+/* Standard disk upload                             */
+/* ------------------------------------------------ */
+
 export const upload = multer({
   storage,
   fileFilter,
 });
 
-/* ------------------------------------------------------------------ */
-/* ✅ ADDITIVE FIX: memory upload ONLY for org-logo (nothing else)     */
-/* ------------------------------------------------------------------ */
+/* ------------------------------------------------ */
+/* Org logo memory upload                           */
+/* ------------------------------------------------ */
 
 export const orgLogoUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
+
   fileFilter: (req, file, cb) => {
     if (file.fieldname !== 'org-logo') {
       return cb(new Error('Expected field "org-logo"'));

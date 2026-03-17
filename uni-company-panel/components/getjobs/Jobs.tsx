@@ -135,20 +135,6 @@ const JobsPage = () => {
           </span>
         ),
       },
-      // {
-      //   id: 'stats',
-      //   header: 'Engagement',
-      //   cell: ({ row }) => (
-      //     <div className="text-xs space-y-1">
-      //       <div className="flex items-center gap-1">
-      //         <Eye className="w-3 h-3" /> {row.original.jobViews}
-      //       </div>
-      //       <div className="flex items-center gap-1">
-      //         <Users className="w-3 h-3" /> {row.original.appliedCount}
-      //       </div>
-      //     </div>
-      //   ),
-      // },
       {
         id: 'stats',
         header: 'Engagement',
