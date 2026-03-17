@@ -51,6 +51,8 @@ jobs:
       packages: write
 
     env:
+      NODE_ENV: production
+      API_URL_DEV: 'https://api.zobsai.com'
       REGISTRY: ghcr.io
       IMAGE_OWNER: zobsai-com
       # Global secrets (shared across dev/prod)
