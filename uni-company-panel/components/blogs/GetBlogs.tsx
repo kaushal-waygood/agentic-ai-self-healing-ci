@@ -183,7 +183,9 @@ const BlogsPage = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => router.push(`/blogs/edit/${row.original._id}`)}
+                onClick={() =>
+                  router.push(`/dashboard/blog/edit/${row.original._id}`)
+                }
               >
                 <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
               </Button>
