@@ -310,7 +310,7 @@ export default function EditBlogPage() {
                       <FormMessage />
                     </FormItem>
                   )}
-                />{' '}
+                />
               </Card>
 
               {/* Images */}
