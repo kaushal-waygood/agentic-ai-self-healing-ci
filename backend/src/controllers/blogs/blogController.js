@@ -758,6 +758,73 @@ export const websiteBlogFilterCategories = async (req, res) => {
 // ─── Blog Categories ──────────────────────────────────────────────────────────
 
 /**
+ * GET /blog/category
+ * List all blog categories with pagination.
+ */
+export const listBlogCategories = async (req, res) => {
+  try {
+    let { page = 1, limit = 10, search = '', isActive } = req.query;
+    page = Math.max(1, parseInt(page, 10));
+    limit = Math.max(1, parseInt(limit, 10));
+
+    const query = { isDeleted: false };
+
+    const { role, organization } = req.user;
+    if (
+      ['employer-admin', 'uni-admin', 'guest-org'].includes(role) &&
+      organization
+    ) {
+      query.organizationId = organization;
+    }
+
+    if (search) {
+      const rx = new RegExp(search, 'i');
+      query.$or = [{ title: { $regex: rx } }, { slug: { $regex: rx } }];
+    }
+
+    if (isActive !== undefined && isActive !== '') {
+      query.isActive = isActive === 'true';
+    }
+
+    const [totalDocs, activeDocs, inactiveDocs, categories] = await Promise.all(
+      [
+        BlogCategory.countDocuments({ ...query }),
+        BlogCategory.countDocuments({ ...query, isActive: true }),
+        BlogCategory.countDocuments({ ...query, isActive: false }),
+        BlogCategory.find(query)
+          .sort({ createdAt: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .lean(),
+      ],
+    );
+
+    const paginator = {
+      itemCount: totalDocs,
+      perPage: limit,
+      pageCount: Math.ceil(totalDocs / limit),
+      currentPage: page,
+      slNo: (page - 1) * limit + 1,
+      hasPrevPage: page > 1,
+      hasNextPage: page * limit < totalDocs,
+      prev: page > 1 ? page - 1 : null,
+      next: page * limit < totalDocs ? page + 1 : null,
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        categories,
+        paginator,
+        counts: { all: totalDocs, active: activeDocs, inactive: inactiveDocs },
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+/**
  * POST /blog/category
  */
 export const createBlogCategory = async (req, res) => {
@@ -902,73 +969,6 @@ export const deleteBlogCategory = async (req, res) => {
     return res
       .status(200)
       .json({ success: true, message: 'Blog category deleted successfully.' });
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-};
-
-/**
- * GET /blog/category
- * List all blog categories with pagination.
- */
-export const listBlogCategories = async (req, res) => {
-  try {
-    let { page = 1, limit = 10, search = '', isActive } = req.query;
-    page = Math.max(1, parseInt(page, 10));
-    limit = Math.max(1, parseInt(limit, 10));
-
-    const query = { isDeleted: false };
-
-    const { role, organization } = req.user;
-    if (
-      ['employer-admin', 'uni-admin', 'guest-org'].includes(role) &&
-      organization
-    ) {
-      query.organizationId = organization;
-    }
-
-    if (search) {
-      const rx = new RegExp(search, 'i');
-      query.$or = [{ title: { $regex: rx } }, { slug: { $regex: rx } }];
-    }
-
-    if (isActive !== undefined && isActive !== '') {
-      query.isActive = isActive === 'true';
-    }
-
-    const [totalDocs, activeDocs, inactiveDocs, categories] = await Promise.all(
-      [
-        BlogCategory.countDocuments({ ...query }),
-        BlogCategory.countDocuments({ ...query, isActive: true }),
-        BlogCategory.countDocuments({ ...query, isActive: false }),
-        BlogCategory.find(query)
-          .sort({ createdAt: -1 })
-          .skip((page - 1) * limit)
-          .limit(limit)
-          .lean(),
-      ],
-    );
-
-    const paginator = {
-      itemCount: totalDocs,
-      perPage: limit,
-      pageCount: Math.ceil(totalDocs / limit),
-      currentPage: page,
-      slNo: (page - 1) * limit + 1,
-      hasPrevPage: page > 1,
-      hasNextPage: page * limit < totalDocs,
-      prev: page > 1 ? page - 1 : null,
-      next: page * limit < totalDocs ? page + 1 : null,
-    };
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        categories,
-        paginator,
-        counts: { all: totalDocs, active: activeDocs, inactive: inactiveDocs },
-      },
-    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

@@ -244,12 +244,10 @@ const BlogsPage = () => {
         </div>
         <div className="flex gap-3">
           <Button
-            variant="outline"
-            onClick={() => {
-              /* CSV Export */
-            }}
+            onClick={() => router.push('/dashboard/blog/category')}
+            className="bg-indigo-600 hover:bg-indigo-700"
           >
-            <Download className="w-4 h-4 mr-2" /> Export
+            Create Category
           </Button>
           <Button
             onClick={() => router.push('/dashboard/blog/post')}
