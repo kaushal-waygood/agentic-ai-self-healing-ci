@@ -205,7 +205,7 @@ const useBlogStore = create<BlogStore>((set, get) => ({
         search,
         query,
       );
-      console.log('queryString', queryString);
+
       const { data: resp } = await apiInstance.get(`/blogs?${queryString}`);
       set({
         blogListdata: resp?.data?.data || [],
@@ -295,6 +295,7 @@ const useBlogStore = create<BlogStore>((set, get) => ({
           blogCategoryListData: [resp.data, ...get().blogCategoryListData],
         });
       }
+
       return resp;
     } catch (error) {
       console.error(error);
@@ -315,13 +316,17 @@ const useBlogStore = create<BlogStore>((set, get) => ({
         search,
         query,
       );
-      const { data: resp } = await apiInstance.get(
-        `/blog/category?${queryString}`,
-      );
+
+      // const { data: resp } = await apiInstance.get(
+      //   `/blog/category?${queryString}`,
+      // );
+      const { data: resp } = await apiInstance.get(`/blog/category`);
+
       set({
         blogCategoryListData: resp?.data?.categories || [],
-        blogCategoryPaginator: resp?.data?.paginator,
+        // blogCategoryPaginator: resp?.data?.paginator,
       });
+
       return resp;
     } catch (error) {
       console.error(error);
@@ -392,7 +397,9 @@ const useBlogStore = create<BlogStore>((set, get) => ({
     query = {},
   ) => {
     const qs = normalizeListOptions(rowsPerPage, page, search, query);
-    const { data: resp } = await apiInstance.get(`/blog/tag?${qs}`);
+    // const { data: resp } = await apiInstance.get(`/blog/tag?${qs}`);
+    const { data: resp } = await apiInstance.get(`/blog/tag`);
+    console.log('tag response', resp);
     set({
       blogTagListData: resp?.data?.tags || [],
       blogTagPaginator: resp?.data?.paginator,
