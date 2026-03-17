@@ -19,8 +19,6 @@ export const API_BASE_URL =
 
 const token = getToken();
 
-console.log(token);
-
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
     try {
@@ -62,7 +60,6 @@ apiInstance.interceptors.request.use((config) => {
   }
 
   const accessToken = token;
-  console.log(accessToken);
   if (accessToken) {
     config.headers['Authorization'] = `Bearer ${accessToken}`;
   }

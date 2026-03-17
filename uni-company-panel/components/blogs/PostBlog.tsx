@@ -8,27 +8,39 @@ import * as z from 'zod';
 import {
   ChevronLeft,
   Upload,
-  RefreshCw,
-  Globe,
-  Settings,
-  BarChart3,
   Search,
   Type,
   Image as ImageIcon,
+  Tag,
+  Lock,
+  Unlock,
+  Eye,
+  Check,
+  ChevronsUpDown,
+  X,
 } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Form,
   FormControl,
@@ -36,14 +48,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
+import { cn } from '@/lib/utils';
 import useBlogStore from '@/store/blog-store';
-// import { slugify } from '@/lib/utils'; // Ensure this utility exists or use the helper below
 
-// Helper if slugify is not in utils:
-const slugify = (text) =>
+// --- Helper Functions ---
+const slugify = (text: string) =>
   text
     .toLowerCase()
+    .trim()
     .replace(/\s+/g, '-')
     .replace(/[^\w-]+/g, '');
 
@@ -55,17 +69,13 @@ const blogSchema = z.object({
     .string()
     .min(10, 'Description must be at least 10 characters'),
   fullDescription: z.string().optional(),
-  author: z.string().optional(),
-  category: z.array(z.string()).default([]),
+  category: z.array(z.string()).min(1, 'Select at least one category'),
   tags: z.array(z.string()).default([]),
-  publishStatus: z.enum(['draft', 'published', 'scheduled']),
-  publishDate: z.string().optional(),
   allowComments: z.boolean().default(true),
   isActive: z.boolean().default(true),
   seo: z.object({
     metaTitle: z.string().optional(),
     metaDescription: z.string().optional(),
-    metaKeywords: z.string().optional(),
     openGraph: z.object({
       ogTitle: z.string().optional(),
       ogDescription: z.string().optional(),
@@ -79,8 +89,14 @@ const blogSchema = z.object({
 
 export default function CreateBlogPage() {
   const router = useRouter();
-  const { addBlog, getBlogCategoryList, getBlogTagList, isLoading } =
-    useBlogStore();
+  const {
+    addBlog,
+    getBlogCategoryList,
+    getBlogTagList,
+    blogCategoryListData,
+    blogTagList,
+    isLoading,
+  } = useBlogStore();
 
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [files, setFiles] = useState<Record<string, File>>({});
@@ -93,24 +109,19 @@ export default function CreateBlogPage() {
       slug: '',
       shortDescription: '',
       fullDescription: '',
-      author: '',
       category: [],
       tags: [],
-      publishStatus: 'draft',
-      publishDate: '',
       allowComments: true,
       isActive: true,
       seo: {
         metaTitle: '',
         metaDescription: '',
-        metaKeywords: '',
         openGraph: { ogTitle: '', ogDescription: '' },
         twitter: { twitterTitle: '', twitterDescription: '' },
       },
     },
   });
 
-  // Auto-generate slug from title
   const title = form.watch('title');
   useEffect(() => {
     if (!slugLocked && title) {
@@ -121,7 +132,7 @@ export default function CreateBlogPage() {
   useEffect(() => {
     getBlogCategoryList(100, 1, '', { isActive: true });
     getBlogTagList(100, 1, '', { isActive: true });
-  }, []);
+  }, [getBlogCategoryList, getBlogTagList]);
 
   const handleFileChange = (
     name: string,
@@ -136,92 +147,66 @@ export default function CreateBlogPage() {
 
   const onSubmit = async (values: any) => {
     const fd = new FormData();
-
-    // Append JSON fields
     Object.entries(values).forEach(([key, val]) => {
-      if (key === 'seo' || Array.isArray(val)) {
-        fd.append(key, JSON.stringify(val));
-      } else {
-        fd.append(key, val as string);
-      }
+      fd.append(
+        key,
+        typeof val === 'object' ? JSON.stringify(val) : String(val),
+      );
     });
-
-    // Append Files (Keys match backend: bannerImage, thumbnailImage, ogImage, twitterImage)
-    Object.entries(files).forEach(([name, file]) => {
-      fd.append(name, file);
-    });
-
+    Object.entries(files).forEach(([name, file]) => fd.append(name, file));
     const resp = await addBlog(fd);
     if (resp?.success) router.push('/blogs');
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-20">
+    <div className="min-h-screen bg-[#f8fafc] pb-20">
       <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit, (err) =>
-            console.log('Validation Errors:', err),
-          )}
-        >
+        <form onSubmit={form.handleSubmit(onSubmit)}>
           {/* Header */}
-          <header className="sticky top-0 z-30 w-full border-b bg-white/80 backdrop-blur-md px-6 py-4">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md px-6 py-3">
+            <div className="max-w-[1400px] mx-auto flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="sm"
                   type="button"
                   onClick={() => router.back()}
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Back
                 </Button>
-                <h1 className="text-xl font-bold tracking-tight">
-                  New Blog Post
-                </h1>
+                <div className="h-6 w-[1px] bg-slate-200" />
+                <h1 className="text-sm font-semibold">New Blog Post</h1>
               </div>
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => router.back()}
-                >
-                  Discard
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="bg-indigo-600 hover:bg-indigo-700 px-8"
-                >
-                  {isLoading ? 'Publishing...' : 'Publish Blog'}
-                </Button>
-              </div>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                {isLoading ? 'Publishing...' : 'Publish Post'}
+              </Button>
             </div>
           </header>
 
-          <main className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-10">
-            {/* Left Column */}
-            <div className="space-y-12">
-              {/* Content Section */}
-              <section className="space-y-6">
-                <div className="flex items-center gap-2 text-indigo-600">
-                  <Type className="h-5 w-5" />
-                  <h2 className="text-sm font-bold uppercase tracking-wider">
-                    Editor
-                  </h2>
-                </div>
-                <Card className="border-none shadow-sm">
+          <main className="max-w-[1400px] mx-auto px-6 py-8">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
+              {/* Left Content Area */}
+              <div className="space-y-8">
+                <Card className="shadow-sm border-slate-200">
+                  <CardHeader className="bg-white border-b border-slate-50">
+                    <div className="flex items-center gap-2 text-indigo-600 font-bold uppercase text-xs tracking-wider">
+                      <Type className="h-4 w-4" /> Editor Content
+                    </div>
+                  </CardHeader>
                   <CardContent className="p-6 space-y-6">
                     <FormField
                       control={form.control}
                       name="title"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="uppercase text-[11px] font-bold text-slate-500">
-                            Title
-                          </FormLabel>
+                          <FormLabel>Title</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="Enter post title..."
+                              placeholder="Post title..."
                               className="text-lg font-medium h-12"
                               {...field}
                             />
@@ -236,9 +221,7 @@ export default function CreateBlogPage() {
                       name="slug"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="uppercase text-[11px] font-bold text-slate-500">
-                            URL Slug
-                          </FormLabel>
+                          <FormLabel>URL Slug</FormLabel>
                           <div className="flex gap-2">
                             <FormControl>
                               <div className="relative flex-1">
@@ -247,23 +230,24 @@ export default function CreateBlogPage() {
                                 </span>
                                 <Input
                                   {...field}
-                                  className="pl-14"
-                                  onChange={(e) => {
-                                    field.onChange(e);
-                                    setSlugLocked(true);
-                                  }}
+                                  className="pl-14 bg-slate-50"
+                                  disabled={!slugLocked}
                                 />
                               </div>
                             </FormControl>
                             <Button
                               variant="outline"
                               type="button"
-                              onClick={() => setSlugLocked(false)}
+                              size="icon"
+                              onClick={() => setSlugLocked(!slugLocked)}
                             >
-                              <RefreshCw className="h-4 w-4" />
+                              {slugLocked ? (
+                                <Lock className="h-4 w-4 text-indigo-600" />
+                              ) : (
+                                <Unlock className="h-4 w-4" />
+                              )}
                             </Button>
                           </div>
-                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -273,97 +257,26 @@ export default function CreateBlogPage() {
                       name="shortDescription"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="uppercase text-[11px] font-bold text-slate-500">
-                            Excerpt
-                          </FormLabel>
+                          <FormLabel>Excerpt</FormLabel>
                           <FormControl>
-                            <Textarea
-                              placeholder="Brief summary..."
-                              {...field}
-                            />
+                            <Textarea placeholder="Summary..." {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
-                    <FormField
-                      control={form.control}
-                      name="fullDescription"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="uppercase text-[11px] font-bold text-slate-500">
-                            Body Content
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Start writing..."
-                              rows={15}
-                              {...field}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
                   </CardContent>
                 </Card>
-              </section>
 
-              {/* Media Section */}
-              <section className="space-y-6">
-                <div className="flex items-center gap-2 text-indigo-600">
-                  <ImageIcon className="h-5 w-5" />
-                  <h2 className="text-sm font-bold uppercase tracking-wider">
-                    Featured Images
-                  </h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {['bannerImage', 'thumbnailImage'].map((type) => (
-                    <div key={type} className="space-y-2">
-                      <Label className="uppercase text-[11px] font-bold text-slate-400 capitalize">
-                        {type.replace('Image', '')}
-                      </Label>
-                      <div
-                        className="border-2 border-dashed rounded-xl h-44 flex flex-col items-center justify-center bg-white hover:border-indigo-400 transition-all cursor-pointer relative overflow-hidden"
-                        onClick={() => document.getElementById(type)?.click()}
-                      >
-                        {previews[type] ? (
-                          <img
-                            src={previews[type]}
-                            className="absolute inset-0 w-full h-full object-cover"
-                            alt="Preview"
-                          />
-                        ) : (
-                          <div className="text-center">
-                            <Upload className="h-6 w-6 text-slate-300 mx-auto mb-2" />
-                            <span className="text-xs font-medium text-slate-400">
-                              Upload {type}
-                            </span>
-                          </div>
-                        )}
-                        <input
-                          type="file"
-                          id={type}
-                          hidden
-                          onChange={(e) => handleFileChange(type, e)}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* SEO Section with Social Images */}
-              <section className="space-y-6">
-                <div className="flex items-center gap-2 text-indigo-600">
-                  <Search className="h-5 w-5" />
-                  <h2 className="text-sm font-bold uppercase tracking-wider">
-                    SEO & Social
-                  </h2>
-                </div>
-                <Card>
-                  <CardContent className="p-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* SEO Card (Same as previous) */}
+                <Card className="shadow-sm border-slate-200">
+                  <CardHeader>
+                    <CardTitle className="text-xs uppercase font-bold text-indigo-600">
+                      SEO Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
                         name="seo.metaTitle"
@@ -389,171 +302,271 @@ export default function CreateBlogPage() {
                         )}
                       />
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-                      {/* OpenGraph Image */}
-                      <div className="space-y-2">
-                        <Label className="text-xs">
-                          OG Image (Facebook/LinkedIn)
-                        </Label>
-                        <div
-                          className="border rounded-lg h-32 flex items-center justify-center bg-slate-50 cursor-pointer overflow-hidden"
-                          onClick={() =>
-                            document.getElementById('ogImage')?.click()
-                          }
-                        >
-                          {previews.ogImage ? (
-                            <img
-                              src={previews.ogImage}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <ImageIcon className="text-slate-300" />
-                          )}
-                        </div>
-                        <input
-                          type="file"
-                          id="ogImage"
-                          hidden
-                          onChange={(e) => handleFileChange('ogImage', e)}
-                        />
-                      </div>
-
-                      {/* Twitter Image */}
-                      <div className="space-y-2">
-                        <Label className="text-xs">Twitter Image</Label>
-                        <div
-                          className="border rounded-lg h-32 flex items-center justify-center bg-slate-50 cursor-pointer overflow-hidden"
-                          onClick={() =>
-                            document.getElementById('twitterImage')?.click()
-                          }
-                        >
-                          {previews.twitterImage ? (
-                            <img
-                              src={previews.twitterImage}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <ImageIcon className="text-slate-300" />
-                          )}
-                        </div>
-                        <input
-                          type="file"
-                          id="twitterImage"
-                          hidden
-                          onChange={(e) => handleFileChange('twitterImage', e)}
-                        />
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
-              </section>
-            </div>
+              </div>
 
-            {/* Sidebar */}
-            <aside className="space-y-6">
-              <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-sm font-bold uppercase flex items-center gap-2">
-                    <Settings className="h-4 w-4" /> Visibility
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="publishStatus"
-                    render={({ field }) => (
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col gap-2"
-                      >
-                        {['draft', 'published', 'scheduled'].map((status) => (
-                          <div
-                            key={status}
-                            className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-slate-50 transition-colors"
-                          >
-                            <RadioGroupItem value={status} id={status} />
-                            <Label
-                              htmlFor={status}
-                              className="capitalize cursor-pointer"
+              {/* Right Sidebar */}
+              <aside className="space-y-6">
+                {/* Taxonomy Dropdowns Card */}
+                <Card className="shadow-sm border-slate-200">
+                  <CardHeader className="pb-3 border-b border-slate-50">
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                      <Tag className="h-4 w-4" /> Taxonomy
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-5 space-y-6">
+                    {/* Categories Dropdown */}
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel className="text-xs font-bold text-slate-500 uppercase">
+                            Categories
+                          </FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className={cn(
+                                    'justify-between text-left font-normal',
+                                    !field.value.length &&
+                                      'text-muted-foreground',
+                                  )}
+                                >
+                                  {field.value.length > 0
+                                    ? `${field.value.length} selected`
+                                    : 'Select categories...'}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-[330px] p-0"
+                              align="start"
                             >
-                              {status}
-                            </Label>
+                              <Command>
+                                <CommandInput placeholder="Search categories..." />
+                                <CommandList>
+                                  <CommandEmpty>
+                                    No category found.
+                                  </CommandEmpty>
+                                  {/* Search results in the dropdown */}
+                                  <CommandGroup>
+                                    {blogCategoryListData?.map((cat: any) => (
+                                      <CommandItem
+                                        key={cat._id}
+                                        onSelect={() => {
+                                          const newValue = field.value.includes(
+                                            cat._id,
+                                          )
+                                            ? field.value.filter(
+                                                (v) => v !== cat._id,
+                                              )
+                                            : [...field.value, cat._id];
+                                          form.setValue('category', newValue);
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            'mr-2 h-4 w-4',
+                                            field.value.includes(cat._id)
+                                              ? 'opacity-100'
+                                              : 'opacity-0',
+                                          )}
+                                        />
+                                        {/* CHANGE THIS: cat.name -> cat.title */}
+                                        {cat.title}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          {/* <div className="flex flex-wrap gap-1 mt-2">
+                            {field.value.map((id) => {
+                              const cat = blogCategoryList?.find(
+                                (c: any) => c._id === id,
+                              );
+                              return cat ? (
+                                <Badge
+                                  key={id}
+                                  variant="secondary"
+                                  className="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                                >
+                                  {cat.name}
+                                  <X
+                                    className="ml-1 h-3 w-3 cursor-pointer"
+                                    onClick={() =>
+                                      form.setValue(
+                                        'category',
+                                        field.value.filter((v) => v !== id),
+                                      )
+                                    }
+                                  />
+                                </Badge>
+                              ) : null;
+                            })}
+                          </div> */}
+                          {/* Selected items displayed as badges */}
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {field.value.map((id) => {
+                              const cat = blogCategoryList?.find(
+                                (c: any) => c._id === id,
+                              );
+                              return cat ? (
+                                <Badge
+                                  key={id}
+                                  variant="secondary"
+                                  className="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                                >
+                                  {/* CHANGE THIS: cat.name -> cat.title */}
+                                  {cat.title}
+                                  <X
+                                    className="ml-1 h-3 w-3 cursor-pointer"
+                                    onClick={() =>
+                                      form.setValue(
+                                        'category',
+                                        field.value.filter((v) => v !== id),
+                                      )
+                                    }
+                                  />
+                                </Badge>
+                              ) : null;
+                            })}
                           </div>
-                        ))}
-                      </RadioGroup>
-                    )}
-                  />
-                  <div className="space-y-4 pt-4 border-t">
-                    <FormField
-                      control={form.control}
-                      name="isActive"
-                      render={({ field }) => (
-                        <div className="flex justify-between items-center">
-                          <Label>Public</Label>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </div>
+                          <FormMessage />
+                        </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="allowComments"
-                      render={({ field }) => (
-                        <div className="flex justify-between items-center">
-                          <Label>Comments</Label>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </div>
-                      )}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
 
-              <Card className="bg-slate-900 text-white border-none shadow-xl">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs font-bold uppercase text-slate-400 flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" /> Metrics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-400">Words</span>
-                    <span className="font-mono text-indigo-400">
-                      {form
-                        .watch('fullDescription')
-                        ?.trim()
-                        .split(/\s+/)
-                        .filter(Boolean).length || 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-400">Read Time</span>
-                    <span className="font-mono text-indigo-400">
-                      ~
-                      {Math.ceil(
-                        (form.watch('fullDescription')?.split(' ').length ||
-                          0) / 200,
-                      )}{' '}
-                      min
-                    </span>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    className="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 text-white border-none"
-                    type="submit"
-                  >
-                    Save Progress
-                  </Button>
-                </CardContent>
-              </Card>
-            </aside>
+                    {/* Tags Dropdown */}
+                    <FormField
+                      control={form.control}
+                      name="tags"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col pt-2 border-t border-slate-50">
+                          <FormLabel className="text-xs font-bold text-slate-500 uppercase">
+                            Tags
+                          </FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  className="justify-between text-left font-normal"
+                                >
+                                  {field.value.length > 0
+                                    ? `${field.value.length} tags selected`
+                                    : 'Select tags...'}
+                                  <Tag className="ml-2 h-3 w-3 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-[330px] p-0"
+                              align="start"
+                            >
+                              <Command>
+                                <CommandInput placeholder="Search tags..." />
+                                <CommandList>
+                                  <CommandEmpty>No tags found.</CommandEmpty>
+                                  <CommandGroup>
+                                    {blogTagList?.map((tag: any) => (
+                                      <CommandItem
+                                        key={tag._id}
+                                        onSelect={() => {
+                                          const newValue = field.value.includes(
+                                            tag._id,
+                                          )
+                                            ? field.value.filter(
+                                                (v) => v !== tag._id,
+                                              )
+                                            : [...field.value, tag._id];
+                                          form.setValue('tags', newValue);
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            'mr-2 h-4 w-4',
+                                            field.value.includes(tag._id)
+                                              ? 'opacity-100'
+                                              : 'opacity-0',
+                                          )}
+                                        />
+                                        {tag.name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {field.value.map((id) => {
+                              const tag = blogTagList?.find(
+                                (t: any) => t._id === id,
+                              );
+                              return tag ? (
+                                <Badge
+                                  key={id}
+                                  variant="outline"
+                                  className="text-[10px] border-slate-200 text-slate-600"
+                                >
+                                  #{tag.name}
+                                </Badge>
+                              ) : null;
+                            })}
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Media Card */}
+                <Card className="shadow-sm border-slate-200">
+                  <CardHeader className="pb-3 border-b border-slate-50">
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4" /> Featured Images
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-5 space-y-4">
+                    {['bannerImage', 'thumbnailImage'].map((type) => (
+                      <div key={type} className="space-y-2">
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase">
+                          {type.replace('Image', '')}
+                        </Label>
+                        <div
+                          className="group relative border-2 border-dashed rounded-lg h-24 flex items-center justify-center bg-slate-50 hover:bg-white hover:border-indigo-400 transition-all cursor-pointer overflow-hidden"
+                          onClick={() => document.getElementById(type)?.click()}
+                        >
+                          {previews[type] ? (
+                            <img
+                              src={previews[type]}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              alt="Preview"
+                            />
+                          ) : (
+                            <Upload className="h-5 w-5 text-slate-300 group-hover:text-indigo-500" />
+                          )}
+                          <input
+                            type="file"
+                            id={type}
+                            hidden
+                            onChange={(e) => handleFileChange(type, e)}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </aside>
+            </div>
           </main>
         </form>
       </Form>

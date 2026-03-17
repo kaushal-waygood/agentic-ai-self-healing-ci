@@ -4,6 +4,8 @@ import BlogCategory from '../../models/blogs/BlogCategory.js';
 import BlogTags from '../../models/blogs/BlogTags.js';
 import BlogComments from '../../models/blogs/BlogComments.js';
 import axios from 'axios';
+import { cloudinary } from '../../config/cloudinary.js';
+import fs from 'fs';
 
 /**
  * Build the standard aggregation pipeline for a single blog by _id.
@@ -202,6 +204,7 @@ export const createBlog = async (req, res) => {
     if (publishStatus) {
       publishStatus = publishStatus.toUpperCase();
     }
+
     const data = {
       ...(title !== undefined && { title }),
       ...(slug !== undefined && { slug }),
@@ -220,12 +223,10 @@ export const createBlog = async (req, res) => {
       }),
     };
 
-    // Resolve ownership
     const { ownerType, organizationId } = resolveOwnership(req);
     data.ownerType = ownerType;
     if (organizationId) data.organizationId = organizationId;
 
-    // Parse seo if sent as string (multipart)
     if (typeof data.seo === 'string') {
       try {
         data.seo = JSON.parse(data.seo);
@@ -234,7 +235,6 @@ export const createBlog = async (req, res) => {
       }
     }
 
-    // Parse category/tags arrays if sent as string (multipart)
     if (typeof data.category === 'string') {
       try {
         data.category = JSON.parse(data.category.replace(/'/g, '"'));
@@ -245,6 +245,7 @@ export const createBlog = async (req, res) => {
           .filter(Boolean);
       }
     }
+
     if (typeof data.tags === 'string') {
       try {
         data.tags = JSON.parse(data.tags.replace(/'/g, '"'));
@@ -256,7 +257,6 @@ export const createBlog = async (req, res) => {
       }
     }
 
-    // Slug uniqueness check
     if (data.slug) {
       const existing = await Blog.findOne({ slug: data.slug });
       if (existing) {
@@ -264,23 +264,68 @@ export const createBlog = async (req, res) => {
       }
     }
 
-    // Handle uploaded images (stored as Cloudinary URLs directly on multipart)
+    const safeUnlink = (filePath) => {
+      try {
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      } catch (err) {
+        console.error('File delete error:', err);
+      }
+    };
+
+    // Upload images
     if (req.files) {
       if (req.files.bannerImage?.[0]) {
-        data.bannerImageUrl = req.files.bannerImage[0].path; // cloudinary URL if using multer-storage-cloudinary
+        const filePath = req.files.bannerImage[0].path;
+        const uploadResult = await cloudinary.uploader.upload(filePath, {
+          folder: 'blogs/banner',
+        });
+
+        data.bannerImageUrl = uploadResult.secure_url;
+        data.bannerImagePublicId = uploadResult.public_id;
+
+        safeUnlink(filePath);
       }
+
       if (req.files.thumbnailImage?.[0]) {
-        data.thumbnailImageUrl = req.files.thumbnailImage[0].path;
+        const filePath = req.files.thumbnailImage[0].path;
+        const uploadResult = await cloudinary.uploader.upload(filePath, {
+          folder: 'blogs/thumbnail',
+        });
+
+        data.thumbnailImageUrl = uploadResult.secure_url;
+        data.thumbnailImagePublicId = uploadResult.public_id;
+
+        safeUnlink(filePath);
       }
+
       if (req.files.twitterImage?.[0]) {
+        const filePath = req.files.twitterImage[0].path;
+        const uploadResult = await cloudinary.uploader.upload(filePath, {
+          folder: 'blogs/twitter',
+        });
+
         if (!data.seo) data.seo = {};
         if (!data.seo.twitter) data.seo.twitter = {};
-        data.seo.twitter.twitterImageUrl = req.files.twitterImage[0].path;
+
+        data.seo.twitter.twitterImageUrl = uploadResult.secure_url;
+        data.seo.twitter.twitterImagePublicId = uploadResult.public_id;
+
+        safeUnlink(filePath);
       }
+
       if (req.files.ogImage?.[0]) {
+        const filePath = req.files.ogImage[0].path;
+        const uploadResult = await cloudinary.uploader.upload(filePath, {
+          folder: 'blogs/og',
+        });
+
         if (!data.seo) data.seo = {};
         if (!data.seo.openGraph) data.seo.openGraph = {};
-        data.seo.openGraph.ogImageUrl = req.files.ogImage[0].path;
+
+        data.seo.openGraph.ogImageUrl = uploadResult.secure_url;
+        data.seo.openGraph.ogImagePublicId = uploadResult.public_id;
+
+        safeUnlink(filePath);
       }
     }
 
@@ -335,7 +380,7 @@ export const getBlogById = async (req, res) => {
 export const updateBlog = async (req, res) => {
   try {
     const { id } = req.params;
-    const {
+    let {
       title,
       slug,
       shortDescription,
@@ -350,6 +395,10 @@ export const updateBlog = async (req, res) => {
       seo,
       organizationId: bodyOrganizationId,
     } = req.body;
+
+    if (publishStatus) {
+      publishStatus = publishStatus.toUpperCase();
+    }
 
     const data = {
       ...(title !== undefined && { title }),
@@ -378,7 +427,6 @@ export const updateBlog = async (req, res) => {
       return res.status(404).json({ message: 'Blog not found.' });
     }
 
-    // Slug uniqueness check
     if (data.slug && data.slug !== blog.slug) {
       const existing = await Blog.findOne({
         slug: data.slug,
@@ -389,7 +437,6 @@ export const updateBlog = async (req, res) => {
       }
     }
 
-    // Parse seo if sent as string
     if (typeof data.seo === 'string') {
       try {
         data.seo = JSON.parse(data.seo);
@@ -398,7 +445,6 @@ export const updateBlog = async (req, res) => {
       }
     }
 
-    // Parse category/tags arrays
     if (typeof data.category === 'string') {
       try {
         data.category = JSON.parse(data.category.replace(/'/g, '"'));
@@ -409,6 +455,7 @@ export const updateBlog = async (req, res) => {
           .filter(Boolean);
       }
     }
+
     if (typeof data.tags === 'string') {
       try {
         data.tags = JSON.parse(data.tags.replace(/'/g, '"'));
@@ -420,21 +467,86 @@ export const updateBlog = async (req, res) => {
       }
     }
 
-    // Handle uploaded images
+    const safeUnlink = (filePath) => {
+      try {
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      } catch (err) {
+        console.error('File delete error:', err);
+      }
+    };
+
+    // Upload images to Cloudinary
     if (req.files) {
-      if (req.files.bannerImage?.[0])
-        data.bannerImageUrl = req.files.bannerImage[0].path;
-      if (req.files.thumbnailImage?.[0])
-        data.thumbnailImageUrl = req.files.thumbnailImage[0].path;
+      if (req.files.bannerImage?.[0]) {
+        if (blog.bannerImagePublicId) {
+          await cloudinary.uploader.destroy(blog.bannerImagePublicId);
+        }
+
+        const filePath = req.files.bannerImage[0].path;
+        const uploadResult = await cloudinary.uploader.upload(filePath, {
+          folder: 'blogs/banner',
+        });
+
+        data.bannerImageUrl = uploadResult.secure_url;
+        data.bannerImagePublicId = uploadResult.public_id;
+
+        safeUnlink(filePath);
+      }
+
+      if (req.files.thumbnailImage?.[0]) {
+        if (blog.thumbnailImagePublicId) {
+          await cloudinary.uploader.destroy(blog.thumbnailImagePublicId);
+        }
+
+        const filePath = req.files.thumbnailImage[0].path;
+        const uploadResult = await cloudinary.uploader.upload(filePath, {
+          folder: 'blogs/thumbnail',
+        });
+
+        data.thumbnailImageUrl = uploadResult.secure_url;
+        data.thumbnailImagePublicId = uploadResult.public_id;
+
+        safeUnlink(filePath);
+      }
+
       if (req.files.twitterImage?.[0]) {
+        if (blog?.seo?.twitter?.twitterImagePublicId) {
+          await cloudinary.uploader.destroy(
+            blog.seo.twitter.twitterImagePublicId,
+          );
+        }
+
+        const filePath = req.files.twitterImage[0].path;
+        const uploadResult = await cloudinary.uploader.upload(filePath, {
+          folder: 'blogs/twitter',
+        });
+
         if (!data.seo) data.seo = blog.seo?.toObject?.() || {};
         if (!data.seo.twitter) data.seo.twitter = {};
-        data.seo.twitter.twitterImageUrl = req.files.twitterImage[0].path;
+
+        data.seo.twitter.twitterImageUrl = uploadResult.secure_url;
+        data.seo.twitter.twitterImagePublicId = uploadResult.public_id;
+
+        safeUnlink(filePath);
       }
+
       if (req.files.ogImage?.[0]) {
+        if (blog?.seo?.openGraph?.ogImagePublicId) {
+          await cloudinary.uploader.destroy(blog.seo.openGraph.ogImagePublicId);
+        }
+
+        const filePath = req.files.ogImage[0].path;
+        const uploadResult = await cloudinary.uploader.upload(filePath, {
+          folder: 'blogs/og',
+        });
+
         if (!data.seo) data.seo = blog.seo?.toObject?.() || {};
         if (!data.seo.openGraph) data.seo.openGraph = {};
-        data.seo.openGraph.ogImageUrl = req.files.ogImage[0].path;
+
+        data.seo.openGraph.ogImageUrl = uploadResult.secure_url;
+        data.seo.openGraph.ogImagePublicId = uploadResult.public_id;
+
+        safeUnlink(filePath);
       }
     }
 
@@ -758,6 +870,73 @@ export const websiteBlogFilterCategories = async (req, res) => {
 // ─── Blog Categories ──────────────────────────────────────────────────────────
 
 /**
+ * GET /blog/category
+ * List all blog categories with pagination.
+ */
+export const listBlogCategories = async (req, res) => {
+  try {
+    let { page = 1, limit = 10, search = '', isActive } = req.query;
+    page = Math.max(1, parseInt(page, 10));
+    limit = Math.max(1, parseInt(limit, 10));
+
+    const query = { isDeleted: false };
+
+    const { role, organization } = req.user;
+    if (
+      ['employer-admin', 'uni-admin', 'guest-org'].includes(role) &&
+      organization
+    ) {
+      query.organizationId = organization;
+    }
+
+    if (search) {
+      const rx = new RegExp(search, 'i');
+      query.$or = [{ title: { $regex: rx } }, { slug: { $regex: rx } }];
+    }
+
+    if (isActive !== undefined && isActive !== '') {
+      query.isActive = isActive === 'true';
+    }
+
+    const [totalDocs, activeDocs, inactiveDocs, categories] = await Promise.all(
+      [
+        BlogCategory.countDocuments({ ...query }),
+        BlogCategory.countDocuments({ ...query, isActive: true }),
+        BlogCategory.countDocuments({ ...query, isActive: false }),
+        BlogCategory.find(query)
+          .sort({ createdAt: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .lean(),
+      ],
+    );
+
+    const paginator = {
+      itemCount: totalDocs,
+      perPage: limit,
+      pageCount: Math.ceil(totalDocs / limit),
+      currentPage: page,
+      slNo: (page - 1) * limit + 1,
+      hasPrevPage: page > 1,
+      hasNextPage: page * limit < totalDocs,
+      prev: page > 1 ? page - 1 : null,
+      next: page * limit < totalDocs ? page + 1 : null,
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        categories,
+        paginator,
+        counts: { all: totalDocs, active: activeDocs, inactive: inactiveDocs },
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+/**
  * POST /blog/category
  */
 export const createBlogCategory = async (req, res) => {
@@ -902,73 +1081,6 @@ export const deleteBlogCategory = async (req, res) => {
     return res
       .status(200)
       .json({ success: true, message: 'Blog category deleted successfully.' });
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-};
-
-/**
- * GET /blog/category
- * List all blog categories with pagination.
- */
-export const listBlogCategories = async (req, res) => {
-  try {
-    let { page = 1, limit = 10, search = '', isActive } = req.query;
-    page = Math.max(1, parseInt(page, 10));
-    limit = Math.max(1, parseInt(limit, 10));
-
-    const query = { isDeleted: false };
-
-    const { role, organization } = req.user;
-    if (
-      ['employer-admin', 'uni-admin', 'guest-org'].includes(role) &&
-      organization
-    ) {
-      query.organizationId = organization;
-    }
-
-    if (search) {
-      const rx = new RegExp(search, 'i');
-      query.$or = [{ title: { $regex: rx } }, { slug: { $regex: rx } }];
-    }
-
-    if (isActive !== undefined && isActive !== '') {
-      query.isActive = isActive === 'true';
-    }
-
-    const [totalDocs, activeDocs, inactiveDocs, categories] = await Promise.all(
-      [
-        BlogCategory.countDocuments({ ...query }),
-        BlogCategory.countDocuments({ ...query, isActive: true }),
-        BlogCategory.countDocuments({ ...query, isActive: false }),
-        BlogCategory.find(query)
-          .sort({ createdAt: -1 })
-          .skip((page - 1) * limit)
-          .limit(limit)
-          .lean(),
-      ],
-    );
-
-    const paginator = {
-      itemCount: totalDocs,
-      perPage: limit,
-      pageCount: Math.ceil(totalDocs / limit),
-      currentPage: page,
-      slNo: (page - 1) * limit + 1,
-      hasPrevPage: page > 1,
-      hasNextPage: page * limit < totalDocs,
-      prev: page > 1 ? page - 1 : null,
-      next: page * limit < totalDocs ? page + 1 : null,
-    };
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        categories,
-        paginator,
-        counts: { all: totalDocs, active: activeDocs, inactive: inactiveDocs },
-      },
-    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
