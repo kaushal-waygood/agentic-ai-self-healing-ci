@@ -39,6 +39,7 @@ const BlogsPage = () => {
     getBlogList,
     deleteBlog,
     bulkDeleteBlogs,
+    getDeleteBlog,
     isLoading,
   } = useBlogStore();
 
@@ -214,7 +215,7 @@ const BlogsPage = () => {
                       size="sm"
                       variant="destructive"
                       onClick={async () => {
-                        await deleteBlog(row.original._id);
+                        await getDeleteBlog(row.original._id);
                         toast.success('Deleted');
                         setIsDelOpen(false);
                       }}
