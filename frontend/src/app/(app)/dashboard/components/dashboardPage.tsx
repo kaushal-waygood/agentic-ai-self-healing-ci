@@ -619,6 +619,11 @@ function TopJobCard({ job }: { job: TopJob }) {
 
 export default function DashboardPage() {
   const { user: authUser } = useSelector((state: RootState) => state.auth);
+  const studentFullName = useSelector(
+    (state: RootState) =>
+      state.student.students?.[0]?.student?.fullName ??
+      state.student.students?.[0]?.fullName,
+  );
   const { balance, spending, checkout } = useCredits();
   const { data: billingData = [] } = useCachedBillingData(!!authUser);
   const { data: recentAI } = useCachedAIActivity(!!authUser);
@@ -756,8 +761,8 @@ export default function DashboardPage() {
 
           {/* MODIFIED: Use `authUser` directly from Redux */}
           <p className="text-gray-600 mt-1">
-            Welcome back, {authUser?.fullName || 'User'}! Here's your job
-            application progress.
+            Welcome back, {studentFullName || authUser?.fullName || 'User'}!
+            Here's your job application progress.
           </p>
         </div>
 
