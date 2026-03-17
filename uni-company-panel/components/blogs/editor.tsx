@@ -129,6 +129,18 @@ export const Editor = forwardRef<any, EditorProps>(
               min-height: 240px;
               max-height: 640px;
               overflow-y: auto;
+
+              /* These are the critical lines for long nonsense strings */
+              word-break: break-all !important;
+              overflow-wrap: break-word !important;
+              white-space: pre-wrap !important;
+            }
+
+            /* Force the root of the editor to stay within the bounds of its parent */
+            .quill {
+              width: 100% !important;
+              max-width: 100% !important;
+              table-layout: fixed !important;
             }
             .ql-editor.ql-blank::before {
               color: hsl(var(--muted-foreground));

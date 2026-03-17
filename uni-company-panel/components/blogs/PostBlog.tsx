@@ -52,6 +52,7 @@ import {
 } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import useBlogStore from '@/store/blog-store';
+import { Editor } from './editor';
 
 // --- Validation Schema ---
 const blogSchema = z.object({
@@ -136,14 +137,21 @@ export default function CreateBlogPage() {
       );
     });
     Object.entries(files).forEach(([name, file]) => fd.append(name, file));
+    console.log('fb', fd);
     const resp = await addBlog(fd);
+    console.log('add');
     if (resp?.success) router.push('/blogs');
   };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        {/* <form onSubmit={form.handleSubmit(onSubmit)}> */}
+        <form
+          onSubmit={form.handleSubmit(onSubmit, (errors) =>
+            console.log('Validation Errors:', errors),
+          )}
+        >
           {/* Header */}
           <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md px-6 py-3">
             <div className="max-w-[1400px] mx-auto flex items-center justify-between">
@@ -203,106 +211,18 @@ export default function CreateBlogPage() {
                       name="shortDescription"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Excerpt</FormLabel>
+                          <FormLabel>Content</FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Summary..." {...field} />
+                            {/* Pass field.value and field.onChange to the Editor */}
+                            <Editor
+                              value={field.value}
+                              onChange={field.onChange}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </CardContent>
-                </Card>
-
-                {/* SEO Card (Same as previous) */}
-                <Card className="shadow-sm border-slate-200">
-                  <CardHeader>
-                    <CardTitle className="text-xs uppercase font-bold text-indigo-600">
-                      SEO Settings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="seo.metaTitle"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Meta Title</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="seo.metaDescription"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Meta Description</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-                      {/* OpenGraph Image */}
-                      <div className="space-y-2">
-                        <Label className="text-xs">
-                          OG Image (Facebook/LinkedIn)
-                        </Label>
-                        <div
-                          className="border rounded-lg h-32 flex items-center justify-center bg-slate-50 cursor-pointer overflow-hidden"
-                          onClick={() =>
-                            document.getElementById('ogImage')?.click()
-                          }
-                        >
-                          {previews.ogImage ? (
-                            <img
-                              src={previews.ogImage}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <ImageIcon className="text-slate-300" />
-                          )}
-                        </div>
-                        <input
-                          type="file"
-                          id="ogImage"
-                          hidden
-                          onChange={(e) => handleFileChange('ogImage', e)}
-                        />
-                      </div>
-
-                      {/* Twitter Image */}
-                      <div className="space-y-2">
-                        <Label className="text-xs">Twitter Image</Label>
-                        <div
-                          className="border rounded-lg h-32 flex items-center justify-center bg-slate-50 cursor-pointer overflow-hidden"
-                          onClick={() =>
-                            document.getElementById('twitterImage')?.click()
-                          }
-                        >
-                          {previews.twitterImage ? (
-                            <img
-                              src={previews.twitterImage}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <ImageIcon className="text-slate-300" />
-                          )}
-                        </div>
-                        <input
-                          type="file"
-                          id="twitterImage"
-                          hidden
-                          onChange={(e) => handleFileChange('twitterImage', e)}
-                        />
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -399,7 +319,7 @@ export default function CreateBlogPage() {
                                 <Badge
                                   key={id}
                                   variant="secondary"
-                                  className="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                                  className=" bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
                                 >
                                   {cat.title}
                                   <X
@@ -490,7 +410,7 @@ export default function CreateBlogPage() {
                                 <Badge
                                   key={id}
                                   variant="outline"
-                                  className="text-[10px] border-slate-200 text-slate-600"
+                                  className=" border-slate-200 text-slate-600"
                                 >
                                   #{tag.title}
                                 </Badge>
@@ -503,41 +423,95 @@ export default function CreateBlogPage() {
                   </CardContent>
                 </Card>
 
-                {/* Media Card */}
+                {/* SEO Card (Same as previous) */}
                 <Card className="shadow-sm border-slate-200">
-                  <CardHeader className="pb-3 border-b border-slate-50">
-                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4" /> Featured Images
+                  <CardHeader>
+                    <CardTitle className="text-xs uppercase font-bold text-indigo-600">
+                      SEO Settings
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-5 space-y-4">
-                    {['bannerImage', 'thumbnailImage'].map((type) => (
-                      <div key={type} className="space-y-2">
-                        <Label className="text-[10px] font-bold text-slate-400 uppercase">
-                          {type.replace('Image', '')}
+                  <CardContent className="p-6 space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="seo.metaTitle"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Meta Title</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="seo.metaDescription"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Meta Description</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-1 gap-6 pt-4 border-t">
+                      {/* OpenGraph Image */}
+                      <div className="space-y-2">
+                        <Label className="text-xs">
+                          OG Image (Facebook/LinkedIn)
                         </Label>
                         <div
-                          className="group relative border-2 border-dashed rounded-lg h-24 flex items-center justify-center bg-slate-50 hover:bg-white hover:border-indigo-400 transition-all cursor-pointer overflow-hidden"
-                          onClick={() => document.getElementById(type)?.click()}
+                          className="border rounded-lg h-32 flex items-center justify-center bg-slate-50 cursor-pointer overflow-hidden"
+                          onClick={() =>
+                            document.getElementById('ogImage')?.click()
+                          }
                         >
-                          {previews[type] ? (
+                          {previews.ogImage ? (
                             <img
-                              src={previews[type]}
-                              className="absolute inset-0 w-full h-full object-cover"
-                              alt="Preview"
+                              src={previews.ogImage}
+                              className="h-full w-full object-cover"
                             />
                           ) : (
-                            <Upload className="h-5 w-5 text-slate-300 group-hover:text-indigo-500" />
+                            <ImageIcon className="text-slate-300" />
                           )}
-                          <input
-                            type="file"
-                            id={type}
-                            hidden
-                            onChange={(e) => handleFileChange(type, e)}
-                          />
                         </div>
+                        <input
+                          type="file"
+                          id="ogImage"
+                          hidden
+                          onChange={(e) => handleFileChange('ogImage', e)}
+                        />
                       </div>
-                    ))}
+
+                      {/* Twitter Image */}
+                      <div className="space-y-2">
+                        <Label className="text-xs">Twitter Image</Label>
+                        <div
+                          className="border rounded-lg h-32 flex items-center justify-center bg-slate-50 cursor-pointer overflow-hidden"
+                          onClick={() =>
+                            document.getElementById('twitterImage')?.click()
+                          }
+                        >
+                          {previews.twitterImage ? (
+                            <img
+                              src={previews.twitterImage}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <ImageIcon className="text-slate-300" />
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          id="twitterImage"
+                          hidden
+                          onChange={(e) => handleFileChange('twitterImage', e)}
+                        />
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </aside>

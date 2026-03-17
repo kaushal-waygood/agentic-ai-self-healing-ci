@@ -256,9 +256,9 @@ const useBlogStore = create<BlogStore>((set, get) => ({
     try {
       const { data: resp } = await apiInstance.delete(`/blog/${id}`);
       if (resp?.status === 'SUCCESS') {
-        set({
-          blogListdata: get().blogListdata.filter((blog) => blog._id !== id),
-        });
+        set((state) => ({
+          blogListdata: state.blogListdata.filter((blog) => blog._id !== id),
+        }));
         toast.success(resp.message);
       }
       return resp;
