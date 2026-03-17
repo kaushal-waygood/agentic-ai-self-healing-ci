@@ -1,6 +1,6 @@
 // src/services/tourService.ts
 import apiInstance from '@/services/api';
-import debounce from 'lodash/debounce';
+import { debounce } from 'lodash-es';
 
 const API_BASE = '/onboarding/tours';
 

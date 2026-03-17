@@ -155,7 +155,7 @@ import {
   viewedJobsSuccess,
   viewedJobsFailure,
 } from '../reducers/jobReducer';
-import { get } from 'lodash';
+import { get } from 'lodash-es';
 
 type ID = string;
 
