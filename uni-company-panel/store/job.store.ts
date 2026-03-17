@@ -197,13 +197,10 @@ export const useJobStore = create<JobStore>((set) => ({
     try {
       set({ loading: true, error: null });
 
-      console.log(updates);
-
       // We pass the 'updates' object directly as the request body
       const response = await apiInstance.patch(`/jobs/mannual/${id}`, updates);
 
       const data = response.data;
-      console.log('response', data);
       // set({ job: data.job, loading: false });
       set((state) => ({
         job: data.job,

@@ -189,7 +189,6 @@ const NewJobPost = () => {
 
   const { user } = useAuthStore();
 
-  console.log(user);
   const [editorKey, setEditorKey] = useState(0);
 
   const THEME = {
@@ -356,7 +355,6 @@ const NewJobPost = () => {
 
     setIsSubmitting(true);
     try {
-      console.log('Publishing Payload:', previewPayload);
       await mannualPostJob(previewPayload);
       toast.success('Job posted successfully!');
       form.reset();
