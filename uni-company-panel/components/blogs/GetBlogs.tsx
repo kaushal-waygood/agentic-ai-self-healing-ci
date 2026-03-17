@@ -39,7 +39,6 @@ const BlogsPage = () => {
     deleteBlog,
     getDeleteBlog,
     bulkDeleteBlogs,
-    getDeleteBlog,
     isBlogStatusLoading,
     updatingBlogId,
     updateBlogStatus,
