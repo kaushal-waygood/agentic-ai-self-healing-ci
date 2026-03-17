@@ -54,18 +54,9 @@ import { cn } from '@/lib/utils';
 import useBlogStore from '@/store/blog-store';
 import { Editor } from './editor';
 
-// --- Helper Functions ---
-const slugify = (text: string) =>
-  text
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w-]+/g, '');
-
 // --- Validation Schema ---
 const blogSchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  slug: z.string().min(1, 'Slug is required'),
   shortDescription: z
     .string()
     .min(10, 'Description must be at least 10 characters'),
@@ -101,13 +92,11 @@ export default function CreateBlogPage() {
 
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [files, setFiles] = useState<Record<string, File>>({});
-  const [slugLocked, setSlugLocked] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(blogSchema),
     defaultValues: {
       title: '',
-      slug: '',
       shortDescription: '',
       fullDescription: '',
       category: [],
@@ -122,13 +111,6 @@ export default function CreateBlogPage() {
       },
     },
   });
-
-  const title = form.watch('title');
-  useEffect(() => {
-    if (!slugLocked && title) {
-      form.setValue('slug', slugify(title), { shouldValidate: true });
-    }
-  }, [title, slugLocked, form]);
 
   useEffect(() => {
     getBlogCategoryList(100, 1, '', { isActive: true });
@@ -226,76 +208,7 @@ export default function CreateBlogPage() {
 
                     <FormField
                       control={form.control}
-                      name="slug"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>URL Slug</FormLabel>
-                          <div className="flex gap-2">
-                            <FormControl>
-                              <div className="relative flex-1">
-                                <span className="absolute left-3 top-2.5 text-slate-400 text-sm">
-                                  /blog/
-                                </span>
-                                <Input
-                                  {...field}
-                                  className="pl-14 bg-slate-50"
-                                  disabled={!slugLocked}
-                                />
-                              </div>
-                            </FormControl>
-                            <Button
-                              variant="outline"
-                              type="button"
-                              size="icon"
-                              onClick={() => setSlugLocked(!slugLocked)}
-                            >
-                              {slugLocked ? (
-                                <Lock className="h-4 w-4 text-indigo-600" />
-                              ) : (
-                                <Unlock className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                    <div>
-                      <CardContent className=" space-y-4 grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 ">
-                        {['bannerImage', 'thumbnailImage'].map((type) => (
-                          <div key={type} className="space-y-2 ">
-                            <Label className="text-xs font-bold  uppercase">
-                              {type.replace('Image', '')}
-                            </Label>
-                            <div
-                              className="group  relative border-2 border-dashed rounded-lg h-24 flex items-center justify-center bg-slate-50 hover:bg-white hover:border-indigo-400 transition-all cursor-pointer overflow-hidden"
-                              onClick={() =>
-                                document.getElementById(type)?.click()
-                              }
-                            >
-                              {previews[type] ? (
-                                <img
-                                  src={previews[type]}
-                                  className="absolute inset-0 w-full h-full object-cover"
-                                  alt="Preview"
-                                />
-                              ) : (
-                                <Upload className="h-5 w-5 text-slate-300 group-hover:text-indigo-500" />
-                              )}
-                              <input
-                                type="file"
-                                id={type}
-                                hidden
-                                onChange={(e) => handleFileChange(type, e)}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </CardContent>
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="shortDescription" // This matches your Zod schema key
+                      name="shortDescription"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Content</FormLabel>

@@ -188,7 +188,6 @@ const useOrganisationStore = create<OrganisationStore>((set, get) => ({
         `/jobs/hosted/jobs/candidates/stats/${jobId}`,
       );
 
-      console.log(response.data.data);
       set({ candidatesStats: response.data.data, loading: false });
     } catch (error) {
       console.error('Error fetching candidates stats:', error);

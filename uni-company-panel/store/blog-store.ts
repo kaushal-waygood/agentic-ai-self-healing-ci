@@ -221,7 +221,7 @@ const useBlogStore = create<BlogStore>((set, get) => ({
   },
 
   updateBlogStatus: async (id, body) => {
-    set({ isBlogStatusLoading: true });
+    set({ isBlogStatusLoading: true, updatingBlogId: id }); // Track the ID here
     try {
       const { data: resp } = await apiInstance.patch(
         `/blog/${id}/status`,
@@ -234,15 +234,9 @@ const useBlogStore = create<BlogStore>((set, get) => ({
           ),
         });
         toast.success(resp.message);
-      } else {
-        toast.error(resp.message);
       }
-      return resp;
-    } catch (error) {
-      console.error('Error updating status:', error);
-      return error;
     } finally {
-      set({ isBlogStatusLoading: false });
+      set({ isBlogStatusLoading: false, updatingBlogId: null }); // Clear it here
     }
   },
 
@@ -399,7 +393,6 @@ const useBlogStore = create<BlogStore>((set, get) => ({
     const qs = normalizeListOptions(rowsPerPage, page, search, query);
     // const { data: resp } = await apiInstance.get(`/blog/tag?${qs}`);
     const { data: resp } = await apiInstance.get(`/blog/tag`);
-
     set({
       blogTagListData: resp?.data?.tags || [],
       // blogTagPaginator: resp?.data?.paginator,

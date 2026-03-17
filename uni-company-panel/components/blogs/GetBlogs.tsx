@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/popover';
 import {
   Eye,
-  Download,
   MessageSquare,
   ArrowUpDown,
   Loader2,
@@ -34,13 +33,16 @@ const BlogsPage = () => {
 
   // Destructure from store correctly
   const {
-    blogListdata, // Matches your console.log and store state
+    blogListdata,
     blogPaginator,
     getBlogList,
     deleteBlog,
     getDeleteBlog,
     bulkDeleteBlogs,
     getDeleteBlog,
+    isBlogStatusLoading,
+    updatingBlogId,
+    updateBlogStatus,
     isLoading,
   } = useBlogStore();
 
@@ -167,13 +169,34 @@ const BlogsPage = () => {
       {
         accessorKey: 'isActive',
         header: 'Visibility',
-        cell: ({ row }) => (
-          <div
-            className={`text-[10px] font-bold ${row.original.isActive ? 'text-indigo-600' : 'text-slate-400'}`}
-          >
-            {row.original.isActive ? 'PUBLIC' : 'HIDDEN'}
-          </div>
-        ),
+        cell: ({ row }) => {
+          // Check if this specific row is the one being updated
+          const isThisRowLoading =
+            isBlogStatusLoading && updatingBlogId === row.original._id;
+
+          return (
+            <Button
+              variant="ghost" // Using ghost or similar for a cleaner look
+              disabled={isThisRowLoading}
+              className={`text-[10px] font-bold min-w-[70px] ${
+                row.original.isActive ? 'text-indigo-600' : 'text-slate-400'
+              }`}
+              onClick={() => {
+                updateBlogStatus(row.original._id, {
+                  isActive: !row.original.isActive,
+                });
+              }}
+            >
+              {isThisRowLoading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : row.original.isActive ? (
+                'PUBLIC'
+              ) : (
+                'HIDDEN'
+              )}
+            </Button>
+          );
+        },
       },
       {
         id: 'actions',
