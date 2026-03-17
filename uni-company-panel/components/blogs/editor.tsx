@@ -1,72 +1,116 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { forwardRef, useMemo } from 'react';
-import { Quill } from 'react-quill-new';
-import ImageResize from 'quill-image-resize-module-react';
-import { ImageDrop } from 'quill-image-drop-module';
+import { forwardRef } from 'react';
+import { cn } from '@/lib/utils'; // Standard Shadcn utility
+import { Label } from '@/components/ui/label';
 
-// Styles
-import 'react-quill-new/dist/quill.snow.css';
-import { cn } from "@/lib/utils";
+// --- Quill Dynamic Setup ---
+if (typeof window !== 'undefined') {
+  const { Quill: QuillBase } = require('react-quill-new');
+  const ImageResize = require('quill-image-resize-module-react').default;
+  const { ImageDrop } = require('quill-image-drop-module');
 
-// Register Quill Modules
-Quill.register('modules/imageResize', ImageResize);
-Quill.register('modules/imageDrop', ImageDrop);
+  QuillBase.register('modules/imageResize', ImageResize);
+  QuillBase.register('modules/imageDrop', ImageDrop);
+
+  const Parchment = QuillBase.import('parchment');
+  if (!Parchment.Attributor) {
+    Parchment.Attributor =
+      Parchment.AttributorClass || Parchment.StyleAttributor;
+  }
+}
 
 const ReactQuill = dynamic(() => import('react-quill-new'), {
   ssr: false,
   loading: () => (
-    <div className="h-[240px] w-full animate-pulse rounded-md border border-input bg-muted" />
+    <div className="h-[240px] w-full rounded-md border border-input bg-muted/50 animate-pulse" />
   ),
 });
 
+import 'react-quill-new/dist/quill.snow.css';
+
+// --- Types ---
 interface EditorProps {
   value?: string;
-  onChange?: (value: string) => void;
+  onChange?: (content: string) => void;
   error?: boolean;
   helperText?: string;
-  disabled?: boolean;
   placeholder?: string;
   className?: string;
+  editable?: boolean;
 }
 
 export const Editor = forwardRef<any, EditorProps>(
-  ({ value, onChange, error, helperText, disabled, placeholder, className, ...other }, ref) => {
-    
-    const modules = useMemo(() => ({
+  (
+    {
+      value,
+      onChange,
+      error,
+      helperText,
+      placeholder = 'Write something...',
+      className,
+      editable = true,
+      ...other
+    },
+    ref,
+  ) => {
+    const modules = {
       toolbar: [
         [{ header: [1, 2, 3, 4, 5, 6, false] }],
         [{ font: [] }],
+        [{ size: ['small', false, 'large', 'huge'] }],
         ['bold', 'italic', 'underline', 'strike'],
         ['blockquote', 'code-block'],
+        [{ script: 'sub' }, { script: 'super' }],
         [{ list: 'ordered' }, { list: 'bullet' }],
+        [{ indent: '-1' }, { indent: '+1' }],
+        [{ direction: 'rtl' }],
         [{ align: [] }],
         [{ color: [] }, { background: [] }],
-        ['link', 'image', 'video'],
+        ['link', 'image', 'video', 'formula'],
         ['clean'],
       ],
       imageResize: {
         modules: ['Resize', 'DisplaySize', 'Toolbar'],
       },
       imageDrop: true,
-    }), []);
+    };
 
     const formats = [
-      'header', 'font', 'size', 'bold', 'italic', 'underline', 'strike',
-      'blockquote', 'code-block', 'script', 'list', 'bullet', 'indent',
-      'direction', 'align', 'color', 'background', 'link', 'image', 'video', 'formula',
+      'header',
+      'font',
+      'size',
+      'bold',
+      'italic',
+      'underline',
+      'strike',
+      'blockquote',
+      'code-block',
+      'script',
+      'list',
+      'bullet',
+      'indent',
+      'direction',
+      'align',
+      'color',
+      'background',
+      'link',
+      'image',
+      'video',
+      'formula',
     ];
 
     return (
-      <div className={cn("flex flex-col gap-1.5", className)}>
+      <div className={cn('flex flex-col gap-1.5 w-full', className)}>
         <div
           className={cn(
-            "relative flex flex-col overflow-hidden rounded-md border border-input bg-background transition-colors focus-within:ring-1 focus-within:ring-ring",
-            error && "border-destructive ring-destructive",
-            disabled && "cursor-not-allowed opacity-50 shadow-none"
+            'relative flex flex-col overflow-hidden rounded-md border border-input bg-background transition-colors focus-within:ring-1 focus-within:ring-ring',
+            error && 'border-destructive ring-destructive',
+            !editable && 'opacity-50 pointer-events-none cursor-not-allowed',
           )}
         >
+          {/* Custom Styles for Quill inside Shadcn container */}
           <style jsx global>{`
             .ql-toolbar.ql-snow {
               border: none !important;
@@ -84,19 +128,20 @@ export const Editor = forwardRef<any, EditorProps>(
             .ql-editor {
               min-height: 240px;
               max-height: 640px;
+              overflow-y: auto;
             }
             .ql-editor.ql-blank::before {
               color: hsl(var(--muted-foreground));
               font-style: normal;
             }
           `}</style>
-          
+
           <ReactQuill
             ref={ref}
             theme="snow"
             value={value}
-            onChange={onChange || (() => {})}
-            readOnly={disabled}
+            onChange={onChange}
+            readOnly={!editable}
             placeholder={placeholder}
             modules={modules}
             formats={formats}
@@ -105,13 +150,18 @@ export const Editor = forwardRef<any, EditorProps>(
         </div>
 
         {helperText && (
-          <p className={cn("text-xs transition-all", error ? "text-destructive" : "text-muted-foreground")}>
+          <p
+            className={cn(
+              'text-[0.8rem] font-medium px-2',
+              error ? 'text-destructive' : 'text-muted-foreground',
+            )}
+          >
             {helperText}
           </p>
         )}
       </div>
     );
-  }
+  },
 );
 
 Editor.displayName = 'Editor';
