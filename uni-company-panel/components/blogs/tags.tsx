@@ -5,7 +5,15 @@ import useBlogStore from '@/store/blog-store';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/common/TableData';
-import { Plus, Loader2, Trash2, Pencil, Tag } from 'lucide-react';
+import {
+  Plus,
+  Loader2,
+  Trash2,
+  Pencil,
+  Hash,
+  CheckCircle2,
+  AlertCircle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,23 +27,25 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-const CategoryPage = () => {
+const TagsPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Correct destructuring to match your blog-store.ts
+  // Destructure Tag-specific methods and data from your store
   const {
-    getBlogCategoryList,
-    addBlogCategory,
-    deleteCategory,
+    getBlogTagList,
+    addBlogTag,
+    deleteBlogTag,
+    blogTagListData,
+    blogTagPaginator,
+    // Assuming you have a general loading state or similar in the store
     isLoading,
-    blogCategoryListData,
-    blogCategoryCounts,
   } = useBlogStore();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newCategory, setNewCategory] = useState({ title: '', slug: '' });
+  const [newTag, setNewTag] = useState({ title: '', slug: '' });
 
+  // URL State Management for search and pagination
   const currentStatus = searchParams.get('status') || '';
   const currentPage = Math.max(
     1,
@@ -47,9 +57,9 @@ const CategoryPage = () => {
     const filters: any = {};
     if (currentStatus) filters.isActive = currentStatus;
 
-    // Fetching data with current pagination and filters
-    getBlogCategoryList(10, currentPage, searchQuery, filters);
-  }, [getBlogCategoryList, currentStatus, currentPage, searchQuery]);
+    // Fetch tags with current pagination and filters
+    getBlogTagList(10, currentPage, searchQuery, filters);
+  }, [getBlogTagList, currentStatus, currentPage, searchQuery]);
 
   const handleFilterClick = (status: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -62,13 +72,12 @@ const CategoryPage = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addBlogCategory(newCategory);
-      toast.success('Category created successfully');
+      await addBlogTag(newTag);
+      // addBlogTag in your store already handles the toast and state update
       setIsCreateOpen(false);
-      setNewCategory({ title: '', slug: '' });
-      // The store should handle refreshing the list inside addBlogCategory
+      setNewTag({ title: '', slug: '' });
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create category');
+      toast.error(error.message || 'Failed to create tag');
     }
   };
 
@@ -83,10 +92,13 @@ const CategoryPage = () => {
       },
       {
         accessorKey: 'title',
-        header: 'Category Name',
+        header: 'Tag Name',
         cell: ({ row }) => (
-          <div className="font-semibold text-slate-900">
-            {row.original.title}
+          <div className="flex items-center gap-2">
+            <Hash className="w-3 h-3 text-slate-400" />
+            <div className="font-semibold text-slate-900">
+              {row.original.title}
+            </div>
           </div>
         ),
       },
@@ -95,7 +107,7 @@ const CategoryPage = () => {
         header: 'Slug',
         cell: ({ row }) => (
           <code className="text-[11px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
-            /{row.original.slug}
+            #{row.original.slug}
           </code>
         ),
       },
@@ -129,7 +141,7 @@ const CategoryPage = () => {
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0 hover:text-red-500"
-              onClick={() => deleteCategory?.(row.original._id)}
+              onClick={() => deleteBlogTag?.(row.original._id)}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -137,7 +149,7 @@ const CategoryPage = () => {
         ),
       },
     ],
-    [deleteCategory],
+    [deleteBlogTag],
   );
 
   return (
@@ -145,32 +157,32 @@ const CategoryPage = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-indigo-600 flex items-center gap-2">
-            <Tag className="w-8 h-8" /> Category Management
+            <Hash className="w-8 h-8" /> Tag Management
           </h1>
           <p className="text-gray-500">
-            Managing {blogCategoryCounts?.all || 0} categories across the blog
+            Manage keywords to help users find your content
           </p>
         </div>
 
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-indigo-600 hover:bg-indigo-700">
-              <Plus className="w-4 h-4 mr-2" /> Add Category
+              <Plus className="w-4 h-4 mr-2" /> Add Tag
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Category</DialogTitle>
+              <DialogTitle>Create New Tag</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Category Title</Label>
+                <Label htmlFor="title">Tag Title</Label>
                 <Input
                   id="title"
-                  placeholder="e.g. University News"
-                  value={newCategory.title}
+                  placeholder="e.g. JavaScript"
+                  value={newTag.title}
                   onChange={(e) =>
-                    setNewCategory({ ...newCategory, title: e.target.value })
+                    setNewTag({ ...newTag, title: e.target.value })
                   }
                   required
                 />
@@ -179,23 +191,49 @@ const CategoryPage = () => {
                 <Label htmlFor="slug">Slug (URL Path)</Label>
                 <Input
                   id="slug"
-                  placeholder="e.g. university-news"
-                  value={newCategory.slug}
+                  placeholder="e.g. javascript"
+                  value={newTag.slug}
                   onChange={(e) =>
-                    setNewCategory({ ...newCategory, slug: e.target.value })
+                    setNewTag({ ...newTag, slug: e.target.value })
                   }
                   required
                 />
               </div>
               <Button type="submit" className="w-full bg-indigo-600">
-                Save Category
+                Save Tag
               </Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Stats Section using backend counts */}
+      {/* Stats Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard
+          label="Total Tags"
+          value={blogTagPaginator?.itemCount || 0}
+          icon={<Hash className="text-blue-600" />}
+          color="bg-blue-100"
+          onClick={() => handleFilterClick('')}
+          isActive={currentStatus === ''}
+        />
+        <StatCard
+          label="Active"
+          value={blogTagListData?.filter((t: any) => t.isActive).length || 0}
+          icon={<CheckCircle2 className="text-emerald-600" />}
+          color="bg-emerald-100"
+          onClick={() => handleFilterClick('true')}
+          isActive={currentStatus === 'true'}
+        />
+        <StatCard
+          label="Inactive"
+          value={blogTagListData?.filter((t: any) => !t.isActive).length || 0}
+          icon={<AlertCircle className="text-rose-600" />}
+          color="bg-rose-100"
+          onClick={() => handleFilterClick('false')}
+          isActive={currentStatus === 'false'}
+        />
+      </div>
 
       {isLoading ? (
         <div className="flex justify-center py-20">
@@ -205,7 +243,7 @@ const CategoryPage = () => {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <DataTable
             columns={columns}
-            data={blogCategoryListData || []}
+            data={blogTagListData || []}
             searchKey="title"
           />
         </div>
@@ -237,4 +275,4 @@ const StatCard = ({ label, value, icon, color, onClick, isActive }: any) => (
   </Card>
 );
 
-export default CategoryPage;
+export default TagsPage;

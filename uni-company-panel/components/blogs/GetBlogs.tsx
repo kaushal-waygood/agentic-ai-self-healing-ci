@@ -183,7 +183,9 @@ const BlogsPage = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => router.push(`/blogs/edit/${row.original._id}`)}
+                onClick={() =>
+                  router.push(`/dashboard/blog/edit/${row.original._id}`)
+                }
               >
                 <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
               </Button>
@@ -244,10 +246,16 @@ const BlogsPage = () => {
         </div>
         <div className="flex gap-3">
           <Button
+            onClick={() => router.push('/dashboard/blog/tags')}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            Tags
+          </Button>
+          <Button
             onClick={() => router.push('/dashboard/blog/category')}
             className="bg-indigo-600 hover:bg-indigo-700"
           >
-            Create Category
+            Category
           </Button>
           <Button
             onClick={() => router.push('/dashboard/blog/post')}

@@ -57,6 +57,9 @@ const router = Router();
 
 router.get('/blog/category', authMiddleware, listBlogCategories);
 
+// List all tags
+router.get('/blog/tag', authMiddleware, listBlogTags);
+
 // Public website blogs (no auth)
 router.get('/website-blogs', listWebsiteBlogs);
 router.get('/website-blog-tags-filter', websiteBlogFilterTags);
@@ -157,9 +160,6 @@ router.patch(
 );
 
 // ── Blog Tags ──────────────────────────────────────────────
-
-// List all tags
-router.get('/blog/tag', authMiddleware, listBlogTags);
 
 // Create a tag
 router.post('/blog/tag', authMiddleware, createBlogTag);
