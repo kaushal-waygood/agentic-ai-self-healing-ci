@@ -25,8 +25,8 @@ type BlogDetails = {
   shortDescription?: string;
   description?: string;
   fullDescription?: string;
-  category?: string[];
-  tags?: string[];
+  category?: { title: string }[];
+  tags?: { title: string }[];
 };
 
 type BlogsAllDetailProps = {
@@ -36,46 +36,45 @@ type BlogsAllDetailProps = {
 export default function BlogsAllDetail({
   initialBlogDetails,
 }: BlogsAllDetailProps) {
-  // Use null as fallback to distinguish between "Loading" and "No data"
   const blog = initialBlogDetails;
   const contentRef = useRef<HTMLDivElement | null>(null);
 
   const [headings, setHeadings] = useState<HeadingItem[]>([]);
   const [activeHeading, setActiveHeading] = useState('');
   const [descriptionHtml, setDescriptionHtml] = useState('');
+  const [readingProgress, setReadingProgress] = useState(0);
 
   const descriptionSource =
     blog?.fullDescription || blog?.description || blog?.shortDescription || '';
 
-  // 1. Extract headings from HTML string
+  useEffect(() => {
+    const updateProgress = () => {
+      const scrolled = window.scrollY;
+      const height = document.documentElement.scrollHeight - window.innerHeight;
+      setReadingProgress((scrolled / height) * 100);
+    };
+    window.addEventListener('scroll', updateProgress);
+    return () => window.removeEventListener('scroll', updateProgress);
+  }, []);
+
   const extractHeadings = (html: string) => {
     if (typeof window === 'undefined' || !html)
       return { updatedHtml: '', headingsArray: [] };
-
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     const headingElements = doc.querySelectorAll('h1, h2, h3');
-
     const headingsArray = Array.from(headingElements).map((heading, index) => {
       const id = `heading-${index}`;
       heading.id = id;
-      const text =
-        (heading as HTMLElement).innerText || heading.textContent || '';
-
       return {
         id,
-        text,
+        text: (heading as HTMLElement).innerText || '',
         tagName: heading.tagName.toLowerCase() as HeadingItem['tagName'],
       };
     });
-
-    return {
-      updatedHtml: doc.body.innerHTML,
-      headingsArray,
-    };
+    return { updatedHtml: doc.body.innerHTML, headingsArray };
   };
 
-  // 2. Setup content and TOC
   useEffect(() => {
     if (!descriptionSource) return;
     const { updatedHtml, headingsArray } = extractHeadings(descriptionSource);
@@ -83,149 +82,165 @@ export default function BlogsAllDetail({
     setHeadings(headingsArray);
   }, [descriptionSource]);
 
-  // 3. Intersection Observer for active heading
   useEffect(() => {
     if (!descriptionHtml) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveHeading(entry.target.id);
-          }
+          if (entry.isIntersecting) setActiveHeading(entry.target.id);
         });
       },
       { rootMargin: '-10% 0px -70% 0px', threshold: 0.1 },
     );
-
-    const elements = document.querySelectorAll('h1, h2, h3');
-    elements.forEach((el) => observer.observe(el));
-
-    return () => elements.forEach((el) => observer.unobserve(el));
+    document
+      .querySelectorAll('h1, h2, h3')
+      .forEach((el) => observer.observe(el));
+    return () =>
+      document
+        .querySelectorAll('h1, h2, h3')
+        .forEach((el) => observer.unobserve(el));
   }, [descriptionHtml]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (!element) return;
-
     const offset = 100;
-    const position =
-      element.getBoundingClientRect().top + window.scrollY - offset;
-
-    window.scrollTo({ top: position, behavior: 'smooth' });
+    window.scrollTo({
+      top: element.getBoundingClientRect().top + window.scrollY - offset,
+      behavior: 'smooth',
+    });
   };
 
-  // --- Render Logic ---
-
-  if (!blog) {
-    return (
-      <div className="py-20 text-center flex flex-col items-center justify-center">
-        <Iconify
-          icon="solar: Danger-broken"
-          width={48}
-          className="text-gray-400 mb-2"
-        />
-        <h5 className="text-xl font-semibold text-gray-600">
-          Blog post not found
-        </h5>
-      </div>
-    );
-  }
+  if (!blog) return <NotFound />;
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-[#FCFCFC] min-h-screen font-sans">
+      <div
+        className="fixed top-0 left-0 h-1 bg-orange-500 z-[100] transition-all duration-150"
+        style={{ width: `${readingProgress}%` }}
+      />
+
       {/* HERO SECTION */}
       <div
-        className="relative bg-cover bg-center h-[260px] md:h-[420px]"
+        className="relative h-[300px] md:h-[500px] flex items-center overflow-hidden"
         style={{
-          backgroundImage: `url(${blog.bannerImageUrl || blog.thumbnailImageUrl || '/logo/logo.png'})`,
+          background: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.8)), url(${blog.bannerImageUrl || blog.thumbnailImageUrl || '/logo/logo.png'})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
         }}
       >
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
-
-        <div className="relative z-10 h-full flex items-end pb-8 text-white max-w-screen-lg mx-auto px-4">
-          <div className="w-full">
-            <h1 className="text-3xl md:text-5xl font-extrabold mb-4 leading-tight">
+        <div className="max-w-screen-xl mx-auto px-4 w-full">
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-2 text-orange-400 font-bold text-xs uppercase tracking-[0.2em] mb-4">
+              <span className="h-[2px] w-8 bg-orange-400" />
+              Blog Post
+            </div>
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-[1.1]">
               {blog.title}
             </h1>
-
-            <div className="flex gap-4 flex-wrap opacity-90">
-              <Meta icon="solar:user-outline" value={blog.author} />
+            <div className="flex gap-6 flex-wrap text-gray-200">
+              <Meta icon="solar:user-bold" value={blog.author} />
               <Meta
-                icon="solar:calendar-outline"
+                icon="solar:calendar-bold"
                 value={fDateTime(blog.createdAt)}
               />
-              <Meta icon="solar:eye-outline" value={blog.views} />
+              <Meta icon="solar:eye-bold" value={`${blog.views} views`} />
             </div>
           </div>
         </div>
       </div>
 
-      {/* MAIN LAYOUT */}
-      <div className="max-w-screen-lg mx-auto px-4 -mt-10 pb-20">
-        <div className="bg-white shadow-xl rounded-2xl p-4 md:p-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
-            {/* STICKY TOC */}
-            <aside className="hidden lg:block col-span-1">
-              <div className="sticky top-24">
-                <h6 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">
-                  On this page
-                </h6>
-                <div className="space-y-3 border-l-2 border-gray-100 pl-4">
-                  {headings.map((heading) => (
-                    <p
-                      key={heading.id}
-                      onClick={() => scrollToSection(heading.id)}
+      {/* MAIN CONTENT LAYOUT */}
+      <div className="max-w-screen-xl mx-auto px-4 -mt-16 relative z-20 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Side Sticky */}
+          <aside className="hidden lg:block lg:col-span-3">
+            <div className="sticky top-28 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h6 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2">
+                <Iconify
+                  icon="solar:list-bold"
+                  width={16}
+                  className="text-orange-500"
+                />
+                Table of Contents
+              </h6>
+              <nav className="space-y-4">
+                {headings.map((heading) => (
+                  <div
+                    key={heading.id}
+                    onClick={() => scrollToSection(heading.id)}
+                    className={cn(
+                      'group cursor-pointer text-sm leading-snug transition-all duration-300 flex gap-3',
+                      activeHeading === heading.id
+                        ? 'text-orange-600 font-bold'
+                        : 'text-gray-500',
+                    )}
+                  >
+                    <span
                       className={cn(
-                        'cursor-pointer text-sm transition-all hover:text-primary',
-                        heading.tagName === 'h3' && 'pl-3 text-xs',
+                        'w-1 rounded-full transition-all',
                         activeHeading === heading.id
-                          ? 'text-primary font-bold border-l-2 border-primary -ml-[18px] pl-[16px]'
-                          : 'text-gray-500 font-medium',
+                          ? 'bg-orange-500'
+                          : 'bg-transparent group-hover:bg-gray-200',
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        heading.tagName === 'h3' && 'pl-4 text-[13px]',
                       )}
                     >
                       {heading.text}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </aside>
+                    </span>
+                  </div>
+                ))}
+              </nav>
+            </div>
+          </aside>
 
-            {/* CONTENT AREA */}
-            <article className="col-span-1 lg:col-span-3">
-              <div className="flex flex-wrap gap-2 mb-6">
+          {/* CONTENT AREA */}
+          <article className="lg:col-span-9 bg-white shadow-sm rounded-3xl border border-gray-50 overflow-hidden">
+            <div className="p-6 md:p-12">
+              <div className="flex flex-wrap gap-2 mb-8">
                 {blog.category?.map((cat, i) => (
-                  <Badge key={i} variant="outline" className="text-gray-500">
-                    #{cat?.title}
+                  <Badge
+                    key={i}
+                    className="bg-orange-50 text-orange-600 hover:bg-orange-100 border-none px-4 py-1"
+                  >
+                    {cat?.title}
                   </Badge>
                 ))}
               </div>
-
-              <Separator className="mb-8" />
 
               <div
                 ref={contentRef}
-                className="prose prose-lg max-w-none 
-                  text-gray-700 leading-relaxed
-                  [&_p]:mb-6
-                  [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-gray-900 [&_h2]:mt-10 [&_h2]:mb-4
-                  [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-gray-800 [&_h3]:mt-8 [&_h3]:mb-3
-                  [&_img]:w-full [&_img]:rounded-xl [&_img]:my-8 [&_img]:shadow-sm
-                  [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-6
-                  [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-6
-                  [&_blockquote]:border-l-4 [&_blockquote]:border-primary [&_blockquote]:pl-4 [&_blockquote]:italic"
+                className="prose prose-orange max-w-none 
+                  text-gray-800 leading-[1.8] text-lg
+                  [&_p]:mb-8
+                  [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:text-gray-900 [&_h2]:mt-14 [&_h2]:mb-6 [&_h2]:tracking-tight
+                  [&_h3]:text-2xl [&_h3]:font-semibold [&_h3]:text-gray-800 [&_h3]:mt-10 [&_h3]:mb-4
+                  [&_img]:w-full [&_img]:rounded-2xl [&_img]:my-10 [&_img]:shadow-lg
+                  [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-8 [&_ul]:space-y-3
+                  [&_blockquote]:border-l-4 [&_blockquote]:border-orange-500 [&_blockquote]:bg-orange-50/50 [&_blockquote]:p-8 [&_blockquote]:rounded-r-2xl [&_blockquote]:italic [&_blockquote]:text-xl"
                 dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               />
 
-              <div className="mt-12 flex flex-wrap gap-2 pt-8 border-t border-gray-100">
-                {blog.tags?.map((tag, i) => (
-                  <Badge key={i} variant="outline" className="text-gray-500">
-                    #{tag?.title}
-                  </Badge>
-                ))}
+              <div className="mt-16 pt-10 border-t border-gray-100 flex items-center gap-4">
+                <span className="text-sm font-bold text-gray-400 uppercase tracking-tighter">
+                  Tags:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {blog.tags?.map((tag, i) => (
+                    <span
+                      key={i}
+                      className="text-sm text-gray-500 hover:text-orange-600 cursor-pointer"
+                    >
+                      #{tag?.title}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </article>
-          </div>
+            </div>
+          </article>
         </div>
       </div>
     </div>
@@ -240,9 +255,25 @@ function Meta({
   value?: string | number | null;
 }) {
   return (
-    <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full backdrop-blur-md">
-      <Iconify icon={icon} width={16} />
-      <p className="text-xs font-medium">{value || '-'}</p>
+    <div className="flex items-center gap-2 px-1">
+      <Iconify icon={icon} width={18} className="text-orange-400" />
+      <span className="text-sm font-medium">{value || '-'}</span>
+    </div>
+  );
+}
+
+function NotFound() {
+  return (
+    <div className="py-40 text-center bg-white h-screen">
+      <Iconify
+        icon="solar:shield-warning-bold-duotone"
+        width={80}
+        className="text-orange-200 mx-auto mb-6"
+      />
+      <h2 className="text-3xl font-bold text-gray-900">Post Not Found</h2>
+      <p className="text-gray-500 mt-2">
+        The article you're looking for might have been moved.
+      </p>
     </div>
   );
 }
