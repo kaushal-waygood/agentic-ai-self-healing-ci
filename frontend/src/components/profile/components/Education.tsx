@@ -111,7 +111,10 @@ const Education = () => {
                     <Calendar className="h-4 w-4 text-gray-400" />
                     <span>
                       {formatDateForMonthInput(edu.startDate)} to{' '}
-                      {formatDateForMonthInput(edu.endDate) || 'Present'}
+                      {/* {formatDateForMonthInput(edu.endDate) || 'Present'} */}
+                      {edu.isCurrent
+                        ? 'Present'
+                        : formatDateForMonthInput(edu.endDate) || 'Present'}
                     </span>
                   </div>
 

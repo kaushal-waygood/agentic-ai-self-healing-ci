@@ -166,6 +166,7 @@ type Education = {
   fieldOfStudy?: string;
   country: string;
   gpa?: string;
+  isCurrent?: boolean;
   startDate: string;
   endDate?: string;
 };
