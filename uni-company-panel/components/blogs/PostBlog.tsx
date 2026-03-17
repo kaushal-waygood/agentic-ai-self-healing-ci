@@ -137,10 +137,10 @@ export default function CreateBlogPage() {
       );
     });
     Object.entries(files).forEach(([name, file]) => fd.append(name, file));
-    console.log('fb', fd);
+
     const resp = await addBlog(fd);
-    console.log('add');
-    if (resp?.success) router.push('/blogs');
+
+    if (resp?.success) router.replace('/dashboard/blog');
   };
 
   return (
