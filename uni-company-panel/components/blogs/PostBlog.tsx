@@ -206,6 +206,40 @@ export default function CreateBlogPage() {
                       )}
                     />
 
+                    <div>
+                      <CardContent className=" space-y-4 grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 ">
+                        {['bannerImage', 'thumbnailImage'].map((type) => (
+                          <div key={type} className="space-y-2 ">
+                            <Label className="text-xs font-bold  uppercase">
+                              {type.replace('Image', '')}
+                            </Label>
+                            <div
+                              className="group  relative border-2 border-dashed rounded-lg h-24 flex items-center justify-center bg-slate-50 hover:bg-white hover:border-indigo-400 transition-all cursor-pointer overflow-hidden"
+                              onClick={() =>
+                                document.getElementById(type)?.click()
+                              }
+                            >
+                              {previews[type] ? (
+                                <img
+                                  src={previews[type]}
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                  alt="Preview"
+                                />
+                              ) : (
+                                <Upload className="h-5 w-5 text-slate-300 group-hover:text-indigo-500" />
+                              )}
+                              <input
+                                type="file"
+                                id={type}
+                                hidden
+                                onChange={(e) => handleFileChange(type, e)}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </div>
+
                     <FormField
                       control={form.control}
                       name="shortDescription"
