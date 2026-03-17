@@ -402,7 +402,7 @@ const useBlogStore = create<BlogStore>((set, get) => ({
     console.log('tag response', resp);
     set({
       blogTagListData: resp?.data?.tags || [],
-      blogTagPaginator: resp?.data?.paginator,
+      // blogTagPaginator: resp?.data?.paginator,
     });
     return resp;
   },
