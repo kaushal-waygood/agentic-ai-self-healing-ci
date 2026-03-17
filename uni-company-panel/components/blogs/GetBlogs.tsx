@@ -38,6 +38,7 @@ const BlogsPage = () => {
     blogPaginator,
     getBlogList,
     deleteBlog,
+    getDeleteBlog,
     bulkDeleteBlogs,
     getDeleteBlog,
     isLoading,

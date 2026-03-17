@@ -262,9 +262,9 @@ const useBlogStore = create<BlogStore>((set, get) => ({
     try {
       const { data: resp } = await apiInstance.delete(`/blog/${id}`);
       if (resp?.status === 'SUCCESS') {
-        set({
-          blogListdata: get().blogListdata.filter((blog) => blog._id !== id),
-        });
+        set((state) => ({
+          blogListdata: state.blogListdata.filter((blog) => blog._id !== id),
+        }));
         toast.success(resp.message);
       }
       return resp;
@@ -399,7 +399,7 @@ const useBlogStore = create<BlogStore>((set, get) => ({
     const qs = normalizeListOptions(rowsPerPage, page, search, query);
     // const { data: resp } = await apiInstance.get(`/blog/tag?${qs}`);
     const { data: resp } = await apiInstance.get(`/blog/tag`);
-    console.log('tag response', resp);
+
     set({
       blogTagListData: resp?.data?.tags || [],
       // blogTagPaginator: resp?.data?.paginator,
