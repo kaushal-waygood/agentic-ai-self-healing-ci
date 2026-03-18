@@ -176,7 +176,7 @@ const useBlogStore = create<BlogStore>((set, get) => ({
       const { data: resp } = await apiInstance.put(`/blog/${id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      if (resp?.status === 'SUCCESS') {
+      if (resp?.success || resp?.status === 'SUCCESS') {
         toast.success(resp.message);
         const updatedItem = resp.data?.lastData || resp.data;
         set({
@@ -227,7 +227,7 @@ const useBlogStore = create<BlogStore>((set, get) => ({
         `/blog/${id}/status`,
         body,
       );
-      if (resp?.status === 'SUCCESS') {
+      if (resp.success || resp?.status === 'SUCCESS') {
         set({
           blogListdata: get().blogListdata.map((blog) =>
             blog._id === id ? { ...blog, isActive: body.isActive } : blog,
@@ -255,7 +255,8 @@ const useBlogStore = create<BlogStore>((set, get) => ({
     set({ isBlogDeleteLoading: true, blogDeleteDisabled: true });
     try {
       const { data: resp } = await apiInstance.delete(`/blog/${id}`);
-      if (resp?.status === 'SUCCESS') {
+
+      if (resp?.success) {
         set((state) => ({
           blogListdata: state.blogListdata.filter((blog) => blog._id !== id),
         }));
@@ -283,7 +284,8 @@ const useBlogStore = create<BlogStore>((set, get) => ({
   addBlogCategory: async (data) => {
     try {
       const { data: resp } = await apiInstance.post('/blog/category', data);
-      if (resp.status === 'SUCCESS') {
+
+      if (resp.success || resp.status === 'SUCCESS') {
         toast.success(resp.message);
         set({
           blogCategoryListData: [resp.data, ...get().blogCategoryListData],
@@ -315,7 +317,7 @@ const useBlogStore = create<BlogStore>((set, get) => ({
       //   `/blog/category?${queryString}`,
       // );
       const { data: resp } = await apiInstance.get(`/blog/category`);
-
+      console.log('cat resp', resp);
       set({
         blogCategoryListData: resp?.data?.categories || [],
         // blogCategoryPaginator: resp?.data?.paginator,
@@ -362,7 +364,7 @@ const useBlogStore = create<BlogStore>((set, get) => ({
 
   deleteBlogCategory: async (id) => {
     const { data: resp } = await apiInstance.delete(`/blog/category/${id}`);
-    if (resp.status === 'SUCCESS') {
+    if (resp.success || resp.status === 'SUCCESS') {
       toast.success(resp.message);
       set({
         blogCategoryListData: get().blogCategoryListData.filter(
@@ -374,29 +376,25 @@ const useBlogStore = create<BlogStore>((set, get) => ({
   },
 
   // --- Tag Actions ---
-
-  addBlogTag: async (data) => {
-    const { data: resp } = await apiInstance.post('/blog/tag', data);
-    if (resp.status === 'SUCCESS') {
-      toast.success(resp.message);
-      set({ blogTagListData: [resp.data, ...get().blogTagListData] });
-    }
-    return resp;
-  },
-
-  getBlogTagList: async (
-    rowsPerPage = 10,
-    page = 1,
-    search = '',
-    query = {},
-  ) => {
+  getBlogTagList: async (rowsPerPage, page, search = '', query = {}) => {
     const qs = normalizeListOptions(rowsPerPage, page, search, query);
     // const { data: resp } = await apiInstance.get(`/blog/tag?${qs}`);
     const { data: resp } = await apiInstance.get(`/blog/tag`);
     set({
       blogTagListData: resp?.data?.tags || [],
-      // blogTagPaginator: resp?.data?.paginator,
+      blogTagPaginator: resp?.data?.paginator,
     });
+    return resp;
+  },
+
+  addBlogTag: async (data) => {
+    const { data: resp } = await apiInstance.post('/blog/tag', data);
+    if (resp.success || resp.status === 'SUCCESS') {
+      toast.success(resp.message);
+      set({
+        blogTagListData: [resp.data, ...get().blogTagListData],
+      });
+    }
     return resp;
   },
 
@@ -434,7 +432,7 @@ const useBlogStore = create<BlogStore>((set, get) => ({
 
   deleteBlogTag: async (id) => {
     const { data: resp } = await apiInstance.delete(`/blog/tag/${id}`);
-    if (resp.status === 'SUCCESS') {
+    if (resp.success || resp.status === 'SUCCESS') {
       toast.success(resp.message);
       set({
         blogTagListData: get().blogTagListData.filter(

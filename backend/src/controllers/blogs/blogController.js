@@ -1272,7 +1272,7 @@ export const deleteBlogTag = async (req, res) => {
  */
 export const listBlogTags = async (req, res) => {
   try {
-    let { page = 1, limit = 10, search, isActive } = req.query;
+    let { page = 1, limit, search, isActive } = req.query;
     page = Math.max(1, parseInt(page, 10));
     limit = Math.max(1, parseInt(limit, 10));
 
