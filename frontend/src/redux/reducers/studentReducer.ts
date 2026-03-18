@@ -39,6 +39,7 @@ export interface Experience {
   employmentType?: string;
   location?: string;
   isCurrent?: boolean;
+  currentlyWorking?: boolean;
   startDate: string; // ISO
   endDate?: string; // ISO | undefined
   responsibilities?: string;

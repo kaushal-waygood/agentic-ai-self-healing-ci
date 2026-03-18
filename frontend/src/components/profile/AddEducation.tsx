@@ -1123,7 +1123,8 @@ const experienceSchema = z
     designation: z.string().min(1, 'Designation is required'),
     employmentType: z.string().optional(),
     location: z.string().optional(),
-    isCurrent: z.boolean().optional(),
+    // isCurrent: z.boolean().optional(),
+    currentlyWorking: z.boolean().optional(),
     startDate: z.string().min(1, 'Start date is required'),
     endDate: z.string().optional(),
     description: z.string().optional(),
@@ -1139,6 +1140,7 @@ export const AddExperience: React.FC<{
     employmentType: string;
     location: string;
     isCurrent: boolean;
+    currentlyWorking: boolean;
     startDate: string;
     endDate: string;
     responsibilities: string;
@@ -1153,7 +1155,8 @@ export const AddExperience: React.FC<{
       designation: data?.designation || '',
       employmentType: data?.employmentType || '',
       location: data?.location || '',
-      isCurrent: Boolean(data?.isCurrent),
+      // isCurrent: Boolean(data?.isCurrent),
+      currentlyWorking: Boolean(data?.currentlyWorking ?? data?.isCurrent),
       startDate: toMonth(data?.startDate),
       endDate: toMonth(data?.endDate),
       responsibilities: data?.responsibilities || '',
@@ -1164,11 +1167,14 @@ export const AddExperience: React.FC<{
 
   const dispatch = useDispatch();
   const { handleSubmit, control, watch, setValue, trigger, reset } = form;
-  const isCurrent = watch('isCurrent');
+  // const isCurrent = watch('isCurrent');
+  const currentlyWorking = watch('currentlyWorking');
 
   useEffect(() => {
-    if (isCurrent) setValue('endDate', '');
-  }, [isCurrent, setValue]);
+    //       if (isCurrent) setValue('endDate', '');
+    if (currentlyWorking) setValue('endDate', '');
+    // }, [isCurrent, setValue]);
+  }, [currentlyWorking, setValue]);
 
   const steps: StepDef[] = [
     {
@@ -1187,7 +1193,8 @@ export const AddExperience: React.FC<{
       id: 'timeline',
       title: 'Timeline & Responsibilities',
       icon: Calendar,
-      fields: ['startDate', 'endDate', 'isCurrent', 'responsibilities'],
+      // fields: ['startDate', 'endDate', 'isCurrent', 'responsibilities'],
+      fields: ['startDate', 'endDate', 'currentlyWorking', 'responsibilities'],
     },
   ];
 
@@ -1197,7 +1204,8 @@ export const AddExperience: React.FC<{
     const payload = {
       ...formData,
       startDate: monthToIso(formData.startDate)!,
-      endDate: formData.isCurrent ? undefined : monthToIso(formData.endDate),
+      // endDate: formData.isCurrent ? undefined : monthToIso(formData.endDate),
+      endDate: formData.currentlyWorking ? null : monthToIso(formData.endDate),
     };
 
     if (isEdit && payload._id) {
@@ -1369,7 +1377,8 @@ export const AddExperience: React.FC<{
                             field.onChange(date ? format(date, 'yyyy-MM') : '')
                           }
                           placeholder="Select end month & year"
-                          disabled={isCurrent}
+                          // disabled={isCurrent}
+                          disabled={currentlyWorking}
                           maxDate={new Date()}
                         />
                       </FormControl>
@@ -1378,9 +1387,9 @@ export const AddExperience: React.FC<{
                   )}
                 />
               </div>
-              {/* <FormField
+              <FormField
                 control={control}
-                name="isCurrent"
+                name="currentlyWorking"
                 render={({ field }) => (
                   <FormItem className="flex items-center space-x-2 mt-6">
                     <FormControl>
@@ -1394,7 +1403,7 @@ export const AddExperience: React.FC<{
                     </FormLabel>
                   </FormItem>
                 )}
-              /> */}
+              />
               <FormField
                 control={control}
                 name="description"

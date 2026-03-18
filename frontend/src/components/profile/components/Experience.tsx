@@ -130,7 +130,10 @@ const Experience = () => {
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <span>
                         {formatDateForMonthInput(exp.startDate)} to{' '}
-                        {formatDateForMonthInput(exp.endDate) || 'Present'}
+                        {/* {formatDateForMonthInput(exp.endDate) || 'Present'} */}
+                        {exp.currentlyWorking
+                          ? 'Present'
+                          : formatDateForMonthInput(exp.endDate) || 'Present'}
                       </span>
                     </div>
                   </div>
