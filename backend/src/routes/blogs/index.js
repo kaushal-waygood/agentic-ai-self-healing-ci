@@ -55,6 +55,11 @@ const router = Router();
 // ╚══════════════════════════════════════════════════════════╝
 // ────────────────────────────────────────────────────────────
 
+router.get('/blog/category', authMiddleware, listBlogCategories);
+
+// List all tags
+router.get('/blog/tag', authMiddleware, listBlogTags);
+
 // Public website blogs (no auth)
 router.get('/website-blogs', listWebsiteBlogs);
 router.get('/website-blog-tags-filter', websiteBlogFilterTags);
@@ -134,7 +139,6 @@ router.delete('/blog/comment/:commentId', authMiddleware, deleteBlogComment);
 // ── Blog Categories ────────────────────────────────────────
 
 // List all categories
-router.get('/blog/category', authMiddleware, listBlogCategories);
 
 // Create a category
 router.post('/blog/category', authMiddleware, createBlogCategory);
@@ -156,9 +160,6 @@ router.patch(
 );
 
 // ── Blog Tags ──────────────────────────────────────────────
-
-// List all tags
-router.get('/blog/tag', authMiddleware, listBlogTags);
 
 // Create a tag
 router.post('/blog/tag', authMiddleware, createBlogTag);

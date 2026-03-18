@@ -4,12 +4,22 @@ export const normalizeListOptions = (
   search = '',
   query = {},
 ) => {
-  page += 1;
-  const params = new URLSearchParams({
+  // REMOVED: page += 1; (This was forcing page 2)
+
+  // 1. Start with the base params
+  const paramsObj: any = {
     page: page.toString(),
     limit: rowsPerPage.toString(),
     search: search || '',
-    ...query,
+  };
+
+  // 2. Only add query properties if they actually have a value
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      paramsObj[key] = String(value);
+    }
   });
+
+  const params = new URLSearchParams(paramsObj);
   return params.toString();
 };

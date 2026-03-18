@@ -205,7 +205,7 @@ const useBlogStore = create<BlogStore>((set, get) => ({
         search,
         query,
       );
-      console.log('queryString', queryString);
+
       const { data: resp } = await apiInstance.get(`/blogs?${queryString}`);
       set({
         blogListdata: resp?.data?.data || [],
@@ -221,7 +221,7 @@ const useBlogStore = create<BlogStore>((set, get) => ({
   },
 
   updateBlogStatus: async (id, body) => {
-    set({ isBlogStatusLoading: true });
+    set({ isBlogStatusLoading: true, updatingBlogId: id }); // Track the ID here
     try {
       const { data: resp } = await apiInstance.patch(
         `/blog/${id}/status`,
@@ -234,15 +234,9 @@ const useBlogStore = create<BlogStore>((set, get) => ({
           ),
         });
         toast.success(resp.message);
-      } else {
-        toast.error(resp.message);
       }
-      return resp;
-    } catch (error) {
-      console.error('Error updating status:', error);
-      return error;
     } finally {
-      set({ isBlogStatusLoading: false });
+      set({ isBlogStatusLoading: false, updatingBlogId: null }); // Clear it here
     }
   },
 
@@ -262,9 +256,9 @@ const useBlogStore = create<BlogStore>((set, get) => ({
     try {
       const { data: resp } = await apiInstance.delete(`/blog/${id}`);
       if (resp?.status === 'SUCCESS') {
-        set({
-          blogListdata: get().blogListdata.filter((blog) => blog._id !== id),
-        });
+        set((state) => ({
+          blogListdata: state.blogListdata.filter((blog) => blog._id !== id),
+        }));
         toast.success(resp.message);
       }
       return resp;
@@ -295,6 +289,7 @@ const useBlogStore = create<BlogStore>((set, get) => ({
           blogCategoryListData: [resp.data, ...get().blogCategoryListData],
         });
       }
+
       return resp;
     } catch (error) {
       console.error(error);
@@ -315,13 +310,17 @@ const useBlogStore = create<BlogStore>((set, get) => ({
         search,
         query,
       );
-      const { data: resp } = await apiInstance.get(
-        `/blog/category?${queryString}`,
-      );
+
+      // const { data: resp } = await apiInstance.get(
+      //   `/blog/category?${queryString}`,
+      // );
+      const { data: resp } = await apiInstance.get(`/blog/category`);
+
       set({
         blogCategoryListData: resp?.data?.categories || [],
-        blogCategoryPaginator: resp?.data?.paginator,
+        // blogCategoryPaginator: resp?.data?.paginator,
       });
+
       return resp;
     } catch (error) {
       console.error(error);
@@ -392,10 +391,11 @@ const useBlogStore = create<BlogStore>((set, get) => ({
     query = {},
   ) => {
     const qs = normalizeListOptions(rowsPerPage, page, search, query);
-    const { data: resp } = await apiInstance.get(`/blog/tag?${qs}`);
+    // const { data: resp } = await apiInstance.get(`/blog/tag?${qs}`);
+    const { data: resp } = await apiInstance.get(`/blog/tag`);
     set({
       blogTagListData: resp?.data?.tags || [],
-      blogTagPaginator: resp?.data?.paginator,
+      // blogTagPaginator: resp?.data?.paginator,
     });
     return resp;
   },

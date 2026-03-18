@@ -1,5 +1,17 @@
+// import Tags from '@/components/blogs/tags';
+
+// const page = () => {
+//   return (
+//     <div>
+//       <Tags />
+//     </div>
+//   );
+// };
+
+// export default page;
+
 import React, { Suspense } from 'react';
-import GetBlogs from '@/components/blogs/GetBlogs';
+import Tags from '@/components/blogs/tags';
 
 // Standard practice for dashboard pages
 export const metadata = {
@@ -19,7 +31,7 @@ const Page = () => {
           </div>
         }
       >
-        <GetBlogs />
+        <Tags />
       </Suspense>
     </div>
   );

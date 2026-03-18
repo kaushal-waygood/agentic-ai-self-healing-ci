@@ -77,10 +77,23 @@ export default function BlogsAllDetail({
 
   useEffect(() => {
     if (!descriptionSource) return;
-    const { updatedHtml, headingsArray } = extractHeadings(descriptionSource);
+
+    // STEP 1: Replace &nbsp; with a standard space so text can wrap naturally
+    const sanitizedSource = descriptionSource.replace(/&nbsp;/g, ' ');
+
+    // STEP 2: Use the sanitized source for heading extraction
+    const { updatedHtml, headingsArray } = extractHeadings(sanitizedSource);
+
     setDescriptionHtml(updatedHtml);
     setHeadings(headingsArray);
   }, [descriptionSource]);
+
+  // useEffect(() => {
+  //   if (!descriptionSource) return;
+  //   const { updatedHtml, headingsArray } = extractHeadings(descriptionSource);
+  //   setDescriptionHtml(updatedHtml);
+  //   setHeadings(headingsArray);
+  // }, [descriptionSource]);
 
   useEffect(() => {
     if (!descriptionHtml) return;
@@ -214,13 +227,14 @@ export default function BlogsAllDetail({
               <div
                 ref={contentRef}
                 className="prose prose-orange max-w-none 
-                  text-gray-800 leading-[1.8] text-lg
-                  [&_p]:mb-8
-                  [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:text-gray-900 [&_h2]:mt-14 [&_h2]:mb-6 [&_h2]:tracking-tight
-                  [&_h3]:text-2xl [&_h3]:font-semibold [&_h3]:text-gray-800 [&_h3]:mt-10 [&_h3]:mb-4
-                  [&_img]:w-full [&_img]:rounded-2xl [&_img]:my-10 [&_img]:shadow-lg
-                  [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-8 [&_ul]:space-y-3
-                  [&_blockquote]:border-l-4 [&_blockquote]:border-orange-500 [&_blockquote]:bg-orange-50/50 [&_blockquote]:p-8 [&_blockquote]:rounded-r-2xl [&_blockquote]:italic [&_blockquote]:text-xl"
+    overflow-hidden break-words
+    text-gray-800 leading-[1.8] text-lg
+    [&_p]:mb-8
+    [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:text-gray-900 [&_h2]:mt-14 [&_h2]:mb-6 [&_h2]:tracking-tight
+    [&_h3]:text-2xl [&_h3]:font-semibold [&_h3]:text-gray-800 [&_h3]:mt-10 [&_h3]:mb-4
+    [&_img]:w-full [&_img]:rounded-2xl [&_img]:my-10 [&_img]:shadow-lg
+    [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-8 [&_ul]:space-y-3
+    [&_blockquote]:border-l-4 [&_blockquote]:border-orange-500 [&_blockquote]:bg-orange-50/50 [&_blockquote]:p-8 [&_blockquote]:rounded-r-2xl [&_blockquote]:italic [&_blockquote]:text-xl"
                 dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               />
 

@@ -1,32 +1,26 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
   ChevronLeft,
   Upload,
-  Search,
   Type,
   Image as ImageIcon,
   Tag,
-  Lock,
-  Unlock,
-  Eye,
   Check,
   ChevronsUpDown,
   X,
+  RefreshCw,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import {
   Command,
@@ -48,15 +42,21 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import useBlogStore from '@/store/blog-store';
 import { Editor } from './editor';
 
+const slugify = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '');
+
 // --- Validation Schema ---
 const blogSchema = z.object({
   title: z.string().min(1, 'Title is required'),
+  slug: z.string().min(1, 'Slug is required'),
   shortDescription: z
     .string()
     .min(10, 'Description must be at least 10 characters'),
@@ -79,10 +79,12 @@ const blogSchema = z.object({
   }),
 });
 
-export default function CreateBlogPage() {
+export default function EditBlogPage() {
   const router = useRouter();
+  const { id } = useParams();
   const {
-    addBlog,
+    updateBlog,
+    getBlogDetail,
     getBlogCategoryList,
     getBlogTagList,
     blogCategoryListData,
@@ -97,6 +99,7 @@ export default function CreateBlogPage() {
     resolver: zodResolver(blogSchema),
     defaultValues: {
       title: '',
+      slug: '',
       shortDescription: '',
       fullDescription: '',
       category: [],
@@ -112,10 +115,32 @@ export default function CreateBlogPage() {
     },
   });
 
+  // Fetch initial data
   useEffect(() => {
+    const fetchData = async () => {
+      const resp = await getBlogDetail(id);
+      if (resp?.success) {
+        const blog = resp.data;
+        // 1. Reset the form with the blog data
+        form.reset({
+          ...blog,
+          category: blog.category?.map((c: any) => c._id || c) || [],
+          tags: blog.tags?.map((t: any) => t._id || t) || [],
+        });
+
+        // 2. Map the correct URL fields to your preview state
+        setPreviews({
+          bannerImage: blog.bannerImageUrl, // Use bannerImageUrl instead of bannerImage
+          thumbnailImage: blog.thumbnailImageUrl, // Use thumbnailImageUrl instead of thumbnailImage
+          ogImage: blog.seo?.openGraph?.ogImageUrl, // Check the 'Url' suffix here too
+          twitterImage: blog.seo?.twitter?.twitterImageUrl,
+        });
+      }
+    };
+    fetchData();
     getBlogCategoryList(100, 1, '', { isActive: true });
     getBlogTagList(100, 1, '', { isActive: true });
-  }, [getBlogCategoryList, getBlogTagList]);
+  }, [id, getBlogDetail, form, getBlogCategoryList, getBlogTagList]);
 
   const handleFileChange = (
     name: string,
@@ -138,20 +163,16 @@ export default function CreateBlogPage() {
     });
     Object.entries(files).forEach(([name, file]) => fd.append(name, file));
 
-    const resp = await addBlog(fd);
-
-    if (resp?.success) router.replace('/dashboard/blog');
+    const resp = await updateBlog(id, fd);
+    if (resp?.success || resp?.status === 'SUCCESS') {
+      router.replace('/dashboard/blog');
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20">
       <Form {...form}>
-        {/* <form onSubmit={form.handleSubmit(onSubmit)}> */}
-        <form
-          onSubmit={form.handleSubmit(onSubmit, (errors) =>
-            console.log('Validation Errors:', errors),
-          )}
-        >
+        <form onSubmit={form.handleSubmit(onSubmit)}>
           {/* Header */}
           <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md px-6 py-3">
             <div className="max-w-[1400px] mx-auto flex items-center justify-between">
@@ -165,14 +186,14 @@ export default function CreateBlogPage() {
                   <ChevronLeft className="h-4 w-4 mr-1" /> Back
                 </Button>
                 <div className="h-6 w-[1px] bg-slate-200" />
-                <h1 className="text-sm font-semibold">New Blog Post</h1>
+                <h1 className="text-sm font-semibold">Edit Blog Post</h1>
               </div>
               <Button
                 type="submit"
                 disabled={isLoading}
                 className="bg-indigo-600 hover:bg-indigo-700"
               >
-                {isLoading ? 'Publishing...' : 'Publish Post'}
+                {isLoading ? 'Saving...' : 'Update Post'}
               </Button>
             </div>
           </header>
@@ -206,38 +227,69 @@ export default function CreateBlogPage() {
                       )}
                     />
 
-                    <div>
-                      <CardContent className=" space-y-4 grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 ">
-                        {['bannerImage', 'thumbnailImage'].map((type) => (
-                          <div key={type} className="space-y-2 ">
-                            <Label className="text-xs font-bold  uppercase">
-                              {type.replace('Image', '')}
-                            </Label>
-                            <div
-                              className="group  relative border-2 border-dashed rounded-lg h-24 flex items-center justify-center bg-slate-50 hover:bg-white hover:border-indigo-400 transition-all cursor-pointer overflow-hidden"
+                    <FormField
+                      control={form.control}
+                      name="slug"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>URL Slug</FormLabel>
+                          <div className="flex gap-2">
+                            <FormControl>
+                              <div className="relative flex-1">
+                                <span className="absolute left-3 top-2.5 text-slate-400 text-sm">
+                                  /blog/
+                                </span>
+                                <Input {...field} className="pl-14" />
+                              </div>
+                            </FormControl>
+                            <Button
+                              variant="outline"
+                              type="button"
                               onClick={() =>
-                                document.getElementById(type)?.click()
+                                form.setValue(
+                                  'slug',
+                                  slugify(form.getValues('title')),
+                                )
                               }
                             >
-                              {previews[type] ? (
-                                <img
-                                  src={previews[type]}
-                                  className="absolute inset-0 w-full h-full object-cover"
-                                  alt="Preview"
-                                />
-                              ) : (
-                                <Upload className="h-5 w-5 text-slate-300 group-hover:text-indigo-500" />
-                              )}
-                              <input
-                                type="file"
-                                id={type}
-                                hidden
-                                onChange={(e) => handleFileChange(type, e)}
-                              />
-                            </div>
+                              <RefreshCw className="h-4 w-4" />
+                            </Button>
                           </div>
-                        ))}
-                      </CardContent>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                      {['bannerImage', 'thumbnailImage'].map((type) => (
+                        <div key={type} className="space-y-2">
+                          <Label className="text-xs font-bold uppercase">
+                            {type.replace('Image', '')}
+                          </Label>
+                          <div
+                            className="group relative border-2 border-dashed rounded-lg h-24 flex items-center justify-center bg-slate-50 hover:bg-white hover:border-indigo-400 transition-all cursor-pointer overflow-hidden"
+                            onClick={() =>
+                              document.getElementById(type)?.click()
+                            }
+                          >
+                            {previews[type] ? (
+                              <img
+                                src={previews[type]}
+                                className="absolute inset-0 w-full h-full object-cover"
+                                alt="Preview"
+                              />
+                            ) : (
+                              <Upload className="h-5 w-5 text-slate-300 group-hover:text-indigo-500" />
+                            )}
+                            <input
+                              type="file"
+                              id={type}
+                              hidden
+                              onChange={(e) => handleFileChange(type, e)}
+                            />
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
                     <FormField
@@ -247,7 +299,6 @@ export default function CreateBlogPage() {
                         <FormItem>
                           <FormLabel>Content</FormLabel>
                           <FormControl>
-                            {/* Pass field.value and field.onChange to the Editor */}
                             <Editor
                               value={field.value}
                               onChange={field.onChange}
@@ -263,7 +314,6 @@ export default function CreateBlogPage() {
 
               {/* Right Sidebar */}
               <aside className="space-y-6">
-                {/* Taxonomy Dropdowns Card */}
                 <Card className="shadow-sm border-slate-200">
                   <CardHeader className="pb-3 border-b border-slate-50">
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -271,7 +321,7 @@ export default function CreateBlogPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-5 space-y-6">
-                    {/* Categories Dropdown */}
+                    {/* Categories */}
                     <FormField
                       control={form.control}
                       name="category"
@@ -309,7 +359,6 @@ export default function CreateBlogPage() {
                                   <CommandEmpty>
                                     No category found.
                                   </CommandEmpty>
-                                  {/* Search results in the dropdown */}
                                   <CommandGroup>
                                     {blogCategoryListData?.map((cat: any) => (
                                       <CommandItem
@@ -333,7 +382,6 @@ export default function CreateBlogPage() {
                                               : 'opacity-0',
                                           )}
                                         />
-
                                         {cat.title}
                                       </CommandItem>
                                     ))}
@@ -342,9 +390,7 @@ export default function CreateBlogPage() {
                               </Command>
                             </PopoverContent>
                           </Popover>
-
-                          {/* Selected items displayed as badges */}
-                          <div className="flex flex-wrap gap-1 mt-2 ">
+                          <div className="flex flex-wrap gap-1 mt-2">
                             {field.value.map((id) => {
                               const cat = blogCategoryListData?.find(
                                 (c: any) => c._id === id,
@@ -353,7 +399,7 @@ export default function CreateBlogPage() {
                                 <Badge
                                   key={id}
                                   variant="secondary"
-                                  className=" bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                                  className="bg-indigo-50 text-indigo-700"
                                 >
                                   {cat.title}
                                   <X
@@ -374,7 +420,7 @@ export default function CreateBlogPage() {
                       )}
                     />
 
-                    {/* Tags Dropdown */}
+                    {/* Tags */}
                     <FormField
                       control={form.control}
                       name="tags"
@@ -444,7 +490,7 @@ export default function CreateBlogPage() {
                                 <Badge
                                   key={id}
                                   variant="outline"
-                                  className=" border-slate-200 text-slate-600"
+                                  className="border-slate-200 text-slate-600"
                                 >
                                   #{tag.title}
                                 </Badge>
@@ -457,7 +503,7 @@ export default function CreateBlogPage() {
                   </CardContent>
                 </Card>
 
-                {/* SEO Card (Same as previous) */}
+                {/* SEO Card */}
                 <Card className="shadow-sm border-slate-200">
                   <CardHeader>
                     <CardTitle className="text-xs uppercase font-bold text-indigo-600">
@@ -465,86 +511,59 @@ export default function CreateBlogPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 space-y-4">
-                    <div className="grid grid-cols-1 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="seo.metaTitle"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Meta Title</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="seo.metaDescription"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Meta Description</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-1 gap-6 pt-4 border-t">
-                      {/* OpenGraph Image */}
-                      <div className="space-y-2">
-                        <Label className="text-xs">
-                          OG Image (Facebook/LinkedIn)
-                        </Label>
-                        <div
-                          className="border rounded-lg h-32 flex items-center justify-center bg-slate-50 cursor-pointer overflow-hidden"
-                          onClick={() =>
-                            document.getElementById('ogImage')?.click()
-                          }
-                        >
-                          {previews.ogImage ? (
-                            <img
-                              src={previews.ogImage}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <ImageIcon className="text-slate-300" />
-                          )}
+                    <FormField
+                      control={form.control}
+                      name="seo.metaTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Meta Title</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="seo.metaDescription"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Meta Description</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-1 gap-6 pt-4 border-t">
+                      {['ogImage', 'twitterImage'].map((type) => (
+                        <div key={type} className="space-y-2">
+                          <Label className="text-xs">
+                            {type === 'ogImage' ? 'OG Image' : 'Twitter Image'}
+                          </Label>
+                          <div
+                            className="border rounded-lg h-32 flex items-center justify-center bg-slate-50 cursor-pointer overflow-hidden"
+                            onClick={() =>
+                              document.getElementById(type)?.click()
+                            }
+                          >
+                            {previews[type] ? (
+                              <img
+                                src={previews[type]}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <ImageIcon className="text-slate-300" />
+                            )}
+                          </div>
+                          <input
+                            type="file"
+                            id={type}
+                            hidden
+                            onChange={(e) => handleFileChange(type, e)}
+                          />
                         </div>
-                        <input
-                          type="file"
-                          id="ogImage"
-                          hidden
-                          onChange={(e) => handleFileChange('ogImage', e)}
-                        />
-                      </div>
-
-                      {/* Twitter Image */}
-                      <div className="space-y-2">
-                        <Label className="text-xs">Twitter Image</Label>
-                        <div
-                          className="border rounded-lg h-32 flex items-center justify-center bg-slate-50 cursor-pointer overflow-hidden"
-                          onClick={() =>
-                            document.getElementById('twitterImage')?.click()
-                          }
-                        >
-                          {previews.twitterImage ? (
-                            <img
-                              src={previews.twitterImage}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <ImageIcon className="text-slate-300" />
-                          )}
-                        </div>
-                        <input
-                          type="file"
-                          id="twitterImage"
-                          hidden
-                          onChange={(e) => handleFileChange('twitterImage', e)}
-                        />
-                      </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>

@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
-import CreateBlogForm from '@/components/blogs/PostBlog';
+import CategoryPage from '@/components/blogs/Category';
 
 export const metadata = {
-  title: 'Create New Post | Dashboard',
+  title: 'Category | Dashboard',
 };
 
 const Page = () => {
@@ -18,7 +18,7 @@ const Page = () => {
             </div>
           }
         >
-          <CreateBlogForm />
+          <CategoryPage />
         </Suspense>
       </div>
     </main>

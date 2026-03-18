@@ -32,7 +32,7 @@ import { RootState } from '@/redux/rootReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import { logoutRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import PlanDropdown from './PlanDropdown';
 import { useNotifications } from '@/hooks/notifications/useNoifications';
 import { NotificationBell } from '../notifications/NotificationBell';

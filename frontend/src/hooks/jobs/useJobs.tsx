@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getToken } from '@/hooks/useToken';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import {
   getRecommendJobsRequest,
   searchJobRequest,

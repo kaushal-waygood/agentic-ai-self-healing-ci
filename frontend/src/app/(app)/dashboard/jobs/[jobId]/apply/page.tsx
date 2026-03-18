@@ -19,7 +19,7 @@ import { DocumentSelection } from './DocumentSelection';
 import { ReviewAndApply } from './ReviewAndApply';
 import { toast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
-import { set } from 'lodash';
+import { set } from 'lodash-es';
 
 const JobDetailPage = () => {
   const { jobId } = useParams();
