@@ -493,6 +493,8 @@ const educationSchema = z
       .regex(/^[a-zA-Z\s\-'.,&]*$/, 'Only letters and spaces allowed')
       .optional()
       .nullable(),
+    country: z.string().optional(),
+    gpa: z.string().optional(),
     startDate: z.string().min(1, 'Required'),
     endDate: z.string().optional(),
     isCurrent: z.boolean().optional(),
@@ -510,13 +512,17 @@ export const AddEducation: React.FC<{
     fieldOfStudy: string;
     country: string;
     gpa: string;
+    grade: string;
     startDate: string;
     endDate: string;
     isCurrent: boolean;
+    isCurrentlyStudying: boolean;
   }>;
 }> = ({ onCancel, isEdit, data }) => {
   const inferredIsCurrent =
-    Boolean(data?.isCurrent) || (!data?.endDate && !!data?._id);
+    // Boolean(data?.isCurrent) || (!data?.endDate && !!data?._id);
+    Boolean(data?.isCurrentlyStudying ?? data?.isCurrent) ||
+    (!data?.endDate && !!data?._id);
   const form = useForm({
     resolver: zodResolver(educationSchema),
     defaultValues: {
@@ -525,7 +531,8 @@ export const AddEducation: React.FC<{
       degree: data?.degree || '',
       fieldOfStudy: data?.fieldOfStudy || '',
       country: data?.country || '',
-      gpa: data?.gpa || '',
+      // gpa: data?.gpa || '',
+      gpa: data?.gpa ?? data?.grade ?? '',
       startDate: toMonth(data?.startDate),
       //  endDate: toMonth(data?.endDate),
       endDate: inferredIsCurrent ? '' : toMonth(data?.endDate),
@@ -568,15 +575,29 @@ export const AddEducation: React.FC<{
   const { currentStep, next, prev } = useStepControls(0);
 
   const onSubmit = (formData: any) => {
+    const { isCurrent, ...rest } = formData;
+
+    //  const payload = {
+    //    ...formData,
+    //    isCurrent: Boolean(formData.isCurrent),
+    //    startDate: monthToIso(formData.startDate)!,
+    //    // endDate: formData.endDate ? monthToIso(formData.endDate) : undefined,
+    //    endDate: formData.isCurrent
+    //      ? null
+    //      : formData.endDate
+    //        ? monthToIso(formData.endDate)
+    //        : undefined,
+    //  };
+
     const payload = {
-      ...formData,
-      isCurrent: Boolean(formData.isCurrent),
-      startDate: monthToIso(formData.startDate)!,
+      ...rest,
+      isCurrentlyStudying: Boolean(isCurrent),
+      startDate: monthToIso(rest.startDate)!,
       // endDate: formData.endDate ? monthToIso(formData.endDate) : undefined,
-      endDate: formData.isCurrent
+      endDate: isCurrent
         ? null
-        : formData.endDate
-          ? monthToIso(formData.endDate)
+        : rest.endDate
+          ? monthToIso(rest.endDate)
           : undefined,
     };
 

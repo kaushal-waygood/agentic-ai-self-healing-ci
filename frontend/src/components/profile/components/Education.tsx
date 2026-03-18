@@ -112,7 +112,8 @@ const Education = () => {
                     <span>
                       {formatDateForMonthInput(edu.startDate)} to{' '}
                       {/* {formatDateForMonthInput(edu.endDate) || 'Present'} */}
-                      {edu.isCurrent
+                      {/* {edu.isCurrent */}
+                      {(edu.isCurrentlyStudying ?? edu.isCurrent)
                         ? 'Present'
                         : formatDateForMonthInput(edu.endDate) || 'Present'}
                     </span>

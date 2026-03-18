@@ -167,6 +167,7 @@ type Education = {
   country: string;
   gpa?: string;
   isCurrent?: boolean;
+  isCurrentlyStudying?: boolean;
   startDate: string;
   endDate?: string;
 };
