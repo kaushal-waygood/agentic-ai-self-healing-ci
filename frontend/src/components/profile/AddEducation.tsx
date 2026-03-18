@@ -512,8 +512,11 @@ export const AddEducation: React.FC<{
     gpa: string;
     startDate: string;
     endDate: string;
+    isCurrent: boolean;
   }>;
 }> = ({ onCancel, isEdit, data }) => {
+  const inferredIsCurrent =
+    Boolean(data?.isCurrent) || (!data?.endDate && !!data?._id);
   const form = useForm({
     resolver: zodResolver(educationSchema),
     defaultValues: {
@@ -524,13 +527,22 @@ export const AddEducation: React.FC<{
       country: data?.country || '',
       gpa: data?.gpa || '',
       startDate: toMonth(data?.startDate),
-      endDate: toMonth(data?.endDate),
+      //  endDate: toMonth(data?.endDate),
+      endDate: inferredIsCurrent ? '' : toMonth(data?.endDate),
+      isCurrent: inferredIsCurrent,
     },
     mode: 'onSubmit',
   });
 
   const dispatch = useDispatch();
-  const { handleSubmit, control, reset, trigger } = form;
+  // const { handleSubmit, control, reset, trigger } = form;
+  const { handleSubmit, control, reset, trigger, watch, setValue } = form;
+  const isCurrent = watch('isCurrent');
+
+  useEffect(() => {
+    if (isCurrent) setValue('endDate', '');
+  }, [isCurrent, setValue]);
+
   const steps: StepDef[] = [
     {
       id: 'basic',
@@ -548,7 +560,8 @@ export const AddEducation: React.FC<{
       id: 'timeline',
       title: 'Dates & GPA',
       icon: Calendar,
-      fields: ['startDate', 'gpa', 'endDate'],
+      // fields: ['startDate', 'gpa', 'endDate'],
+      fields: ['startDate', 'gpa', 'endDate', 'isCurrent'],
     },
   ];
 
@@ -557,8 +570,14 @@ export const AddEducation: React.FC<{
   const onSubmit = (formData: any) => {
     const payload = {
       ...formData,
+      isCurrent: Boolean(formData.isCurrent),
       startDate: monthToIso(formData.startDate)!,
-      endDate: formData.endDate ? monthToIso(formData.endDate) : undefined,
+      // endDate: formData.endDate ? monthToIso(formData.endDate) : undefined,
+      endDate: formData.isCurrent
+        ? null
+        : formData.endDate
+          ? monthToIso(formData.endDate)
+          : undefined,
     };
 
     if (isEdit && payload._id) {
@@ -706,14 +725,17 @@ export const AddEducation: React.FC<{
                         {/* <Input type="month" {...field} placeholder="Present" /> */}
                         <MonthYearPicker
                           date={
-                            field.value
-                              ? new Date(field.value + '-01')
-                              : undefined
+                            isCurrent
+                              ? undefined
+                              : field.value
+                                ? new Date(field.value + '-01')
+                                : undefined
                           }
                           setDate={(date) =>
                             field.onChange(date ? format(date, 'yyyy-MM') : '')
                           }
                           placeholder="Select end month & year"
+                          disabled={isCurrent}
                           maxDate={new Date()}
                         />
                       </FormControl>
@@ -722,6 +744,23 @@ export const AddEducation: React.FC<{
                   )}
                 />
               </div>
+              <FormField
+                control={control}
+                name="isCurrent"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2 mt-6">
+                    <FormControl>
+                      <Checkbox
+                        checked={!!field.value}
+                        onCheckedChange={(v) => field.onChange(v === true)}
+                      />
+                    </FormControl>
+                    <FormLabel className="!mt-0">
+                      I am currently studying
+                    </FormLabel>
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={control}
                 name="gpa"

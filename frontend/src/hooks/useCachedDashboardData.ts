@@ -11,7 +11,9 @@ import {
 /** Cached fetch for profile status (used by ProfileReadinessCard) */
 export function useCachedProfileStatus() {
   const [data, setData] = useState<ProfileCompletionData | null>(() =>
-    getDashboardCache<ProfileCompletionData>(DASHBOARD_CACHE_KEYS.PROFILE_STATUS),
+    getDashboardCache<ProfileCompletionData>(
+      DASHBOARD_CACHE_KEYS.PROFILE_STATUS,
+    ),
   );
   const [isLoading, setIsLoading] = useState(!data);
   const [error, setError] = useState<Error | null>(null);
@@ -80,10 +82,14 @@ export function useCachedStudentDetails() {
 
 /** Cached fetch for billing/plan data */
 export function useCachedBillingData(enabled = true) {
-  const [data, setData] = useState<any[]>(() =>
-    getDashboardCache<any[]>(DASHBOARD_CACHE_KEYS.BILLING) ?? [],
+  // const [data, setData] = useState<any[]>(() =>
+  const [data, setData] = useState<any[] | null>(
+    () =>
+      // getDashboardCache<any[]>(DASHBOARD_CACHE_KEYS.BILLING) ?? [],
+      getDashboardCache<any[]>(DASHBOARD_CACHE_KEYS.BILLING) ?? null,
   );
-  const [isLoading, setIsLoading] = useState(!data && enabled);
+  // const [isLoading, setIsLoading] = useState(!data && enabled);
+  const [isLoading, setIsLoading] = useState(enabled && data === null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -102,7 +108,8 @@ export function useCachedBillingData(enabled = true) {
 
   useEffect(() => {
     if (!enabled) return;
-    if (data) {
+    // if (data) {
+    if (data !== null) {
       setIsLoading(false);
       return;
     }
@@ -148,8 +155,8 @@ export function useCachedAIActivity(enabled = true) {
 
 /** Cached fetch for top jobs */
 export function useCachedTopJobs(enabled = true) {
-  const [data, setData] = useState<any[]>(() =>
-    getDashboardCache<any[]>(DASHBOARD_CACHE_KEYS.TOP_JOBS) ?? [],
+  const [data, setData] = useState<any[]>(
+    () => getDashboardCache<any[]>(DASHBOARD_CACHE_KEYS.TOP_JOBS) ?? [],
   );
   const [isLoading, setIsLoading] = useState(!data && enabled);
 

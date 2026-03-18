@@ -117,18 +117,15 @@ const Education = () => {
                   </div>
                 </div>
 
-                {/* Metadata Row (Dates, Location, Grades) */}
-                <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
-                  {/* Dates */}
-                  <div className="flex items-center gap-1.5 text-sm text-gray-500 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-100">
-                    <Calendar className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                    <span className="font-medium text-gray-700 whitespace-nowrap">
-                      {formatDateForMonthInput(edu.startDate)} —{' '}
-                      {formatDateForMonthInput(edu.endDate) || (
-                        <span className="text-green-600 font-semibold bg-green-50 px-1.5 py-0.5 rounded">
-                          Present
-                        </span>
-                      )}
+                <div className="grid grid-cols-2 gap-4 text-sm pt-4 border-t border-gray-100">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span>
+                      {formatDateForMonthInput(edu.startDate)} to{' '}
+                      {/* {formatDateForMonthInput(edu.endDate) || 'Present'} */}
+                      {edu.isCurrent
+                        ? 'Present'
+                        : formatDateForMonthInput(edu.endDate) || 'Present'}
                     </span>
                   </div>
 

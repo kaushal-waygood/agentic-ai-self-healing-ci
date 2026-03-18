@@ -27,6 +27,7 @@ export interface Education {
   fieldOfStudy?: string;
   country: string;
   gpa?: string;
+  isCurrent?: boolean;
   startDate: string; // ISO
   endDate?: string; // ISO | undefined
 }

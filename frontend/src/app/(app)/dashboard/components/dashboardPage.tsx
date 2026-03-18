@@ -508,7 +508,9 @@ export function SubscriptionStatusCard({ plan }: any) {
 
   // Helper to calculate days remaining until the plan's end date
   const calculateDaysRemaining = (endDateString) => {
+    if (!endDateString) return null;
     const end = new Date(endDateString);
+    if (Number.isNaN(end.getTime())) return null;
     const now = new Date();
     const diffTime = end.getTime() - now.getTime();
     // Ceil to ensure if there's any time left in the last day, it counts as 1 day
@@ -517,6 +519,14 @@ export function SubscriptionStatusCard({ plan }: any) {
   };
 
   const daysRemaining = calculateDaysRemaining(plan.endDate);
+  const renewalDateLabel =
+    plan.endDate && !Number.isNaN(new Date(plan.endDate).getTime())
+      ? new Intl.DateTimeFormat('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        }).format(new Date(plan.endDate))
+      : null;
 
   return (
     <div className="bg-white rounded-lg border  p-6  transition-shadow duration-300">
@@ -527,7 +537,15 @@ export function SubscriptionStatusCard({ plan }: any) {
           </h3>
           <p className="text-sm text-gray-500 flex items-center mt-1">
             <Calendar className="w-4 h-4 mr-2" />
-            Renews in {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'}
+            {daysRemaining !== null ? (
+              <>
+                Renews in {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'}
+              </>
+            ) : renewalDateLabel ? (
+              <>Renews on {renewalDateLabel}</>
+            ) : (
+              <>Renewal date unavailable</>
+            )}
           </p>
         </div>
         <div className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">
