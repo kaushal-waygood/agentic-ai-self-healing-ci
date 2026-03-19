@@ -479,6 +479,13 @@ const AppHeader = ({
       // remove feedback session token
       sessionStorage.removeItem('feedback_shown');
       sessionStorage.removeItem('improvement_popup_shown');
+      Object.keys(sessionStorage)
+        .filter(
+          (key) =>
+            key === 'streak_popup_shown' ||
+            key.startsWith('streak_popup_shown_'),
+        )
+        .forEach((key) => sessionStorage.removeItem(key));
       dispatch(logoutRequest());
       router.push('/login');
     } catch (error) {

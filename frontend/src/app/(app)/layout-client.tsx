@@ -45,12 +45,26 @@ const SidebarContext = createContext<SidebarContextType>({
 
 export const useSidebar = () => useContext(SidebarContext);
 
+function getStreakPopupStorageKey() {
+  const formattedDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+
+  return `streak_popup_shown_${formattedDate}`;
+}
+
 export default function DashboardLayoutClient({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const isStreakPopupRoute =
+    pathname.startsWith('/dashboard') &&
+    pathname !== '/dashboard/onboarding-tour';
   const [isOpen, setIsOpen] = useState(true);
   const [isPinned, setPinned] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -68,7 +82,8 @@ export default function DashboardLayoutClient({
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
   const [globalLastDismissTime, setGlobalLastDismissTime] = useState<number>(0);
-  const { streak, claiming, claim } = useDailyStreak();
+  // const { streak, claiming, claim } = useDailyStreak();
+  const { streak } = useDailyStreak();
 
   // Single fetch for streak + total credit (avoids 3x duplication from useDailyStreak in header/popup)
   useEffect(() => {
@@ -80,21 +95,25 @@ export default function DashboardLayoutClient({
   const [showStreakPopup, setShowStreakPopup] = useState(false);
 
   useEffect(() => {
-    if (!streak?.canClaimToday) {
+    // if (!streak?.canClaimToday) {
+    if (!isStreakPopupRoute || !streak?.canClaimToday) {
       setShowStreakPopup(false);
       return;
     }
 
-    const hasShownStreak = sessionStorage.getItem('streak_popup_shown');
+    const streakPopupStorageKey = getStreakPopupStorageKey();
+    // const hasShownStreak = sessionStorage.getItem('streak_popup_shown');
+    const hasShownStreak = sessionStorage.getItem(streakPopupStorageKey);
     if (hasShownStreak) return;
 
     const timer = setTimeout(() => {
       setShowStreakPopup(true);
-      sessionStorage.setItem('streak_popup_shown', 'true');
-    }, 1);
+      // sessionStorage.setItem('streak_popup_shown', 'true');
+      sessionStorage.setItem(streakPopupStorageKey, 'true');
+    }, 5000);
 
     return () => clearTimeout(timer);
-  }, [streak?.canClaimToday]);
+  }, [isStreakPopupRoute, streak?.canClaimToday]);
 
   useEffect(() => {
     // 1. Check if user already saw it this session OR permanently
@@ -355,6 +374,12 @@ export default function DashboardLayoutClient({
           <ImprovementPopup
             onClose={handleDismissPopup}
             onYes={handleYesInteraction}
+          />
+        )}
+        {isStreakPopupRoute && (
+          <StreakPopup
+            isOpen={showStreakPopup}
+            onClose={() => setShowStreakPopup(false)}
           />
         )}
         {/* feedback popup  */}
