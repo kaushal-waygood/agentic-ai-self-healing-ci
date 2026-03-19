@@ -21,7 +21,7 @@ import { StudentCoverLetter } from '../models/students/studentCoverLetter.model.
 import { StudentApplication } from '../models/students/studentApplication.model.js';
 import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
 import { StudentHtmlCV } from '../models/students/studentHtmlCV.model.js';
-import { parseCVData } from './rough.js';
+// import { parseCVData } from './rough.js';
 import { computeATS } from '../utils/calculateATSScore.js';
 import axios from 'axios';
 import { CV_TEMPLATES } from '../utils/cv/cssTemplates.js';
@@ -171,18 +171,6 @@ const extractTextFromBuffer = async (file) => {
   return extractedText;
 };
 
-function stripHtmlToText(html = '') {
-  if (typeof html !== 'string') return '';
-  const withoutScripts = html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '');
-  const withNewlines = withoutScripts
-    .replace(/<\/p>/gi, '\n')
-    .replace(/<br\s*\/?>/gi, '\n');
-  const noTags = withNewlines.replace(/<[^>]+>/g, '');
-  return noTags.replace(/\r?\n\s*\r?\n/g, '\n\n').trim();
-}
-
 function extractCvTextFromCvData(cvData) {
   if (!cvData) return '';
   if (typeof cvData === 'string') return cvData.trim();
@@ -246,6 +234,142 @@ async function getCvContentBySavedId(studentId, savedCVId) {
   }
 
   return null;
+}
+
+import { CVDataPrompt } from '../prompt/studentCVData.js';
+import { retryOperation } from '../utils/retry.js';
+import { callGenAI } from '../utils/genAIWrapper.js';
+import { parseBasicFromText } from '../utils/basicParser.js';
+import { v4 as uuidv4 } from 'uuid';
+
+// -- internal helpers (kept from original) --
+const normalizeEmploymentType = (type) => {
+  if (!type) return 'FULL-TIME';
+  const upper = type.toUpperCase().replace('_', '-').replace(' ', '-');
+  if (['FULL-TIME', 'PART-TIME', 'INTERNSHIP', 'CONTRACT'].includes(upper))
+    return upper;
+  if (upper.includes('FULL') && upper.includes('TIME')) return 'FULL-TIME';
+  if (upper.includes('PART') && upper.includes('TIME')) return 'PART-TIME';
+  return 'FULL-TIME';
+};
+
+function mapAiResponseToSchema(userId, json) {
+  return {
+    personalInfo: {
+      fullName: json.fullName || json.name || '',
+      phone: json.phone || '',
+      location: json.location || '',
+      jobRole: json.jobRole || json.currentRole || '',
+    },
+    education: (json.education || []).map((e) => ({
+      student: userId,
+      educationId: uuidv4(),
+      institute: e.institute || '',
+      degree: e.degree || '',
+      fieldOfStudy: e.fieldOfStudy || '',
+      startDate: e.startDate || e.startYear || '',
+      endDate: e.endDate || e.endYear || '',
+      grade: e.grade || '',
+      isCurrentlyStudying: !!e.isCurrentlyStudying,
+    })),
+    experience: (json.experience || []).map((x) => ({
+      student: userId,
+      experienceId: uuidv4(),
+      company: x.company || '',
+      title: x.title || '',
+      location: x.location || '',
+      startDate: x.startDate || '',
+      endDate: x.endDate || '',
+      description: x.description || '',
+      experienceYrs: Number(x.experienceYrs) || 0,
+      currentlyWorking: !!x.currentlyWorking,
+      employmentType: normalizeEmploymentType(x.employmentType),
+    })),
+    skills: (json.skills || []).map((s) => ({
+      student: userId,
+      skillId: uuidv4(),
+      skill: typeof s === 'string' ? s : s.skill || '',
+      level: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'].includes(
+        (s.level || '').toUpperCase(),
+      )
+        ? s.level.toUpperCase()
+        : 'INTERMEDIATE',
+    })),
+    projects: (json.projects || []).map((p) => ({
+      student: userId,
+      projectName: p.projectName || '',
+      description: p.description || '',
+      technologies: Array.isArray(p.technologies) ? p.technologies : [],
+      link: p.link || '',
+      startDate: p.startDate ? new Date(p.startDate) : null,
+      endDate: p.endDate ? new Date(p.endDate) : null,
+    })),
+    jobPreferences: json.jobPreferences || {},
+  };
+}
+
+function mapFallbackToSchema(userId, basic) {
+  return {
+    personalInfo: basic?.personalInfo || {},
+    education: [],
+    experience: [],
+    skills: (basic.skills || []).map((s) => ({
+      student: userId,
+      skillId: uuidv4(),
+      skill: typeof s === 'string' ? s : s.skill || 'Unknown',
+      level: 'INTERMEDIATE',
+    })),
+    projects: [],
+    jobPreferences: {},
+  };
+}
+
+// ================= AI + Fallback Parsing =================
+// FIX BUG B: throw a real Error so status propagates correctly
+// FIX BUG A: only catch AI/network errors for fallback;
+//            JSON parse and schema mapping errors are separated
+export async function parseCVData(text, userId) {
+  // BUG B FIX: throw a real Error instance so err.status survives middleware
+  if (!text || !text.trim()) {
+    const err = new Error('Could not extract text from CV');
+    err.status = 400;
+    throw err;
+  }
+
+  let aiResponse;
+  try {
+    // BUG A FIX: isolate the AI network call so only it falls to fallback
+    const prompt = CVDataPrompt(text);
+    aiResponse = await retryOperation(
+      () => callGenAI(prompt, { userId, endpoint: 'resume-extract' }),
+      { retries: 3, baseDelay: 1000 },
+    );
+  } catch (aiErr) {
+    // AI or network failure → safe to use fallback
+    console.error('AI call failed, using fallback parser:', aiErr?.message);
+    return mapFallbackToSchema(userId, parseBasicFromText(text));
+  }
+
+  let parsed;
+  try {
+    // BUG A FIX: JSON parse failure is its own catch — also falls to fallback
+    parsed = JSON.parse(
+      String(aiResponse)
+        .replace(/```json|```/g, '')
+        .trim(),
+    );
+  } catch (parseErr) {
+    console.error(
+      'AI response JSON parse failed, using fallback:',
+      parseErr?.message,
+    );
+    return mapFallbackToSchema(userId, parseBasicFromText(text));
+  }
+
+  // BUG A FIX: schema mapping failure is NOT swallowed — it propagates up
+  // so a bug in mapAiResponseToSchema is visible instead of silently returning
+  // bad fallback data
+  return mapAiResponseToSchema(userId, parsed);
 }
 
 // -------Controllers -----------
@@ -313,7 +437,12 @@ export const getAllCLs = async (req, res) => {
 const mapAgentStatusToTailored = (status) => {
   if (!status) return 'pending';
   const m = { Draft: 'pending', Applied: 'completed', Failed: 'failed' };
-  return m[status] || (status === 'Interviewing' || status === 'Offered' || status === 'Shortlist' ? 'completed' : 'pending');
+  return (
+    m[status] ||
+    (status === 'Interviewing' || status === 'Offered' || status === 'Shortlist'
+      ? 'completed'
+      : 'pending')
+  );
 };
 
 /** Normalize StudentApplication to match StudentTailoredApplication format for frontend */
@@ -326,7 +455,9 @@ const normalizeAgentApplication = (app) => ({
   jobDescription: app.jobDescription,
   status: mapAgentStatusToTailored(app.status),
   tailoredCV: app.cvContent ? { cv: app.cvContent } : {},
-  tailoredCoverLetter: app.coverLetterContent ? { html: app.coverLetterContent } : {},
+  tailoredCoverLetter: app.coverLetterContent
+    ? { html: app.coverLetterContent }
+    : {},
   applicationEmail: app.emailContent ? { html: app.emailContent } : {},
   completedAt: app.completedAt,
   createdAt: app.createdAt,
@@ -339,7 +470,9 @@ export const getAllTailoredApplications = async (req, res) => {
     const { _id } = req.user;
 
     const [tailoredApps, agentApps] = await Promise.all([
-      StudentTailoredApplication.find({ student: _id }).sort({ createdAt: -1 }).lean(),
+      StudentTailoredApplication.find({ student: _id })
+        .sort({ createdAt: -1 })
+        .lean(),
       StudentApplication.find({ student: _id }).sort({ createdAt: -1 }).lean(),
     ]);
 
@@ -1306,9 +1439,15 @@ export const generateEmailDraft = async (req, res) => {
 
     let job = { title: '', company: '', description: '' };
     if (jobId) {
-      const doc = await Job.findById(jobId).select('title company description').lean();
+      const doc = await Job.findById(jobId)
+        .select('title company description')
+        .lean();
       if (!doc) return res.status(404).json({ error: 'Job not found' });
-      job = { title: doc.title, company: doc.company, description: doc.description || '' };
+      job = {
+        title: doc.title,
+        company: doc.company,
+        description: doc.description || '',
+      };
     } else if (jobTitle && companyName) {
       job = {
         title: jobTitle,
@@ -1317,12 +1456,14 @@ export const generateEmailDraft = async (req, res) => {
       };
     } else {
       return res.status(400).json({
-        error: 'Provide jobId or (jobTitle, companyName). jobDescription is optional.',
+        error:
+          'Provide jobId or (jobTitle, companyName). jobDescription is optional.',
       });
     }
 
     const snapshot = await getStudentProfileSnapshot(userId);
-    if (!snapshot) return res.status(404).json({ error: 'Student profile not found' });
+    if (!snapshot)
+      return res.status(404).json({ error: 'Student profile not found' });
 
     const candidate = {
       fullName: snapshot.fullName,
@@ -1454,94 +1595,133 @@ export const getSavedApplications = async (req, res) => {
 /**
  * Convert parsed CV data (from parseCVData) to student format for calculateJobMatch
  */
-function parsedCvToStudentForMatch(parsed) {
-  const experience = parsed.experience || [];
-  const totalExperienceYears = experience.reduce(
-    (sum, exp) => sum + (Number(exp.experienceYrs) || 0),
-    0,
-  );
+// function parsedCvToStudentForMatch(parsed) {
+//   const experience = parsed.experience || [];
+//   const totalExperienceYears = experience.reduce(
+//     (sum, exp) => sum + (Number(exp.experienceYrs) || 0),
+//     0,
+//   );
+//   return {
+//     skills: (parsed.skills || []).map((s) => ({
+//       skill: typeof s === 'string' ? s : s.skill || '',
+//     })),
+//     experience: experience.map((e) => ({
+//       description: e.description || '',
+//     })),
+//     education: parsed.education || [],
+//     projects: parsed.projects || [],
+//     totalExperienceYears: Math.round(totalExperienceYears * 10) / 10,
+//   };
+// }
+
+export function parsedCvToStudentForMatch(parsed) {
   return {
+    // BUG C FIX: pass through the full skill object from mapAiResponseToSchema
     skills: (parsed.skills || []).map((s) => ({
       skill: typeof s === 'string' ? s : s.skill || '',
+      level: s.level || 'INTERMEDIATE', // preserves proficiency signal
     })),
-    experience: experience.map((e) => ({
+
+    // BUG D FIX: pass through all fields evaluateExperience reads
+    experience: (parsed.experience || []).map((e) => ({
+      title: e.title || '',
+      company: e.company || '',
       description: e.description || '',
+      experienceYrs: Number(e.experienceYrs) || 0,
+      employmentType: e.employmentType || 'FULL-TIME',
+      currentlyWorking: !!e.currentlyWorking,
     })),
+
     education: parsed.education || [],
     projects: parsed.projects || [],
-    totalExperienceYears: Math.round(totalExperienceYears * 10) / 10,
+
+    // BUG E FIX: field removed — calculateJobMatch never reads it
   };
 }
 
-/**
- * Strip HTML tags to get plain text for CV parsing
- */
-// function stripHtmlToText(html) {
-//   if (!html || typeof html !== 'string') return '';
-//   return html
-//     .replace(/<[^>]+>/g, ' ')
-//     .replace(/\s+/g, ' ')
-//     .trim();
-// }
+function stripHtmlToText(html = '') {
+  if (typeof html !== 'string') return '';
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\r?\n\s*\r?\n/g, '\n\n')
+    .trim();
+}
 
 export const calculateJobMatchScore = async (req, res) => {
-  try {
-    const { jobDescription, jobTitle, useProfile, savedCVId } = req.body;
-    if (!jobDescription)
-      return res.status(400).json({ error: 'Job description required' });
+  // BUG 6 FIX: extract studentId once and use it everywhere consistently
+  const studentId = req.user._id;
 
-    const user = await resolveUser(req.user._id);
+  try {
+    const { jobDescription, jobTitle, savedCVId } = req.body;
+
+    if (!jobDescription) {
+      return res.status(400).json({ error: 'Job description required' });
+    }
+
+    // BUG 2 FIX: removed the unused resolveUser() call entirely.
+    // If you need plan/credit gating, add it here explicitly:
+    //   const user = await resolveUser(studentId);
+    //   if (!user.canUseFeature('jobMatching')) return res.status(403)...
+
     let student;
 
     if (savedCVId) {
+      // ── Saved CV path ──────────────────────────────────────────────
       if (!mongoose.Types.ObjectId.isValid(savedCVId)) {
         return res.status(400).json({ error: 'Invalid savedCVId' });
       }
+
       const saved = await StudentHtmlCV.findOne({
         _id: savedCVId,
-        student: req.user._id,
+        student: studentId, // BUG 6 FIX: use consistent studentId
       });
+
       if (!saved) {
         return res.status(404).json({ error: 'Saved CV not found' });
       }
+
       const html = saved.html || saved.content || saved.htmlCV;
       if (!html || typeof html !== 'string' || !html.trim()) {
         return res
           .status(422)
           .json({ error: 'Saved CV has no usable content' });
       }
+
       const text = stripHtmlToText(html);
       if (!text || text.length < 50) {
         return res
           .status(422)
           .json({ error: 'Could not extract enough text from saved CV' });
       }
-      const parsed = await parseCVData(text, req.user._id);
+
+      // BUG 3 FIX: parseCVData now receives the correct userId (studentId)
+      const parsed = await parseCVData(text, studentId);
+      // parsedCvToStudentForMatch now preserves full skill + experience objects
       student = parsedCvToStudentForMatch(parsed);
     } else {
-      const studentDetails = await Student.findById(req.user._id).lean();
-      const skills = await StudentSkill.find({ student: req.user._id }).lean();
-      const experience = await StudentExperience.find({
-        student: req.user._id,
-      }).lean();
-      const education = await StudentEducation.find({
-        student: req.user._id,
-      }).lean();
-      const projects = await StudentProject.find({
-        student: req.user._id,
-      }).lean();
+      // ── Live profile path ──────────────────────────────────────────
+      const [studentDetails, skills, experience, education, projects] =
+        await Promise.all([
+          Student.findById(studentId).lean(),
+          StudentSkill.find({ student: studentId }).lean(),
+          StudentExperience.find({ student: studentId }).lean(),
+          StudentEducation.find({ student: studentId }).lean(),
+          StudentProject.find({ student: studentId }).lean(),
+        ]);
 
-      student = {
-        ...studentDetails,
-        skills,
-        experience,
-        education,
-        projects,
-      };
+      if (!studentDetails) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+
+      student = { ...studentDetails, skills, experience, education, projects };
     }
 
-    if (!student) return res.status(404).json({ error: 'Student not found' });
-
+    // BUG 3 FIX: jobTitle is now passed in BOTH paths (was silently dropped
+    // in the old savedCVId path which called an older 2-arg version)
     const result = await calculateJobMatch(
       jobDescription,
       student,
@@ -1550,13 +1730,14 @@ export const calculateJobMatchScore = async (req, res) => {
 
     if (result) {
       try {
+        // BUG 6 FIX: use consistent studentId instead of re-reading req.user._id
         await User.updateOne(
-          { _id: req.user._id },
+          { _id: studentId },
           { $inc: { 'usageCounters.jobMatching': 1 } },
         );
       } catch (incErr) {
         console.error(
-          `Failed to increment usage for user ${req.user._id}:`,
+          `Failed to increment usage for user ${studentId}:`,
           incErr,
         );
       }
@@ -1565,6 +1746,13 @@ export const calculateJobMatchScore = async (req, res) => {
     return res.json(result);
   } catch (err) {
     console.error('JobMatch Error:', err);
+
+    // Surface 400/422 errors from parseCVData as proper HTTP responses
+    // instead of swallowing them as 500
+    if (err.status && err.status < 500) {
+      return res.status(err.status).json({ error: err.message });
+    }
+
     return res.status(500).json({ error: 'Failed to calculate match score' });
   }
 };

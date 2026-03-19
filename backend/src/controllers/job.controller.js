@@ -2091,28 +2091,35 @@ export const applyJob = async (req, res) => {
 
 export const scrapeRecruitmentEmails = async (req, res) => {
   const { company, location } = req.body || {};
-  console.log('COMPANY LOCATION', company, location);
+  console.log(
+    '[scrapeRecruitmentEmails] company:',
+    company,
+    '| location:',
+    location,
+  );
+
   if (!company || typeof company !== 'string') {
     return res.status(400).json({
       success: false,
       message: 'company is required (string)',
     });
   }
-  try {
-    const { runEmailScrape } = await import('../config/geminiCron.js');
-    const { email } = await runEmailScrape(company.trim(), location);
 
-    console.log(email);
+  try {
+    const result = await runEmailScrape(company.trim(), location);
 
     return res.status(200).json({
       success: true,
-      email,
+      email: result.email, // best email or null
+      allFound: result.allFound, // all emails discovered
+      confidence: result.confidence, // 'high' | 'medium' | 'low' | 'none'
+      source: result.source, // how it was found
     });
   } catch (err) {
-    if (err.message?.includes('DEEPSEEK_API_KEY')) {
+    if (err.message?.includes('GEMINI_API_KEY')) {
       return res.status(503).json({
         success: false,
-        message: 'DEEPSEEK_API_KEY is not configured',
+        message: 'GEMINI_API_KEY is not configured',
       });
     }
     console.error('[scrapeRecruitmentEmails]', err);

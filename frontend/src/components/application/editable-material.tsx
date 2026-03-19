@@ -10,7 +10,6 @@ import {
   Minimize2,
   FileText,
   Mail,
-  Search,
   Sparkles,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -25,10 +24,16 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
 import EditorToolbar from './EditorToolbar';
 import { useEditableMaterial } from './useEditableMat';
 import SendEmailDialog from '../SendEmailRecruiter';
+
+/** Shared send-email options — must match DocumentPage's SendEmailOptions */
+export interface SendEmailOptions {
+  subject: string;
+  bodyHtml: string;
+  coverLetterHtml?: string; // plain-text cover letter converted to HTML by this component
+}
 
 interface EditableMaterialProps {
   template?: any;
@@ -41,7 +46,7 @@ interface EditableMaterialProps {
   editorId?: string;
   onSendEmail?: (
     recruiterEmail: string,
-    options: { subject: string; bodyHtml: string },
+    options: SendEmailOptions,
   ) => void | Promise<void>;
   sendEmailHint?: string;
   defaultSubject?: string;
@@ -70,7 +75,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   jobTitle,
   jobDescription,
 }) => {
-  // --- Send Email local state (all managed here, passed to dialog as props) ---
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = useState(false);
   const [recruiterEmailInput, setRecruiterEmailInput] = useState('');
   const [subjectInput, setSubjectInput] = useState('');
@@ -82,6 +86,12 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   const [generatedBodyHtml, setGeneratedBodyHtml] = useState<string | null>(
     null,
   );
+
+  /**
+   * Plain-text cover letter kept in sync via SendEmailDialog's onCoverLetterChange.
+   * Converted to self-contained HTML just before the API call.
+   */
+  const [coverLetterText, setCoverLetterText] = useState('');
 
   const { editorRef, containerRef, state, actions } = useEditableMaterial({
     content,
@@ -96,6 +106,16 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     const div = document.createElement('div');
     div.innerHTML = html;
     return div.textContent || div.innerText || html;
+  };
+
+  /** Wrap plain-text cover letter in minimal HTML for the PDF pipeline */
+  const coverLetterToHtml = (text: string): string => {
+    if (!text.trim()) return '';
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    return `<html><body><pre style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;white-space:pre-wrap;padding:40px;">${escaped}</pre></body></html>`;
   };
 
   const handleCopy = async () => {
@@ -114,6 +134,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           ? stripHtml(defaultBodyHtml)
           : '',
     );
+    setCoverLetterText('');
     setIsSendEmailDialogOpen(true);
   };
 
@@ -208,14 +229,21 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       });
       return;
     }
+
     const subject = subjectInput.trim() || 'Job Application';
     const bodyHtml = bodyInput.trim()
       ? bodyInput.replace(/\n/g, '<br/>')
       : 'Please find my application attached.';
+
+    // Only include coverLetterHtml in the payload when the user actually wrote one
+    const coverLetterHtml = coverLetterText.trim()
+      ? coverLetterToHtml(coverLetterText)
+      : undefined;
+
     if (!onSendEmail) return;
     setIsSendingEmail(true);
     try {
-      await onSendEmail(email, { subject, bodyHtml });
+      await onSendEmail(email, { subject, bodyHtml, coverLetterHtml });
       toast({ title: 'Email sent successfully' });
       setIsSendEmailDialogOpen(false);
     } catch {
@@ -232,7 +260,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         state.isFullscreen ? 'fixed inset-0 z-50' : 'relative rounded-xl'
       } ${className}`}
     >
-      {/* Header Toolbar */}
+      {/* Header */}
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 px-4 sm:px-6 py-3.5 bg-white rounded-t-xl sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-3">
           {state.isEditing ? (
@@ -265,7 +293,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             </div>
           )}
 
-          {/* Edit / Confirm - primary action */}
           <button
             onClick={actions.toggleEdit}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors active:scale-[0.98] ${
@@ -273,12 +300,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                 ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
                 : 'bg-slate-800 text-white hover:bg-slate-900 shadow-sm'
             }`}
-            title={state.isEditing ? 'Confirm your edits' : 'Edit document'}
           >
             {state.isEditing ? 'Confirm Edits' : 'Edit Document'}
           </button>
 
-          <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+          <div className="h-6 w-px bg-gray-200 hidden sm:block" />
 
           <button
             onClick={actions.toggleImages}
@@ -287,7 +313,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-600 hover:bg-gray-100 border border-gray-200'
             }`}
-            title={state.showImages ? 'Hide Images' : 'Show Images'}
           >
             <Eye
               size={16}
@@ -304,24 +329,16 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                 ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
-            title={
-              !state.hasChanges ? 'Make changes to save' : 'Save to profile'
-            }
           >
             <Save size={16} /> Final Save
           </button>
 
-          <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+          <div className="h-6 w-px bg-gray-200 hidden sm:block" />
 
           <button
             onClick={() => actions.exportFile('pdf')}
             disabled={!!state.loadingType || state.isEditing}
-            title={
-              state.isEditing
-                ? 'Confirm edits to enable download'
-                : 'Download as PDF'
-            }
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {state.loadingType === 'pdf' ? (
               <Loader2 className="animate-spin shrink-0" size={16} />
@@ -330,15 +347,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             )}
             PDF
           </button>
+
           <button
             onClick={() => actions.exportFile('docx')}
             disabled={!!state.loadingType || state.isEditing}
-            title={
-              state.isEditing
-                ? 'Confirm edits to enable download'
-                : 'Download as DOCX'
-            }
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {state.loadingType === 'docx' ? (
               <Loader2 className="animate-spin shrink-0" size={16} />
@@ -350,20 +363,12 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
           {onSendEmail && (
             <>
-              <div
-                className="h-6 w-px bg-gray-200 hidden sm:block"
-                aria-hidden
-              />
+              <div className="h-6 w-px bg-gray-200 hidden sm:block" />
               {canGenerateDraft && (
                 <button
                   onClick={handleGenerateEmailDraft}
                   disabled={state.isEditing || isGeneratingDraft}
-                  title={
-                    state.isEditing
-                      ? 'Confirm edits to enable generation'
-                      : 'Generate email draft with AI'
-                  }
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-violet-600"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isGeneratingDraft ? (
                     <Loader2 className="animate-spin" size={16} />
@@ -376,12 +381,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
               <button
                 onClick={handleSendEmailClick}
                 disabled={state.isEditing}
-                title={
-                  state.isEditing
-                    ? 'Confirm edits to enable send'
-                    : 'Send to recruiter'
-                }
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Mail size={16} />
                 <span className="hidden sm:inline">Send to Recruiter</span>
@@ -389,12 +389,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             </>
           )}
 
-          <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+          <div className="h-6 w-px bg-gray-200 hidden sm:block" />
 
           <button
             onClick={actions.toggleFullscreen}
             className="p-2.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded-lg transition-colors"
-            title={state.isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           >
             {state.isFullscreen ? (
               <Minimize2 size={18} />
@@ -405,7 +404,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         </div>
       </header>
 
-      {/* Editor Main Canvas */}
+      {/* Canvas */}
       <main className="flex-grow overflow-y-auto p-4 md:p-8 bg-gray-200/50 custom-scrollbar">
         <style
           dangerouslySetInnerHTML={{
@@ -429,19 +428,18 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
       {/* Footer */}
       <footer className="px-4 py-3 border-t border-gray-200 bg-white flex flex-wrap items-center justify-between gap-4 rounded-b-xl">
-        <div className="flex items-center gap-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          <span>{state.wordCount} Words</span>
-        </div>
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          {state.wordCount} Words
+        </span>
         <button
           onClick={handleCopy}
           className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors text-sm font-medium"
-          title="Copy plain text"
         >
-          <Copy size={16} />
-          Copy
+          <Copy size={16} /> Copy
         </button>
       </footer>
 
+      {/* Send Email Dialog */}
       <SendEmailDialog
         isSendEmailDialogOpen={isSendEmailDialogOpen}
         setIsSendEmailDialogOpen={setIsSendEmailDialogOpen}
@@ -461,6 +459,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         canGenerateDraft={canGenerateDraft}
         handleGenerateEmailDraft={handleGenerateEmailDraft}
         isGeneratingDraft={isGeneratingDraft}
+        onCoverLetterChange={setCoverLetterText}
       />
 
       {/* Save Dialog */}
