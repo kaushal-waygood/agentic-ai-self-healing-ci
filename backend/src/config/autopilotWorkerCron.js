@@ -24,7 +24,7 @@ const runAutopilotWorker = async () => {
     console.log('🚀 [AutopilotCron] Starting autopilot job-finding cycle...');
     const result = await findAndProcessJobs();
     console.log(
-      `✅ [AutopilotCron] Cycle complete. Students checked: ${result?.studentsChecked ?? 0}, Processed: ${result?.processed ?? 0}`,
+      `✅ [AutopilotCron] Cycle complete. Agents checked: ${result?.agentsChecked ?? 0}, Processed: ${result?.processed ?? 0}`,
     );
   } catch (err) {
     console.error('❌ [AutopilotCron] Error:', err?.message || err);
