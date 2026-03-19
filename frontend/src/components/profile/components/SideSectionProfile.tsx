@@ -12,6 +12,7 @@ import {
   Mail,
   Briefcase,
   Loader2,
+  ExternalLink,
 } from 'lucide-react';
 
 import {
@@ -280,162 +281,492 @@ const SideSectionProfile = () => {
     setErrors(newErrors);
     return isValid;
   };
+  // return (
+  //   <aside className="w-full lg:w-80 space-y-4 p-3 max-h-[80vh] overflow-y-auto">
+  //     {/* Profile Card */}
+  //     <div className="border rounded-lg p-3 text-center bg-white shadow-sm">
+  //       <div className="w-24 h-24 rounded-full mx-auto flex items-center justify-center bg-blue-500 text-white text-4xl font-semibold overflow-hidden">
+  //         {profile.avatar ? (
+  //           <Image
+  //             src={profile.avatar}
+  //             alt="Avatar"
+  //             width={96}
+  //             height={96}
+  //             className="object-cover h-full w-full"
+  //           />
+  //         ) : (
+  //           getInitials(profile.fullName)
+  //         )}
+  //       </div>
+
+  //       <h2 className="mt-2 text-lg font-semibold text-gray-900">
+  //         {profile.fullName || 'Your Name'}
+  //       </h2>
+  //       <div className="space-y-1 mt-2 text-sm text-gray-500">
+  //         <p className="flex items-center justify-center gap-2">
+  //           <Mail className="w-4 h-4" /> {profile.email}
+  //         </p>
+  //         {profile.phone && (
+  //           <p className="flex items-center justify-center gap-2">
+  //             <Phone className="w-4 h-4" /> {profile.phone}
+  //           </p>
+  //         )}
+  //         {profile.jobRole && (
+  //           <p className="flex items-center justify-center gap-1">
+  //             <Briefcase className="w-4 h-4" /> {profile.jobRole}
+  //           </p>
+  //         )}
+
+  //         {profile.location && (
+  //           <p className="flex items-center justify-center gap-2">
+  //             <MapPin className="w-4 h-4" /> {profile.location}
+  //           </p>
+  //         )}
+  //       </div>
+  //       <Button
+  //         onClick={() => setLocalIsModalOpen(true)}
+  //         className="mt-4 w-full gap-2"
+  //       >
+  //         <Edit size={16} /> Edit Profile
+  //       </Button>
+  //     </div>
+
+  //     {/* CV Section */}
+  //     <div className="border rounded-lg p-3 bg-white text-center">
+  //       {profile.uploadedCV ? (
+  //         <a
+  //           href={profile.uploadedCV}
+  //           target="_blank"
+  //           rel="noopener noreferrer"
+  //           className="flex items-center justify-center gap-2 text-blue-600 hover:underline"
+  //         >
+  //           <FileText className="w-5 h-5" /> View Current CV
+  //         </a>
+  //       ) : (
+  //         <p className="text-sm text-gray-400">No CV uploaded</p>
+  //       )}
+  //     </div>
+
+  //     {/* Upload Area */}
+
+  //     {/* 1. Only show the Upload Area if NO file is selected */}
+  //     {!file ? (
+  //       <div
+  //         onDragEnter={handleDragEnter}
+  //         onDragOver={handleDragOver}
+  //         onDragLeave={handleDragLeave}
+  //         onDrop={handleDrop}
+  //         onClick={handleButtonClick}
+  //         className={`p-4 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
+  //           isDragging
+  //             ? 'border-blue-500 bg-blue-50'
+  //             : 'border-gray-300 hover:bg-gray-50'
+  //         }`}
+  //       >
+  //         <input
+  //           type="file"
+  //           ref={fileInputRef}
+  //           className="hidden"
+  //           accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  //           onChange={(e) => {
+  //             const selectedFile = e.target.files?.[0];
+  //             if (selectedFile) {
+  //               handleFileValidation(selectedFile);
+  //             }
+  //             e.target.value = '';
+  //           }}
+  //         />
+  //         <UploadCloud className="mx-auto w-8 h-8 text-gray-400 mb-2" />
+  //         <p className="text-sm font-medium">
+  //           {isDragging ? 'Drop it here!' : 'Drop CV here'}
+  //         </p>
+  //         <p className="text-xs text-gray-400">or click to browse</p>
+  //         <p className="text-xs text-gray-400 mt-2">Supports PDF, DOC, DOCX</p>
+  //       </div>
+  //     ) : (
+  //       /* 2. Show the File Info / Process button if a file IS selected */
+  //       <div className=" flex flex-col bg-blue-50 border border-blue-200 rounded flex items-center justify-between">
+  //         <div className="flex items-center gap-3 p-3 rounded-lg w-full max-w-md">
+  //           <div className="flex-1 overflow-hidden">
+  //             <p className="text-sm font-medium text-gray-800 break-all">
+  //               {file.name}
+  //             </p>
+  //             <p className="text-xs text-gray-500">
+  //               {(file.size / 1024).toFixed(1)} KB
+  //             </p>
+  //           </div>
+  //           <button
+  //             onClick={() => setFile(null)}
+  //             className="text-red-500 hover:text-red-600 hover:bg-red-50 p-1 rounded-full flex-shrink-0"
+  //           >
+  //             <X className="h-5 w-5" />
+  //           </button>
+  //         </div>
+
+  //         <div className="w-full px-3 pb-3">
+  //           <button
+  //             onClick={handleUpload}
+  //             disabled={isUploading}
+  //             className="w-full  font-semibold py-2 rounded-lg transition-all duration-300 flex flex-col items-center justify-center gap-2"
+  //           >
+  //             {isUploading ? (
+  //               <>
+  //                 <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
+  //                   <div
+  //                     className="h-full bg-blue-600 rounded-full transition-all duration-200"
+  //                     style={{ width: `${progress}%` }}
+  //                   ></div>
+  //                 </div>
+  //                 <span className="text-xs ">Processing... {progress}%</span>
+  //               </>
+  //             ) : (
+  //               <Button className="">Process CV</Button>
+  //             )}
+  //           </button>
+  //         </div>
+  //       </div>
+  //     )}
+
+  //     {/* Edit Modal */}
+  //     <Dialog open={localIsModalOpen} onOpenChange={setLocalIsModalOpen}>
+  //       <DialogContent className="max-w-md bg-white">
+  //         <DialogHeader>
+  //           <DialogTitle>Edit Profile</DialogTitle>
+  //         </DialogHeader>
+
+  //         <div className="flex justify-center mb-4">
+  //           <div className="relative">
+  //             <div className="w-24 h-24 rounded-full flex items-center justify-center bg-blue-500 text-white text-4xl font-semibold overflow-hidden">
+  //               {preview ? (
+  //                 <Image
+  //                   src={preview}
+  //                   alt="Avatar"
+  //                   width={96}
+  //                   height={96}
+  //                   className="object-cover h-full w-full"
+  //                 />
+  //               ) : (
+  //                 getInitials(profile.fullName)
+  //               )}
+  //             </div>
+  //             <label className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full cursor-pointer shadow-lg">
+  //               <Camera className="w-4 h-4 text-white" />
+  //               <input
+  //                 type="file"
+  //                 // accept="image/*"
+  //                 accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+  //                 className="hidden"
+  //                 onChange={onAvatarChange}
+  //               />
+  //             </label>
+  //           </div>
+  //         </div>
+
+  //         <form className="space-y-3">
+  //           {/* Full Name - existing */}
+  //           <div>
+  //             <label className="text-xs font-bold uppercase text-gray-500">
+  //               Full Name
+  //             </label>
+  //             <Input
+  //               name="fullName"
+  //               value={localFormData.fullName || ''}
+  //               onChange={onChange}
+  //               className={
+  //                 errors.fullName
+  //                   ? 'border-red-500 focus-visible:ring-red-500'
+  //                   : ''
+  //               }
+  //               placeholder="Enter your full name"
+  //             />
+  //             {errors.fullName && (
+  //               <p className="text-[10px] text-red-500 mt-1">
+  //                 {errors.fullName}
+  //               </p>
+  //             )}
+  //           </div>
+
+  //           {/* Phone */}
+  //           <div>
+  //             <label className="text-xs font-bold uppercase text-gray-500">
+  //               Phone
+  //             </label>
+  //             {/* <Input
+  //               name="phone"
+  //               value={localFormData.phone || ''}
+  //               onChange={onChange}
+  //               className={
+  //                 errors.phone
+  //                   ? 'border-red-500 focus-visible:ring-red-500'
+  //                   : ''
+  //               }
+  //             /> */}
+  //             <SimplePhoneInput
+  //               value={localFormData.phone || ''}
+  //               onChange={(phone) =>
+  //                 setLocalFormData((prev) => ({ ...prev, phone }))
+  //               }
+  //             />
+  //             {errors.phone && (
+  //               <p className="text-[10px] text-red-500 mt-1">{errors.phone}</p>
+  //             )}
+  //           </div>
+
+  //           {/* Job Role */}
+  //           <div>
+  //             <label className="text-xs font-bold uppercase text-gray-500">
+  //               Job Role
+  //             </label>
+  //             <Input
+  //               name="jobRole"
+  //               value={localFormData.jobRole || ''}
+  //               onChange={onChange}
+  //               className={
+  //                 errors.jobRole
+  //                   ? 'border-red-500 focus-visible:ring-red-500'
+  //                   : ''
+  //               }
+  //             />
+  //             {errors.jobRole && (
+  //               <p className="text-[10px] text-red-500 mt-1">
+  //                 {errors.jobRole}
+  //               </p>
+  //             )}
+  //           </div>
+
+  //           {/* Location */}
+  //           <div>
+  //             <label className="text-xs font-bold uppercase text-gray-500">
+  //               Location
+  //             </label>
+  //             <Input
+  //               name="location"
+  //               value={localFormData.location || ''}
+  //               onChange={onChange}
+  //               className={
+  //                 errors.location
+  //                   ? 'border-red-500 focus-visible:ring-red-500'
+  //                   : ''
+  //               }
+  //             />
+  //             {errors.location && (
+  //               <p className="text-[10px] text-red-500 mt-1">
+  //                 {errors.location}
+  //               </p>
+  //             )}
+  //           </div>
+  //         </form>
+  //         <DialogFooter className="mt-6 gap-2">
+  //           <Button
+  //             disabled={isLoading}
+  //             variant="outline"
+  //             onClick={handleCancel}
+  //           >
+  //             Cancel
+  //           </Button>
+  //           <Button onClick={handleSave} disabled={isLoading}>
+  //             {isLoading ? (
+  //               <Loader2 className=" h-4 w-4 animate-spin" />
+  //             ) : (
+  //               'Save Changes'
+  //             )}
+  //           </Button>
+  //         </DialogFooter>
+  //       </DialogContent>
+  //     </Dialog>
+  //   </aside>
+  // );
+
   return (
-    <aside className="w-full lg:w-80 space-y-4 p-3 max-h-[80vh] overflow-y-auto">
-      {/* Profile Card */}
-      <div className="border rounded-lg p-3 text-center bg-white shadow-sm">
-        <div className="w-24 h-24 rounded-full mx-auto flex items-center justify-center bg-blue-500 text-white text-4xl font-semibold overflow-hidden">
-          {profile.avatar ? (
-            <Image
-              src={profile.avatar}
-              alt="Avatar"
-              width={96}
-              height={96}
-              className="object-cover h-full w-full"
-            />
-          ) : (
-            getInitials(profile.fullName)
-          )}
+    <aside className="w-full lg:w-80 space-y-5 pl-2  max-h-[85vh] overflow-y-auto custom-scrollbar">
+      {/* --- PROFILE CARD --- */}
+      <div className="bg-white border border-gray-100 rounded-xl p-6 text-center shadow-sm">
+        <div className="relative inline-block mb-3">
+          <div className="w-24 h-24 rounded-full mx-auto flex items-center justify-center bg-gradient-to-tr from-blue-600 to-cyan-500 text-white text-3xl font-bold overflow-hidden shadow-inner ring-4 ring-blue-50">
+            {profile.avatar ? (
+              <Image
+                src={profile.avatar}
+                alt="Avatar"
+                width={96}
+                height={96}
+                className="object-cover h-full w-full"
+              />
+            ) : (
+              getInitials(profile.fullName)
+            )}
+          </div>
         </div>
 
-        <h2 className="mt-2 text-lg font-semibold text-gray-900">
+        <h2 className="text-xl font-bold text-gray-900 tracking-tight">
           {profile.fullName || 'Your Name'}
         </h2>
-        <div className="space-y-1 mt-2 text-sm text-gray-500">
-          <p className="flex items-center justify-center gap-2">
-            <Mail className="w-4 h-4" /> {profile.email}
+
+        {profile.jobRole && (
+          <p className="text-blue-600 font-medium text-[15px] mt-1">
+            {profile.jobRole}
           </p>
+        )}
+
+        <div className="space-y-2 mt-4 text-sm text-gray-600">
+          <div className="flex items-center justify-center gap-2 bg-gray-50 py-1.5 px-3 rounded-md border border-gray-100">
+            <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+            <span className="truncate max-w-[200px]">{profile.email}</span>
+          </div>
+
           {profile.phone && (
-            <p className="flex items-center justify-center gap-2">
-              <Phone className="w-4 h-4" /> {profile.phone}
-            </p>
-          )}
-          {profile.jobRole && (
-            <p className="flex items-center justify-center gap-1">
-              <Briefcase className="w-4 h-4" /> {profile.jobRole}
-            </p>
+            <div className="flex items-center justify-center gap-2">
+              <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+              <span>{profile.phone}</span>
+            </div>
           )}
 
           {profile.location && (
-            <p className="flex items-center justify-center gap-2">
-              <MapPin className="w-4 h-4" /> {profile.location}
-            </p>
+            <div className="flex items-center justify-center gap-2">
+              <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+              <span>{profile.location}</span>
+            </div>
           )}
         </div>
+
         <Button
           onClick={() => setLocalIsModalOpen(true)}
-          className="mt-4 w-full gap-2"
+          variant="outline"
+          className="mt-6 w-full gap-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all"
         >
           <Edit size={16} /> Edit Profile
         </Button>
       </div>
 
-      {/* CV Section */}
-      <div className="border rounded-lg p-3 bg-white text-center">
-        {profile.uploadedCV ? (
-          <a
-            href={profile.uploadedCV}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 text-blue-600 hover:underline"
-          >
-            <FileText className="w-5 h-5" /> View Current CV
-          </a>
-        ) : (
-          <p className="text-sm text-gray-400">No CV uploaded</p>
-        )}
-      </div>
-
-      {/* Upload Area */}
-
-      {/* 1. Only show the Upload Area if NO file is selected */}
-      {!file ? (
-        <div
-          onDragEnter={handleDragEnter}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={handleButtonClick}
-          className={`p-4 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
-            isDragging
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-300 hover:bg-gray-50'
-          }`}
-        >
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            onChange={(e) => {
-              const selectedFile = e.target.files?.[0];
-              if (selectedFile) {
-                handleFileValidation(selectedFile);
-              }
-              e.target.value = '';
-            }}
-          />
-          <UploadCloud className="mx-auto w-8 h-8 text-gray-400 mb-2" />
-          <p className="text-sm font-medium">
-            {isDragging ? 'Drop it here!' : 'Drop CV here'}
-          </p>
-          <p className="text-xs text-gray-400">or click to browse</p>
-          <p className="text-xs text-gray-400 mt-2">Supports PDF, DOC, DOCX</p>
-        </div>
-      ) : (
-        /* 2. Show the File Info / Process button if a file IS selected */
-        <div className=" flex flex-col bg-blue-50 border border-blue-200 rounded flex items-center justify-between">
-          <div className="flex items-center gap-3 p-3 rounded-lg w-full max-w-md">
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-medium text-gray-800 break-all">
-                {file.name}
-              </p>
-              <p className="text-xs text-gray-500">
-                {(file.size / 1024).toFixed(1)} KB
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {/* --- CV SECTION --- */}
+        <div className="p-4">
+          {profile.uploadedCV ? (
+            <a
+              href={profile.uploadedCV}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center justify-center gap-2 text-[15px] font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 py-2.5 rounded-lg transition-colors"
+            >
+              <FileText className="w-5 h-5 shrink-0" />
+              <span>View Current CV</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+            </a>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-2">
+              <FileText className="w-6 h-6 text-gray-300 mb-2" />
+              <p className="text-sm font-medium text-gray-500">
+                No CV uploaded
               </p>
             </div>
-            <button
-              onClick={() => setFile(null)}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50 p-1 rounded-full flex-shrink-0"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+          )}
+        </div>
 
-          <div className="w-full px-3 pb-3">
-            <button
+        {/* --- UPLOAD AREA --- */}
+        {!file ? (
+          <div
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={handleButtonClick}
+            className={`p-4 border-2 border-dashed m-3 rounded-xl text-center cursor-pointer transition-all duration-200 ${
+              isDragging
+                ? 'border-blue-500 bg-blue-50 scale-[0.98]'
+                : 'border-gray-200 hover:border-blue-400 hover:bg-gray-50'
+            }`}
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={(e) => {
+                const selectedFile = e.target.files?.[0];
+                if (selectedFile) {
+                  handleFileValidation(selectedFile);
+                }
+                e.target.value = '';
+              }}
+            />
+            <div
+              className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors ${isDragging ? 'bg-blue-100' : 'bg-gray-100'}`}
+            >
+              <UploadCloud
+                className={`w-6 h-6 ${isDragging ? 'text-blue-600' : 'text-gray-500'}`}
+              />
+            </div>
+            <p className="text-[15px] font-semibold text-gray-800 mb-1">
+              {isDragging ? 'Drop it here!' : 'Upload your CV'}
+            </p>
+            <p className="text-xs text-gray-500 mb-3">
+              Drag & drop or{' '}
+              <span className="text-blue-600 font-medium">browse</span>
+            </p>
+            <p className="text-[11px] font-medium text-gray-400 bg-gray-100 inline-block px-2 py-0.5 rounded uppercase tracking-wider">
+              PDF, DOC, DOCX
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col p-4 bg-gradient-to-b from-blue-50/50 to-white">
+            <div className="flex items-start gap-3 p-3 bg-white border border-blue-100 rounded-lg shadow-sm mb-4">
+              <div className="p-2 bg-blue-50 rounded-md shrink-0">
+                <FileText className="w-5 h-5 text-blue-600" />
+              </div>
+              <div className="flex-1 min-w-0 pt-0.5">
+                <p className="text-sm font-semibold text-gray-900 truncate">
+                  {file.name}
+                </p>
+                <p className="text-xs font-medium text-gray-500 mt-0.5">
+                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+              </div>
+              <button
+                onClick={() => setFile(null)}
+                className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-md shrink-0 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <Button
               onClick={handleUpload}
               disabled={isUploading}
-              className="w-full  font-semibold py-2 rounded-lg transition-all duration-300 flex flex-col items-center justify-center gap-2"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg shadow-sm transition-all"
             >
               {isUploading ? (
-                <>
-                  <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
+                <div className="flex flex-col items-center justify-center w-full gap-2">
+                  <span className="text-sm font-semibold flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Processing... {progress}%
+                  </span>
+                  <div className="w-full bg-blue-800/30 rounded-full h-1.5 overflow-hidden">
                     <div
-                      className="h-full bg-blue-600 rounded-full transition-all duration-200"
+                      className="h-full bg-white rounded-full transition-all duration-300 ease-out"
                       style={{ width: `${progress}%` }}
                     ></div>
                   </div>
-                  <span className="text-xs ">Processing... {progress}%</span>
-                </>
+                </div>
               ) : (
-                <Button className="">Process CV</Button>
+                'Process CV'
               )}
-            </button>
+            </Button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Edit Modal */}
+      {/* --- EDIT MODAL --- */}
       <Dialog open={localIsModalOpen} onOpenChange={setLocalIsModalOpen}>
-        <DialogContent className="max-w-md bg-white">
-          <DialogHeader>
-            <DialogTitle>Edit Profile</DialogTitle>
+        <DialogContent className="max-w-md bg-white p-6 sm:p-8 rounded-2xl">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-xl font-bold text-gray-900">
+              Edit Profile
+            </DialogTitle>
           </DialogHeader>
 
-          <div className="flex justify-center mb-4">
-            <div className="relative">
-              <div className="w-24 h-24 rounded-full flex items-center justify-center bg-blue-500 text-white text-4xl font-semibold overflow-hidden">
+          {/* Avatar Upload */}
+          <div className="flex justify-center mb-6">
+            <div className="relative group cursor-pointer">
+              <div className="w-24 h-24 rounded-full flex items-center justify-center bg-gradient-to-tr from-blue-600 to-cyan-500 text-white text-3xl font-bold overflow-hidden shadow-sm ring-4 ring-blue-50 transition-all group-hover:ring-blue-100">
                 {preview ? (
                   <Image
                     src={preview}
@@ -448,11 +779,10 @@ const SideSectionProfile = () => {
                   getInitials(profile.fullName)
                 )}
               </div>
-              <label className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full cursor-pointer shadow-lg">
-                <Camera className="w-4 h-4 text-white" />
+              <label className="absolute bottom-0 right-0 bg-white border border-gray-200 p-2 rounded-full cursor-pointer shadow-md hover:scale-110 hover:border-blue-200 transition-all">
+                <Camera className="w-4 h-4 text-gray-600" />
                 <input
                   type="file"
-                  // accept="image/*"
                   accept=".jpg,.jpeg,.png,image/jpeg,image/png"
                   className="hidden"
                   onChange={onAvatarChange}
@@ -461,111 +791,113 @@ const SideSectionProfile = () => {
             </div>
           </div>
 
-          <form className="space-y-3">
-            {/* Full Name - existing */}
+          <form className="space-y-4">
             <div>
-              <label className="text-xs font-bold uppercase text-gray-500">
+              <label className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5 block">
                 Full Name
               </label>
               <Input
                 name="fullName"
                 value={localFormData.fullName || ''}
                 onChange={onChange}
-                className={
+                className={`bg-gray-50 border-gray-200 focus:bg-white ${
                   errors.fullName
                     ? 'border-red-500 focus-visible:ring-red-500'
                     : ''
-                }
-                placeholder="Enter your full name"
+                }`}
+                placeholder="e.g. Jane Doe"
               />
               {errors.fullName && (
-                <p className="text-[10px] text-red-500 mt-1">
+                <p className="text-[11px] font-medium text-red-500 mt-1">
                   {errors.fullName}
                 </p>
               )}
             </div>
 
-            {/* Phone */}
             <div>
-              <label className="text-xs font-bold uppercase text-gray-500">
+              <label className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5 block">
                 Phone
               </label>
-              {/* <Input
-                name="phone"
-                value={localFormData.phone || ''}
-                onChange={onChange}
-                className={
-                  errors.phone
-                    ? 'border-red-500 focus-visible:ring-red-500'
-                    : ''
-                }
-              /> */}
-              <SimplePhoneInput
-                value={localFormData.phone || ''}
-                onChange={(phone) =>
-                  setLocalFormData((prev) => ({ ...prev, phone }))
-                }
-              />
+              <div
+                className={`${errors.phone ? 'ring-1 ring-red-500 rounded-md' : ''}`}
+              >
+                <SimplePhoneInput
+                  value={localFormData.phone || ''}
+                  onChange={(phone) =>
+                    setLocalFormData((prev) => ({ ...prev, phone }))
+                  }
+                />
+              </div>
               {errors.phone && (
-                <p className="text-[10px] text-red-500 mt-1">{errors.phone}</p>
+                <p className="text-[11px] font-medium text-red-500 mt-1">
+                  {errors.phone}
+                </p>
               )}
             </div>
 
-            {/* Job Role */}
             <div>
-              <label className="text-xs font-bold uppercase text-gray-500">
+              <label className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5 block">
                 Job Role
               </label>
               <Input
                 name="jobRole"
                 value={localFormData.jobRole || ''}
                 onChange={onChange}
-                className={
+                className={`bg-gray-50 border-gray-200 focus:bg-white ${
                   errors.jobRole
                     ? 'border-red-500 focus-visible:ring-red-500'
                     : ''
-                }
+                }`}
+                placeholder="e.g. Frontend Developer"
               />
               {errors.jobRole && (
-                <p className="text-[10px] text-red-500 mt-1">
+                <p className="text-[11px] font-medium text-red-500 mt-1">
                   {errors.jobRole}
                 </p>
               )}
             </div>
 
-            {/* Location */}
             <div>
-              <label className="text-xs font-bold uppercase text-gray-500">
+              <label className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5 block">
                 Location
               </label>
               <Input
                 name="location"
                 value={localFormData.location || ''}
                 onChange={onChange}
-                className={
+                className={`bg-gray-50 border-gray-200 focus:bg-white ${
                   errors.location
                     ? 'border-red-500 focus-visible:ring-red-500'
                     : ''
-                }
+                }`}
+                placeholder="e.g. New York, USA"
               />
               {errors.location && (
-                <p className="text-[10px] text-red-500 mt-1">
+                <p className="text-[11px] font-medium text-red-500 mt-1">
                   {errors.location}
                 </p>
               )}
             </div>
           </form>
-          <DialogFooter className="mt-6 gap-2">
+
+          <DialogFooter className="mt-8 gap-3 sm:gap-2">
             <Button
               disabled={isLoading}
               variant="outline"
               onClick={handleCancel}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={isLoading}>
+            <Button
+              onClick={handleSave}
+              disabled={isLoading}
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
+            >
               {isLoading ? (
-                <Loader2 className=" h-4 w-4 animate-spin" />
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Saving...
+                </span>
               ) : (
                 'Save Changes'
               )}

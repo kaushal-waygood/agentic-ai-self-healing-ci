@@ -1,4 +1,3 @@
-// Step0_SimpleIntroSlim.jsx
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -14,6 +13,16 @@ import {
   FileText,
   ExternalLink,
   Search,
+  Zap,
+  Target,
+  TrendingUp,
+  Clock,
+  Briefcase,
+  Activity,
+  CheckCircle2,
+  XCircle,
+  Tag,
+  Check,
 } from 'lucide-react';
 import apiInstance from '@/services/api';
 import {
@@ -25,7 +34,7 @@ import { ToastAction } from '@/components/ui/toast';
 
 const Step0_SimpleIntroSlim = ({
   nextStep = () => {},
-  agents = [], // Default to empty array
+  agents = [],
   onEdit = () => {},
   onDelete = () => {},
   deletePopup = { open: false, agentId: null },
@@ -34,7 +43,6 @@ const Step0_SimpleIntroSlim = ({
 }) => {
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
 
-  // ===================== 1. ROBUST DATA EXTRACTION ===================== //
   const getAgentList = () => {
     if (Array.isArray(agents)) return agents;
     if (Array.isArray(agents?.agents)) return agents.agents;
@@ -46,10 +54,9 @@ const Step0_SimpleIntroSlim = ({
   const list = getAgentList();
   const planUsage = agents?.planUsage ?? null;
 
-  // ===================== 2. STATS CALCULATION (from plan usage when available) ===================== //
   const totalAgents = list.length;
   const activeAgents = list.filter(
-    (a) => a?.status?.toLowerCase() === 'active',
+    (a) => a?.status?.toLowerCase() === 'active' || a?.isAgentActive,
   ).length;
   const todayApps = planUsage
     ? Number(planUsage.applicationsToday) || 0
@@ -70,7 +77,6 @@ const Step0_SimpleIntroSlim = ({
     const fetchAutoPilotStatus = async () => {
       try {
         const response = await apiInstance.get('/students/autopilot/status');
-        // Handle response safely
         if (response?.data) {
           setAutopilotEnabled(!!response.data.autopilotStatus);
         }
@@ -96,116 +102,127 @@ const Step0_SimpleIntroSlim = ({
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto p-6 animate-fade-in">
-      {/* Header */}
-      <div className="bg-header-gradient-primary text-white px-6 py-4 rounded-lg shadow-lg mb-4">
-        <div className="flex flex-wrap gap-2 items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-wide">AI Job Agents</h1>
-            <p className="text-sm opacity-90 ">
-              Manage, track & automate your job search
-            </p>
+    <div className="w-full max-w-5xl mx-auto px-4 py-6 space-y-6">
+      {/* ── Hero Header ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 text-white p-6 shadow-xl shadow-purple-200">
+        {/* decorative blobs */}
+        <div className="pointer-events-none absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5" />
+        <div className="pointer-events-none absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-white/5" />
+        <div className="pointer-events-none absolute top-4 right-32 w-20 h-20 rounded-full bg-white/5" />
+
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20">
+              <Bot className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
+                AI Job Agents
+              </h1>
+              <p className="text-sm text-white/70 mt-0.5">
+                Automate your job search with intelligent agents
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-white/90 font-medium">
+          <div className="flex items-center gap-3">
+            {/* Autopilot toggle */}
+            <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2">
+              <Zap
+                className={`w-4 h-4 transition-colors ${autopilotEnabled ? 'text-green-300' : 'text-white/50'}`}
+              />
+              <span className="text-sm font-medium text-white/90">
                 Autopilot
               </span>
-
-              {/* TOGGLE BUTTON */}
               <button
                 onClick={onToggleAutoPilot}
-                className={`
-                  relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none border-2 border-transparent
-                  ${autopilotEnabled ? 'bg-green-500' : 'bg-gray-400'}
-                `}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 focus:outline-none ${
+                  autopilotEnabled ? 'bg-green-400' : 'bg-white/25'
+                }`}
               >
                 <span
-                  className={`
-                    inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ease-in-out
-                    ${autopilotEnabled ? 'translate-x-6' : 'translate-x-0.5'}
-                  `}
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-300 ${
+                    autopilotEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
                 />
               </button>
             </div>
 
             <button
               onClick={nextStep}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-purple-700 font-medium shadow-md hover:shadow-lg transition-all hover:scale-[1.02]"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-purple-700 font-semibold text-sm shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
             >
               <Plus className="w-4 h-4" />
-              Create Agent
+              New Agent
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Delete Confirmation Popup */}
-        {deletePopup.open && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-            <div className="bg-white p-6 rounded-xl shadow-2xl w-[320px] animate-in zoom-in-95 duration-200">
-              <h2 className="text-lg text-gray-800 font-semibold mb-4 text-center">
-                Delete this agent?
-              </h2>
-              <div className="flex justify-between gap-4 mt-4">
-                <button
-                  onClick={cancelDelete}
-                  className="w-full py-2 rounded-lg bg-gray-100 hover:bg-gray-200 font-medium text-gray-700 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="w-full py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 font-medium transition-colors shadow-sm"
-                >
-                  Delete
-                </button>
-              </div>
+      {/* ── Delete Confirmation Modal ── */}
+      {deletePopup.open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl w-[340px] border border-gray-100">
+            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-5 h-5 text-red-500" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-800 mb-1 text-center">
+              Delete Agent?
+            </h2>
+            <p className="text-sm text-gray-500 text-center mb-6">
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={cancelDelete}
+                className="flex-1 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 font-medium text-gray-700 text-sm transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 font-medium text-sm transition-colors shadow-sm"
+              >
+                Delete
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
+
+      {/* ── Stats Grid ── */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard
+          icon={<Bot className="w-4 h-4" />}
+          label="Total Agents"
+          value={totalAgents}
+          color="violet"
+        />
+        <StatCard
+          icon={<Activity className="w-4 h-4" />}
+          label="Active"
+          value={activeAgents}
+          color="emerald"
+        />
+        <StatCard
+          icon={<Clock className="w-4 h-4" />}
+          label="Today"
+          value={
+            dailyLimit === '∞' || dailyLimit === -1
+              ? `${todayApps}`
+              : `${todayApps}/${dailyLimit}`
+          }
+          color="blue"
+        />
       </div>
 
-      {/* Stats Row */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        <div className="flex-1 min-w-[120px]">
-          <MiniStat label="Total Agents" value={totalAgents} />
-        </div>
-        <div className="flex-1 min-w-[120px]">
-          <MiniStat label="Active" value={activeAgents} />
-        </div>
-        <div className="flex-1 min-w-[120px]">
-          <MiniStat
-            label="Applications Today"
-            value={
-              dailyLimit === '∞' || dailyLimit === -1
-                ? `${todayApps}`
-                : `${todayApps}/${dailyLimit}`
-            }
-          />
-        </div>
-        <div className="flex-1 min-w-[120px]">
-          <MiniStat
-            label="Total Applied"
-            value={
-              totalLimit === '∞' || totalLimit === -1
-                ? `${totalApplied}`
-                : `${totalApplied}/${totalLimit}`
-            }
-          />
-        </div>
-        <div className="flex-1 min-w-[120px]">
-          <MiniStat label="Success Rate" value={`${avgSuccess}%`} />
-        </div>
-      </div>
-
-      {/* Agents List */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b bg-gray-50 flex justify-between items-center">
-          <h2 className="text-gray-800 font-bold text-lg">Your Agents</h2>
-          <span className="text-xs font-medium px-2 py-1 bg-gray-200 rounded-full text-gray-600">
-            {list.length} Total
-          </span>
+      {/* ── Agents List ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/60 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Briefcase className="w-4 h-4 text-gray-500" />
+            <h2 className="text-gray-800 font-bold text-base">Your Agents</h2>
+          </div>
         </div>
 
         <div className="p-4 space-y-3">
@@ -214,11 +231,15 @@ const Step0_SimpleIntroSlim = ({
           ) : (
             list.map((agent, index) => (
               <AgentRow
-                // Fallback to index if IDs are missing, but prefer _id or agentId
                 key={agent._id || agent.agentId || index}
                 agent={agent}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onToggleActive={(agentId, newState) => {
+                  // Optimistically update the parent list if needed
+                  // If your parent passes a refresh callback, call it here instead
+                  console.log(`Agent ${agentId} toggled to ${newState}`);
+                }}
               />
             ))
           )}
@@ -228,35 +249,82 @@ const Step0_SimpleIntroSlim = ({
   );
 };
 
-/* --- UI Sub-components --- */
+/* ── Stat Card ── */
+const colorMap = {
+  violet: {
+    bg: 'bg-violet-50',
+    icon: 'text-violet-500',
+    value: 'text-violet-700',
+    border: 'border-violet-100',
+  },
+  emerald: {
+    bg: 'bg-emerald-50',
+    icon: 'text-emerald-500',
+    value: 'text-emerald-700',
+    border: 'border-emerald-100',
+  },
+  blue: {
+    bg: 'bg-blue-50',
+    icon: 'text-blue-500',
+    value: 'text-blue-700',
+    border: 'border-blue-100',
+  },
+  amber: {
+    bg: 'bg-amber-50',
+    icon: 'text-amber-500',
+    value: 'text-amber-700',
+    border: 'border-amber-100',
+  },
+  pink: {
+    bg: 'bg-pink-50',
+    icon: 'text-pink-500',
+    value: 'text-pink-700',
+    border: 'border-pink-100',
+  },
+};
 
-const MiniStat = ({ label, value }) => (
-  <div className="flex flex-col bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm hover:shadow-md transition-all">
-    <span className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">
-      {label}
-    </span>
-    <span className="font-bold text-gray-800 text-2xl">{value}</span>
-  </div>
-);
-
-const EmptyState = ({ nextStep }) => (
-  <div className="py-16 text-center text-gray-500 flex flex-col items-center">
-    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4 shadow-inner">
-      <Bot className="w-8 h-8 text-gray-400" />
+const StatCard = ({ icon, label, value, color }) => {
+  const c = colorMap[color] || colorMap.violet;
+  return (
+    <div
+      className={`flex flex-col gap-2 rounded-xl border ${c.border} ${c.bg} px-4 py-3 hover:shadow-sm transition-shadow`}
+    >
+      <div
+        className={`w-7 h-7 rounded-lg bg-white flex items-center justify-center shadow-sm ${c.icon}`}
+      >
+        {icon}
+      </div>
+      <div>
+        <p className={`text-xl font-bold ${c.value}`}>{value}</p>
+        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide mt-0.5">
+          {label}
+        </p>
+      </div>
     </div>
-    <p className="font-semibold text-gray-700 text-lg">No agents created yet</p>
-    <p className="text-sm mt-1 max-w-xs mx-auto opacity-80 mb-6">
-      Set up an AI agent to automatically find and apply to jobs for you.
+  );
+};
+
+/* ── Empty State ── */
+const EmptyState = ({ nextStep }) => (
+  <div className="py-16 text-center flex flex-col items-center">
+    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center mb-4 shadow-inner">
+      <Bot className="w-10 h-10 text-purple-400" />
+    </div>
+    <p className="font-bold text-gray-700 text-lg">No agents yet</p>
+    <p className="text-sm text-gray-400 mt-1 max-w-xs mx-auto mb-6">
+      Create an AI agent to automatically find and apply to jobs that match your
+      profile.
     </p>
     <button
       onClick={nextStep}
-      className="px-5 py-2.5 rounded-lg bg-buttonPrimary text-white font-medium hover:opacity-90 transition-opacity flex items-center gap-2"
+      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity flex items-center gap-2 shadow-md shadow-purple-200"
     >
       <Plus className="w-4 h-4" /> Create First Agent
     </button>
   </div>
 );
 
+/* ── Date Labels ── */
 const DATE_LABELS = {
   today: 'Today',
   yesterday: 'Yesterday',
@@ -264,7 +332,9 @@ const DATE_LABELS = {
   older: 'Older',
 };
 
-const AgentRow = ({ agent, onEdit, onDelete }) => {
+/* ── Agent Row ── */
+/* ── Agent Row ── */
+const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
   const router = useRouter();
   const id = agent.agentId || agent._id;
   const [expanded, setExpanded] = useState(false);
@@ -279,6 +349,39 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
   const [jobsError, setJobsError] = useState(null);
   const [generatingJobIds, setGeneratingJobIds] = useState(new Set());
   const [findingJobs, setFindingJobs] = useState(false);
+  const [togglingActive, setTogglingActive] = useState(false);
+  const [isActive, setIsActive] = useState(agent.isAgentActive);
+
+  // Keep local state in sync if parent re-renders with updated agent
+  useEffect(() => {
+    setIsActive(agent.isAgentActive);
+  }, [agent.isAgentActive]);
+
+  const handleToggleActive = async (e) => {
+    e.stopPropagation();
+    if (togglingActive) return;
+    setTogglingActive(true);
+    const newState = !isActive;
+    setIsActive(newState); // optimistic update
+    try {
+      await apiInstance.patch(`/pilotagent/agent/active/${id}`, {
+        isAgentActive: newState,
+      });
+      toast({
+        title: `Agent ${newState ? 'activated' : 'deactivated'}`,
+      });
+      if (onToggleActive) onToggleActive(id, newState);
+    } catch (err) {
+      setIsActive(!newState); // revert on error
+      toast({
+        variant: 'destructive',
+        title: 'Failed to update agent status',
+        description: err?.response?.data?.message || 'Please try again',
+      });
+    } finally {
+      setTogglingActive(false);
+    }
+  };
 
   const fetchJobs = (userFeedback) => {
     if (!id) return;
@@ -296,10 +399,10 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
         };
         if (
           list.length > 0 &&
-          byDate.today?.length === 0 &&
-          byDate.yesterday?.length === 0 &&
-          byDate.lastWeek?.length === 0 &&
-          byDate.older?.length === 0
+          !byDate.today?.length &&
+          !byDate.yesterday?.length &&
+          !byDate.lastWeek?.length &&
+          !byDate.older?.length
         ) {
           byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
         }
@@ -329,10 +432,10 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
         };
         if (
           list.length > 0 &&
-          byDate.today?.length === 0 &&
-          byDate.yesterday?.length === 0 &&
-          byDate.lastWeek?.length === 0 &&
-          byDate.older?.length === 0
+          !byDate.today?.length &&
+          !byDate.yesterday?.length &&
+          !byDate.lastWeek?.length &&
+          !byDate.older?.length
         ) {
           byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
         }
@@ -393,31 +496,149 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
     return 'Location N/A';
   };
 
+  const parsedKeywords = (() => {
+    try {
+      return JSON.parse(agent.keywords?.[0] || '[]');
+    } catch {
+      return [];
+    }
+  })();
+
+  const parsedEmploymentTypes = (() => {
+    try {
+      return JSON.parse(agent.employmentType || '[]');
+    } catch {
+      return [];
+    }
+  })();
+
+  const todayCount = agent.applicationsToday ?? 0;
+  const dailyMax = agent.maxApplications ?? agent.agentDailyLimit ?? 5;
+  const progressPct = Math.min((todayCount / dailyMax) * 100, 100);
+
   return (
-    <div className="rounded-xl border border-gray-100 hover:border-purple-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-all">
-      {/* Header */}
+    <div
+      className={`rounded-2xl border transition-all duration-200 overflow-hidden group ${
+        expanded
+          ? 'border-purple-200 shadow-md shadow-purple-100/50'
+          : 'border-gray-100 hover:border-purple-200 hover:shadow-md hover:shadow-purple-100/50'
+      }`}
+    >
+      {/* ── Card Header ── */}
       <div
-        className="group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 hover:bg-purple-50/30 transition-all cursor-pointer"
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 cursor-pointer bg-white hover:bg-purple-50/20 transition-colors"
         onClick={() => setExpanded((e) => !e)}
       >
-        <div className="flex items-center gap-4 w-full sm:w-auto">
-          <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-700 font-bold text-lg shadow-inner border border-white">
-            {(agent.agentName && agent.agentName.charAt(0).toUpperCase()) ||
-              'A'}
+        {/* Left */}
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          {/* Avatar with status ring */}
+          <div className="relative flex-shrink-0">
+            <div className="w-11 h-11 flex items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white font-bold text-base shadow-md shadow-purple-200">
+              {(agent.agentName && agent.agentName.charAt(0).toUpperCase()) ||
+                'A'}
+            </div>
+            <span
+              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-1 border-white transition-colors ${
+                isActive ? 'bg-green-400' : 'bg-gray-300'
+              }`}
+            />
           </div>
 
+          {/* Info */}
           <div className="min-w-0 flex-1">
-            <p className="text-base font-bold text-gray-800 break-all ">
-              {agent.agentName || 'Untitled Agent'}
-            </p>
-            <div className="flex items-center gap-2 text-sm text-gray-500 mt-0.5">
-              <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium text-gray-600">
+            {/* Name + status badge + toggle */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-bold text-gray-800">
+                {agent.agentName || 'Untitled Agent'}
+              </p>
+
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full font-semibold tracking-wide ${
+                  isActive
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-gray-100 text-gray-500'
+                }`}
+              >
+                {isActive ? '● Active' : '○ Inactive'}
+              </span>
+
+              {/* Toggle */}
+              {/* Toggle — same as Autopilot toggle in header */}
+              <button
+                onClick={handleToggleActive}
+                disabled={togglingActive}
+                title={isActive ? 'Deactivate agent' : 'Activate agent'}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${
+                  isActive ? 'bg-green-400' : 'bg-white/25 bg-gray-300'
+                }`}
+              >
+                {togglingActive ? (
+                  <Loader2
+                    className={`w-4 h-4 animate-spin text-white absolute transition-transform duration-300 ${
+                      isActive ? 'left-[22px]' : 'left-[4px]'
+                    }`}
+                  />
+                ) : (
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out ${
+                      isActive ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                )}
+              </button>
+            </div>
+
+            {/* Role · Country · Remote */}
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
                 {agent.jobTitle || 'General'}
               </span>
               {agent.country && (
                 <span className="text-xs text-gray-400">• {agent.country}</span>
               )}
+              {agent.isRemote && (
+                <span className="text-[11px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-medium border border-blue-100">
+                  Remote
+                </span>
+              )}
+              {agent.isOnsite && (
+                <span className="text-[11px] bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md font-medium border border-orange-100">
+                  Onsite
+                </span>
+              )}
             </div>
+
+            {/* Employment types */}
+            {parsedEmploymentTypes.length > 0 && (
+              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-300">
+                  Type
+                </span>
+                {parsedEmploymentTypes.map((t) => (
+                  <span
+                    key={t}
+                    className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-md font-medium"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Keywords */}
+            {parsedKeywords.length > 0 && (
+              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                <Tag className="w-3 h-3 text-gray-300" />
+                {parsedKeywords.map((kw) => (
+                  <span
+                    key={kw}
+                    className="text-[11px] bg-violet-50 text-violet-600 border border-violet-100 px-2 py-0.5 rounded-full font-medium"
+                  >
+                    {kw}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <button
@@ -425,81 +646,117 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
               e.stopPropagation();
               setExpanded((e) => !e);
             }}
-            className="p-2 rounded-lg text-gray-500 hover:text-purple-600 hover:bg-purple-50 transition-all shrink-0"
-            aria-label={expanded ? 'Collapse' : 'Expand'}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all shrink-0 mt-0.5"
           >
             {expanded ? (
-              <ChevronUp className="w-5 h-5" />
+              <ChevronUp className="w-4 h-4" />
             ) : (
-              <ChevronDown className="w-5 h-5" />
+              <ChevronDown className="w-4 h-4" />
             )}
           </button>
         </div>
 
+        {/* Right: stats */}
         <div
-          className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 mt-1 sm:mt-0"
+          className="flex items-center gap-4 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="text-right">
-            <p className="font-bold text-gray-800 text-sm">
-              {agent.applicationsToday ?? 0}{' '}
-              <span className="text-gray-400 font-normal">
-                / {agent.maxApplications ?? agent.agentDailyLimit ?? 5}
+          {/* Daily progress */}
+          <div className="flex flex-col items-center gap-1 min-w-[64px]">
+            <div className="flex items-center gap-1">
+              <span className="text-base font-bold text-gray-800">
+                {todayCount}
               </span>
-            </p>
-            <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
+              <span className="text-xs text-gray-400 font-medium">
+                / {dailyMax}
+              </span>
+            </div>
+            <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-500 transition-all"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
               Today
-            </p>
+            </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onDelete(id)}
-              className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all"
-              title="Delete Agent"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+          {/* CV badge */}
+          <div className="text-center">
+            <span className="text-[11px] bg-amber-50 text-amber-600 border border-amber-100 px-2.5 py-1 rounded-lg font-semibold whitespace-nowrap block">
+              {agent.cvOption === 'current_profile'
+                ? 'Current Profile'
+                : 'Uploaded CV'}
+            </span>
           </div>
+
+          {/* Delete */}
+          <button
+            onClick={() => onDelete(id)}
+            className="p-2 rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100"
+            title="Delete Agent"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* Accordion: Jobs list */}
+      {/* ── Accordion: Jobs ── */}
       {expanded && (
-        <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-700">
-              Jobs for this agent
-            </h3>
+        <div className="border-t border-purple-100/60 bg-gradient-to-b from-purple-50/30 to-white px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-5 rounded-full bg-gradient-to-b from-violet-500 to-purple-400" />
+              <h3 className="text-sm font-bold text-gray-700">Matched Jobs</h3>
+              {jobs.length > 0 && (
+                <span className="text-[11px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">
+                  {jobs.length}
+                </span>
+              )}
+            </div>
             <button
               onClick={() => router.push('/dashboard/my-docs?tab=applications')}
-              className="flex items-center gap-1.5 text-xs font-medium text-purple-600 hover:text-purple-700 hover:underline"
+              className="flex items-center gap-1.5 text-xs font-semibold text-purple-600 hover:text-purple-700 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition-colors border border-purple-100"
             >
-              <ExternalLink className="w-3.5 h-3.5" />
-              View in My Docs
+              <ExternalLink className="w-3 h-3" />
+              My Docs
             </button>
           </div>
+
           {jobsLoading ? (
-            <div className="flex items-center gap-2 py-6 text-gray-500">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Loading jobs…</span>
+            <div className="flex items-center justify-center gap-2 py-10 text-gray-400">
+              <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+              <span className="text-sm">Finding matched jobs…</span>
             </div>
           ) : jobsError ? (
-            <p className="text-sm text-red-600 py-4">{jobsError}</p>
+            <div className="flex items-center gap-2 py-4 text-red-500 bg-red-50 rounded-xl px-4">
+              <XCircle className="w-4 h-4 flex-shrink-0" />
+              <p className="text-sm">{jobsError}</p>
+            </div>
           ) : jobs.length === 0 ? (
-            <p className="text-sm text-gray-500 py-4">
-              No matching jobs found.
-            </p>
+            <div className="flex flex-col items-center py-10 text-gray-400">
+              <Search className="w-8 h-8 mb-2 text-gray-200" />
+              <p className="text-sm font-medium">No matching jobs found</p>
+              <p className="text-xs mt-1">
+                The agent is actively searching for matches
+              </p>
+            </div>
           ) : (
-            <div className="space-y-4 max-h-80 overflow-y-auto">
+            <div className="space-y-4 max-h-96 overflow-y-auto pr-1 custom-scroll">
               {['today', 'yesterday', 'lastWeek', 'older'].map((key) => {
                 const list = jobsByDate[key] ?? [];
                 if (list.length === 0) return null;
                 return (
                   <div key={key}>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                      {DATE_LABELS[key]} ({list.length})
-                    </p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        {DATE_LABELS[key]}
+                      </p>
+                      <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded font-semibold">
+                        {list.length}
+                      </span>
+                    </div>
                     <ul className="space-y-2">
                       {list.map((job) => {
                         const jobId = job._id || job.id;
@@ -507,39 +764,48 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
                         return (
                           <li
                             key={jobId}
-                            className="flex items-start gap-3 p-3 rounded-lg bg-white border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-all group"
+                            className="flex items-start gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-purple-200 hover:shadow-sm transition-all group/job"
                           >
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-100 to-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Briefcase className="w-3.5 h-3.5 text-gray-400" />
+                            </div>
+
                             <Link
                               href={`/dashboard/jobs/${jobId}`}
-                              className="flex-1 min-w-0 cursor-pointer block"
+                              className="flex-1 min-w-0 block"
                             >
-                              <p className="font-medium text-gray-800 truncate group-hover:text-purple-700">
+                              <p className="font-semibold text-sm text-gray-800 truncate group-hover/job:text-purple-700 transition-colors">
                                 {job.title}
                               </p>
-                              <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
-                                <Building2 className="w-3 h-3 shrink-0" />
-                                <span className="truncate">{job.company}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
-                                <MapPin className="w-3 h-3 shrink-0" />
-                                <span>{formatLocation(job)}</span>
+                              <div className="flex items-center gap-3 mt-0.5">
+                                <span className="flex items-center gap-1 text-xs text-gray-400">
+                                  <Building2 className="w-3 h-3" />
+                                  <span className="truncate max-w-[120px]">
+                                    {job.company}
+                                  </span>
+                                </span>
+                                <span className="flex items-center gap-1 text-xs text-gray-400">
+                                  <MapPin className="w-3 h-3" />
+                                  {formatLocation(job)}
+                                </span>
                               </div>
                             </Link>
+
+                            {/* Actions */}
                             <div
                               className="flex items-center gap-2 shrink-0"
                               onClick={(e) => e.preventDefault()}
                             >
-                              <span
-                                className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                                  job.tailoredGenerated
-                                    ? 'bg-emerald-100 text-emerald-700'
-                                    : 'bg-amber-100 text-amber-700'
-                                }`}
-                              >
-                                {job.tailoredGenerated
-                                  ? 'Tailored generated'
-                                  : 'Tailored not generated'}
-                              </span>
+                              {job.tailoredGenerated ? (
+                                <span className="flex items-center gap-1 text-[10px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-1 rounded-lg">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Tailored
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-semibold bg-amber-50 text-amber-600 border border-amber-100 px-2 py-1 rounded-lg">
+                                  Not tailored
+                                </span>
+                              )}
 
                               <button
                                 type="button"
@@ -548,11 +814,16 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
                                   handleFindAnotherJob();
                                 }}
                                 disabled={findingJobs || jobsLoading}
-                                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200 transition-all"
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200 transition-all disabled:opacity-50"
                               >
-                                <Search className="w-3.5 h-3.5" />
-                                Find other job
+                                {findingJobs ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Search className="w-3 h-3" />
+                                )}
+                                Find other
                               </button>
+
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -560,17 +831,17 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
                                   handleGenerateDocs(jobId);
                                 }}
                                 disabled={isGenerating}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm shadow-purple-200"
                               >
                                 {isGenerating ? (
                                   <>
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <Loader2 className="w-3 h-3 animate-spin" />{' '}
                                     Generating…
                                   </>
                                 ) : (
                                   <>
-                                    <FileText className="w-3.5 h-3.5" />
-                                    Generate Tailored
+                                    <FileText className="w-3 h-3" /> Generate
+                                    Tailored
                                   </>
                                 )}
                               </button>

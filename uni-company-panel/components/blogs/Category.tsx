@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 const CategoryPage = () => {
   const router = useRouter();
@@ -27,7 +28,7 @@ const CategoryPage = () => {
   const {
     getBlogCategoryList,
     addBlogCategory,
-    deleteCategory,
+    deleteBlogCategory,
     isLoading,
     blogCategoryListData,
     blogCategoryCounts,
@@ -63,10 +64,9 @@ const CategoryPage = () => {
     e.preventDefault();
     try {
       await addBlogCategory(newCategory);
-      toast.success('Category created successfully');
+
       setIsCreateOpen(false);
       setNewCategory({ title: '', slug: '' });
-      // The store should handle refreshing the list inside addBlogCategory
     } catch (error: any) {
       toast.error(error.message || 'Failed to create category');
     }
@@ -120,31 +120,60 @@ const CategoryPage = () => {
       {
         id: 'actions',
         header: () => <div className="text-center">Actions</div>,
-        cell: ({ row }) => (
-          <div className="flex justify-center gap-2">
-            <Button variant="outline" size="sm" className="h-8 px-2">
-              <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:text-red-500"
-              onClick={() => deleteCategory?.(row.original._id)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const [isDelOpen, setIsDelOpen] = useState(false);
+          return (
+            <div className="flex justify-center gap-2">
+              <Button variant="outline" size="sm" className="h-8 px-2">
+                <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+              </Button>
+
+              <Popover open={isDelOpen} onOpenChange={setIsDelOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hover:text-red-500"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-4">
+                  <p className="text-sm font-bold">Delete this tag?</p>
+                  <div className="flex justify-end gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setIsDelOpen(false)}
+                    >
+                      No
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={async () => {
+                        await deleteBlogCategory?.(row.original._id);
+                        setIsDelOpen(false);
+                      }}
+                    >
+                      Yes, Delete
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          );
+        },
       },
     ],
-    [deleteCategory],
+    [deleteBlogCategory],
   );
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-indigo-600 flex items-center gap-2">
+          <h1 className="text-3xl font-bold text-blue-500 flex items-center gap-2">
             <Tag className="w-8 h-8" /> Category Management
           </h1>
           <p className="text-gray-500">
@@ -154,7 +183,7 @@ const CategoryPage = () => {
 
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-indigo-600 hover:bg-indigo-700">
+            <Button className="">
               <Plus className="w-4 h-4 mr-2" /> Add Category
             </Button>
           </DialogTrigger>
@@ -202,7 +231,7 @@ const CategoryPage = () => {
           <Loader2 className="h-10 w-10 animate-spin text-indigo-500" />
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="">
           <DataTable
             columns={columns}
             data={blogCategoryListData || []}

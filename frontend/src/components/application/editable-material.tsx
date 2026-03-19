@@ -10,7 +10,6 @@ import {
   Minimize2,
   FileText,
   Mail,
-  Search,
   Sparkles,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -25,9 +24,16 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
 import EditorToolbar from './EditorToolbar';
 import { useEditableMaterial } from './useEditableMat';
+import SendEmailDialog from '../SendEmailRecruiter';
+
+/** Shared send-email options — must match DocumentPage's SendEmailOptions */
+export interface SendEmailOptions {
+  subject: string;
+  bodyHtml: string;
+  coverLetterHtml?: string; // plain-text cover letter converted to HTML by this component
+}
 
 interface EditableMaterialProps {
   template?: any;
@@ -38,26 +44,17 @@ interface EditableMaterialProps {
   className?: string;
   type?: 'resume' | 'coverletter';
   editorId?: string;
-  /** When provided, shows "Send Email to Recruiter" button. Called with recruiter email, subject, and body when user confirms. */
   onSendEmail?: (
     recruiterEmail: string,
-    options: { subject: string; bodyHtml: string },
+    options: SendEmailOptions,
   ) => void | Promise<void>;
-  /** Hint for what will be sent (e.g. "CV only", "Cover Letter only", "CV + Cover Letter + Email") */
   sendEmailHint?: string;
-  /** Default subject for the send-email dialog */
   defaultSubject?: string;
-  /** Default email body (plain text or HTML) for the send-email dialog */
   defaultBodyHtml?: string;
-  /** Company name for "Find Email" lookup */
   companyName?: string;
-  /** Location (string or object) for "Find Email" lookup */
   location?: string | { city?: string; state?: string; country?: string };
-  /** Job ID for "Generate Email Draft" (preferred when available) */
   jobId?: string;
-  /** Job title for "Generate Email Draft" */
   jobTitle?: string;
-  /** Job description for "Generate Email Draft" */
   jobDescription?: string;
 }
 
@@ -86,7 +83,15 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   const [isFindingEmail, setIsFindingEmail] = useState(false);
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
   const [generatedSubject, setGeneratedSubject] = useState<string | null>(null);
-  const [generatedBodyHtml, setGeneratedBodyHtml] = useState<string | null>(null);
+  const [generatedBodyHtml, setGeneratedBodyHtml] = useState<string | null>(
+    null,
+  );
+
+  /**
+   * Plain-text cover letter kept in sync via SendEmailDialog's onCoverLetterChange.
+   * Converted to self-contained HTML just before the API call.
+   */
+  const [coverLetterText, setCoverLetterText] = useState('');
 
   const { editorRef, containerRef, state, actions } = useEditableMaterial({
     content,
@@ -96,17 +101,27 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     template,
   });
 
-  const handleCopy = async () => {
-    const text = editorRef.current?.innerText || '';
-    await navigator.clipboard.writeText(text);
-    toast({ title: 'Copied plain text' });
-  };
-
   const stripHtml = (html: string) => {
     if (typeof document === 'undefined') return html;
     const div = document.createElement('div');
     div.innerHTML = html;
     return div.textContent || div.innerText || html;
+  };
+
+  /** Wrap plain-text cover letter in minimal HTML for the PDF pipeline */
+  const coverLetterToHtml = (text: string): string => {
+    if (!text.trim()) return '';
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    return `<html><body><pre style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;white-space:pre-wrap;padding:40px;">${escaped}</pre></body></html>`;
+  };
+
+  const handleCopy = async () => {
+    const text = editorRef.current?.innerText || '';
+    await navigator.clipboard.writeText(text);
+    toast({ title: 'Copied plain text' });
   };
 
   const handleSendEmailClick = () => {
@@ -119,6 +134,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           ? stripHtml(defaultBodyHtml)
           : '',
     );
+    setCoverLetterText('');
     setIsSendEmailDialogOpen(true);
   };
 
@@ -131,7 +147,8 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     if (!jobId && (!companyName?.trim() || !jobTitle?.trim())) {
       toast({
         variant: 'destructive',
-        title: 'Company name and job title are required to generate email draft',
+        title:
+          'Company name and job title are required to generate email draft',
       });
       return;
     }
@@ -153,10 +170,16 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         setBodyInput(stripHtml(draft.bodyHtml));
         toast({ title: 'Email draft generated' });
       } else {
-        toast({ variant: 'destructive', title: 'Could not generate email draft' });
+        toast({
+          variant: 'destructive',
+          title: 'Could not generate email draft',
+        });
       }
     } catch {
-      toast({ variant: 'destructive', title: 'Failed to generate email draft' });
+      toast({
+        variant: 'destructive',
+        title: 'Failed to generate email draft',
+      });
     } finally {
       setIsGeneratingDraft(false);
     }
@@ -164,7 +187,10 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
   const handleFindEmail = async () => {
     if (!companyName?.trim()) {
-      toast({ variant: 'destructive', title: 'Company name is required to find email' });
+      toast({
+        variant: 'destructive',
+        title: 'Company name is required to find email',
+      });
       return;
     }
     setIsFindingEmail(true);
@@ -178,9 +204,12 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         setRecruiterEmailInput(email);
         toast({ title: 'Email found' });
       } else {
-        toast({ variant: 'destructive', title: 'Could not find recruitment email' });
+        toast({
+          variant: 'destructive',
+          title: 'Could not find recruitment email',
+        });
       }
-    } catch (err) {
+    } catch {
       toast({ variant: 'destructive', title: 'Failed to find email' });
     } finally {
       setIsFindingEmail(false);
@@ -194,20 +223,30 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast({ variant: 'destructive', title: 'Please enter a valid email address' });
+      toast({
+        variant: 'destructive',
+        title: 'Please enter a valid email address',
+      });
       return;
     }
+
     const subject = subjectInput.trim() || 'Job Application';
     const bodyHtml = bodyInput.trim()
       ? bodyInput.replace(/\n/g, '<br/>')
       : 'Please find my application attached.';
+
+    // Only include coverLetterHtml in the payload when the user actually wrote one
+    const coverLetterHtml = coverLetterText.trim()
+      ? coverLetterToHtml(coverLetterText)
+      : undefined;
+
     if (!onSendEmail) return;
     setIsSendingEmail(true);
     try {
-      await onSendEmail(email, { subject, bodyHtml });
+      await onSendEmail(email, { subject, bodyHtml, coverLetterHtml });
       toast({ title: 'Email sent successfully' });
       setIsSendEmailDialogOpen(false);
-    } catch (err) {
+    } catch {
       toast({ variant: 'destructive', title: 'Failed to send email' });
     } finally {
       setIsSendingEmail(false);
@@ -221,7 +260,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         state.isFullscreen ? 'fixed inset-0 z-50' : 'relative rounded-xl'
       } ${className}`}
     >
-      {/* Header Toolbar */}
+      {/* Header */}
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 px-4 sm:px-6 py-3.5 bg-white rounded-t-xl sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-3">
           {state.isEditing ? (
@@ -254,7 +293,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             </div>
           )}
 
-          {/* Edit / Confirm - primary action */}
           <button
             onClick={actions.toggleEdit}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors active:scale-[0.98] ${
@@ -262,12 +300,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                 ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
                 : 'bg-slate-800 text-white hover:bg-slate-900 shadow-sm'
             }`}
-            title={state.isEditing ? 'Confirm your edits' : 'Edit document'}
           >
             {state.isEditing ? 'Confirm Edits' : 'Edit Document'}
           </button>
 
-          <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+          <div className="h-6 w-px bg-gray-200 hidden sm:block" />
 
           <button
             onClick={actions.toggleImages}
@@ -276,9 +313,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-600 hover:bg-gray-100 border border-gray-200'
             }`}
-            title={state.showImages ? 'Hide Images' : 'Show Images'}
           >
-            <Eye size={16} className={state.showImages ? 'opacity-100' : 'opacity-60'} />
+            <Eye
+              size={16}
+              className={state.showImages ? 'opacity-100' : 'opacity-60'}
+            />
             <span className="hidden sm:inline">Show Profile Image</span>
           </button>
 
@@ -290,18 +329,16 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                 ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
-            title={!state.hasChanges ? 'Make changes to save' : 'Save to profile'}
           >
             <Save size={16} /> Final Save
           </button>
 
-          <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+          <div className="h-6 w-px bg-gray-200 hidden sm:block" />
 
           <button
             onClick={() => actions.exportFile('pdf')}
             disabled={!!state.loadingType || state.isEditing}
-            title={state.isEditing ? 'Confirm edits to enable download' : 'Download as PDF'}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {state.loadingType === 'pdf' ? (
               <Loader2 className="animate-spin shrink-0" size={16} />
@@ -310,11 +347,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             )}
             PDF
           </button>
+
           <button
             onClick={() => actions.exportFile('docx')}
             disabled={!!state.loadingType || state.isEditing}
-            title={state.isEditing ? 'Confirm edits to enable download' : 'Download as DOCX'}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {state.loadingType === 'docx' ? (
               <Loader2 className="animate-spin shrink-0" size={16} />
@@ -326,17 +363,12 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
           {onSendEmail && (
             <>
-              <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+              <div className="h-6 w-px bg-gray-200 hidden sm:block" />
               {canGenerateDraft && (
                 <button
                   onClick={handleGenerateEmailDraft}
                   disabled={state.isEditing || isGeneratingDraft}
-                  title={
-                    state.isEditing
-                      ? 'Confirm edits to enable generation'
-                      : 'Generate email draft with AI'
-                  }
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-violet-600"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isGeneratingDraft ? (
                     <Loader2 className="animate-spin" size={16} />
@@ -349,8 +381,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
               <button
                 onClick={handleSendEmailClick}
                 disabled={state.isEditing}
-                title={state.isEditing ? 'Confirm edits to enable send' : 'Send to recruiter'}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Mail size={16} />
                 <span className="hidden sm:inline">Send to Recruiter</span>
@@ -358,12 +389,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             </>
           )}
 
-          <div className="h-6 w-px bg-gray-200 hidden sm:block" aria-hidden />
+          <div className="h-6 w-px bg-gray-200 hidden sm:block" />
 
           <button
             onClick={actions.toggleFullscreen}
             className="p-2.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded-lg transition-colors"
-            title={state.isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           >
             {state.isFullscreen ? (
               <Minimize2 size={18} />
@@ -374,9 +404,8 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         </div>
       </header>
 
-      {/* Editor Main Canvas */}
+      {/* Canvas */}
       <main className="flex-grow overflow-y-auto p-4 md:p-8 bg-gray-200/50 custom-scrollbar">
-        {/* Base font for all templates - consistent default across CV/CL (templates can override) */}
         <style
           dangerouslySetInnerHTML={{
             __html: `.resume-editor-canvas { font-family: Arial, Helvetica, "Segoe UI", sans-serif; }`,
@@ -385,7 +414,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         {template?.style && (
           <style dangerouslySetInnerHTML={{ __html: template.style }} />
         )}
-
         <div
           ref={editorRef}
           contentEditable={state.isEditing}
@@ -400,122 +428,39 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
       {/* Footer */}
       <footer className="px-4 py-3 border-t border-gray-200 bg-white flex flex-wrap items-center justify-between gap-4 rounded-b-xl">
-        <div className="flex items-center gap-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          <span>{state.wordCount} Words</span>
-        </div>
-
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          {state.wordCount} Words
+        </span>
         <button
           onClick={handleCopy}
           className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors text-sm font-medium"
-          title="Copy plain text"
         >
-          <Copy size={16} />
-          Copy
+          <Copy size={16} /> Copy
         </button>
       </footer>
 
       {/* Send Email Dialog */}
-      <AlertDialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-        <AlertDialogContent className="rounded-xl max-w-lg">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Send Email to Recruiter</AlertDialogTitle>
-            <AlertDialogDescription>
-              Enter the recruiter&apos;s email and edit the draft. {sendEmailHint && `(${sendEmailHint})`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-3 py-2">
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-1 block">To</label>
-              <div className="flex gap-2">
-                <Input
-                  type="email"
-                  placeholder="recruiter@company.com"
-                  value={recruiterEmailInput}
-                  onChange={(e) => setRecruiterEmailInput(e.target.value)}
-                  disabled={isSendingEmail}
-                  className="flex-1"
-                />
-                {companyName && onSendEmail && (
-                  <button
-                    type="button"
-                    onClick={handleFindEmail}
-                    disabled={isFindingEmail || isSendingEmail}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                    title="Find recruitment email by company and location"
-                  >
-                    {isFindingEmail ? (
-                      <Loader2 className="animate-spin" size={16} />
-                    ) : (
-                      <Search size={16} />
-                    )}
-                    Find
-                  </button>
-                )}
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <label className="text-sm font-medium text-slate-700">Subject</label>
-                {canGenerateDraft && (
-                  <button
-                    type="button"
-                    onClick={handleGenerateEmailDraft}
-                    disabled={isGeneratingDraft || isSendingEmail}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-violet-100 text-violet-700 hover:bg-violet-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                    title="Generate subject and message with AI"
-                  >
-                    {isGeneratingDraft ? (
-                      <Loader2 className="animate-spin" size={14} />
-                    ) : (
-                      <Sparkles size={14} />
-                    )}
-                    Generate Email Draft
-                  </button>
-                )}
-              </div>
-              <Input
-                placeholder="Job Application"
-                value={subjectInput}
-                onChange={(e) => setSubjectInput(e.target.value)}
-                disabled={isSendingEmail}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-1 block">Message</label>
-              <Textarea
-                placeholder="Please find my application attached."
-                value={bodyInput}
-                onChange={(e) => setBodyInput(e.target.value)}
-                disabled={isSendingEmail}
-                rows={5}
-                className="resize-y min-h-[100px]"
-              />
-            </div>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-lg" disabled={isSendingEmail}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleSendEmailConfirm();
-              }}
-              disabled={isSendingEmail}
-              className="bg-emerald-600 hover:bg-emerald-700 rounded-lg"
-            >
-              {isSendingEmail ? (
-                <>
-                  <Loader2 className="animate-spin mr-2" size={16} />
-                  Sending...
-                </>
-              ) : (
-                'Send'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <SendEmailDialog
+        isSendEmailDialogOpen={isSendEmailDialogOpen}
+        setIsSendEmailDialogOpen={setIsSendEmailDialogOpen}
+        sendEmailHint={sendEmailHint ?? ''}
+        recruiterEmailInput={recruiterEmailInput}
+        setRecruiterEmailInput={setRecruiterEmailInput}
+        subjectInput={subjectInput}
+        setSubjectInput={setSubjectInput}
+        bodyInput={bodyInput}
+        setBodyInput={setBodyInput}
+        isSendingEmail={isSendingEmail}
+        handleSendEmailConfirm={handleSendEmailConfirm}
+        companyName={companyName ?? ''}
+        showFindEmail={Boolean(companyName && onSendEmail)}
+        handleFindEmail={handleFindEmail}
+        isFindingEmail={isFindingEmail}
+        canGenerateDraft={canGenerateDraft}
+        handleGenerateEmailDraft={handleGenerateEmailDraft}
+        isGeneratingDraft={isGeneratingDraft}
+        onCoverLetterChange={setCoverLetterText}
+      />
 
       {/* Save Dialog */}
       <AlertDialog

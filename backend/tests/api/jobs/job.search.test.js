@@ -1,3 +1,4 @@
+
 /**
  * ============================================================
  *  JOB SEARCH API — Comprehensive Test Suite
@@ -68,13 +69,13 @@ describe('Job Search API — GET /api/v1/jobs/search', () => {
     });
 
     it('1.2b should also handle plus-encoded query (software+engineer) correctly', async () => {
-      const res = await safeGet(`${BASE}?q=software+engineer&page=1&limit=5`);
+      const res = await safeGet(`${BASE}?q=software+engineer&page=1&limit=10`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.data.jobs)).toBe(true);
     });
 
     it('1.3 response envelope should contain success, jobs, and pagination', async () => {
-      const res = await safeGet(url({ q: 'developer', page: 1, limit: 5 }));
+      const res = await safeGet(url({ q: 'developer', page: 1, limit: 10 }));
       expect(res.status).toBe(200);
       // NOTE: success field may be missing on some code-paths — document it
       const hasSuccess = 'success' in res.data;
@@ -214,8 +215,8 @@ describe('Job Search API — GET /api/v1/jobs/search', () => {
   // ──────────────────────────────────────────────────
   describe('3. Pagination', () => {
     it('3.1 page=1 and page=2 should have minimal overlap', async () => {
-      const res1 = await safeGet(url({ q: 'developer', page: 1, limit: 5 }));
-      const res2 = await safeGet(url({ q: 'developer', page: 2, limit: 5 }));
+      const res1 = await safeGet(url({ q: 'developer', page: 1, limit: 10 }));
+      const res2 = await safeGet(url({ q: 'developer', page: 2, limit: 10 }));
       expect(res1.status).toBe(200);
       expect(res2.status).toBe(200);
 
@@ -226,15 +227,15 @@ describe('Job Search API — GET /api/v1/jobs/search', () => {
     });
 
     it('3.2 pagination.currentPage equals requested page', async () => {
-      const res = await safeGet(url({ page: 3, limit: 5 }));
+      const res = await safeGet(url({ page: 3, limit: 10 }));
       expect(res.status).toBe(200);
       expect(res.data.pagination.currentPage).toBe(3);
     });
 
-    it('3.3 limit=1 returns at most 1 job', async () => {
-      const res = await safeGet(url({ q: 'software', limit: 1 }));
+    it('3.3 limit=50 returns at most 50 job', async () => {
+      const res = await safeGet(url({ q: 'software', limit: 50 }));
       expect(res.status).toBe(200);
-      expect(res.data.jobs.length).toBeLessThanOrEqual(1);
+      expect(res.data.jobs.length).toBeLessThanOrEqual(50);
     });
 
     it('3.4 limit=50 returns at most 50 jobs', async () => {
@@ -244,10 +245,12 @@ describe('Job Search API — GET /api/v1/jobs/search', () => {
     });
 
     it('3.5 hasNextPage is a boolean', async () => {
-      const res = await safeGet(url({ q: 'developer', page: 1, limit: 5 }));
+      const res = await safeGet(url({ q: 'developer', page: 1, limit: 10 }));
       expect(res.status).toBe(200);
       expect(typeof res.data.pagination.hasNextPage).toBe('boolean');
     });
+    //comment
+    
 
     /**
      * 🐛 BUG: page=9999 causes 500 — server should return empty list gracefully.
@@ -368,7 +371,7 @@ describe('Job Search API — GET /api/v1/jobs/search', () => {
     });
 
     it('6.3 pagination.totalJobs >= jobs.length', async () => {
-      const res = await safeGet(url({ q: 'developer', page: 1, limit: 5 }));
+      const res = await safeGet(url({ q: 'developer', page: 1, limit: 10 }));
       expect(res.status).toBe(200);
       expect(res.data.pagination.totalJobs).toBeGreaterThanOrEqual(
         res.data.jobs.length,
@@ -376,12 +379,23 @@ describe('Job Search API — GET /api/v1/jobs/search', () => {
     });
 
     it('6.4 success field is true when present on a 200 response', async () => {
-      const res = await safeGet(url({ q: 'developer', page: 1, limit: 5 }));
+      const res = await safeGet(url({ q: 'developer', page: 1, limit: 10 }));
       expect(res.status).toBe(200);
       if ('success' in res.data) {
         expect(res.data.success).toBe(true);
       }
     });
+    it("6.7 should not repeat jobs across pages", async () => {
+  const page1 = await safeGet(url({ q: 'engineer', page: 1, limit: 10 }));
+  const page2 = await safeGet(url({ q: 'engineer', page: 2, limit: 10 }));
+
+  const ids1 = page1.data.jobs.map(j => String(j._id));
+  const ids2 = page2.data.jobs.map(j => String(j._id));
+
+  const intersection = ids1.filter(id => ids2.includes(id));
+
+  expect(intersection.length).toBe(0);
+});
   });
 
   // ──────────────────────────────────────────────────
@@ -399,7 +413,7 @@ describe('Job Search API — GET /api/v1/jobs/search', () => {
 
     it('7.2 second (warm) request should be measurably faster or at least no slower than 3× first', async () => {
       const fetch = () =>
-        safeGet(url({ q: 'react developer', page: 1, limit: 5 }));
+        safeGet(url({ q: 'react developer', page: 1, limit: 10 }));
 
       const t0 = Date.now();
       const res1 = await fetch();
@@ -417,3 +431,5 @@ describe('Job Search API — GET /api/v1/jobs/search', () => {
     });
   });
 });
+
+

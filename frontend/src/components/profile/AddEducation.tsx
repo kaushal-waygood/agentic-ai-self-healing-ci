@@ -493,6 +493,8 @@ const educationSchema = z
       .regex(/^[a-zA-Z\s\-'.,&]*$/, 'Only letters and spaces allowed')
       .optional()
       .nullable(),
+    country: z.string().optional(),
+    gpa: z.string().optional(),
     startDate: z.string().min(1, 'Required'),
     endDate: z.string().optional(),
     isCurrent: z.boolean().optional(),
@@ -510,10 +512,17 @@ export const AddEducation: React.FC<{
     fieldOfStudy: string;
     country: string;
     gpa: string;
+    grade: string;
     startDate: string;
     endDate: string;
+    isCurrent: boolean;
+    isCurrentlyStudying: boolean;
   }>;
 }> = ({ onCancel, isEdit, data }) => {
+  const inferredIsCurrent =
+    // Boolean(data?.isCurrent) || (!data?.endDate && !!data?._id);
+    Boolean(data?.isCurrentlyStudying ?? data?.isCurrent) ||
+    (!data?.endDate && !!data?._id);
   const form = useForm({
     resolver: zodResolver(educationSchema),
     defaultValues: {
@@ -522,15 +531,33 @@ export const AddEducation: React.FC<{
       degree: data?.degree || '',
       fieldOfStudy: data?.fieldOfStudy || '',
       country: data?.country || '',
-      gpa: data?.gpa || '',
+      // gpa: data?.gpa || '',
+      gpa: data?.gpa ?? data?.grade ?? '',
       startDate: toMonth(data?.startDate),
-      endDate: toMonth(data?.endDate),
+      //  endDate: toMonth(data?.endDate),
+      endDate: inferredIsCurrent ? '' : toMonth(data?.endDate),
+      isCurrent: inferredIsCurrent,
     },
     mode: 'onSubmit',
   });
 
   const dispatch = useDispatch();
-  const { handleSubmit, control, reset, trigger } = form;
+  // const { handleSubmit, control, reset, trigger } = form;
+  const {
+    handleSubmit,
+    control,
+    reset,
+    trigger,
+    watch,
+    setValue,
+    clearErrors,
+  } = form;
+  const isCurrent = watch('isCurrent');
+
+  useEffect(() => {
+    if (isCurrent) setValue('endDate', '');
+  }, [isCurrent, setValue]);
+
   const steps: StepDef[] = [
     {
       id: 'basic',
@@ -548,17 +575,38 @@ export const AddEducation: React.FC<{
       id: 'timeline',
       title: 'Dates & GPA',
       icon: Calendar,
-      fields: ['startDate', 'gpa', 'endDate'],
+      // fields: ['startDate', 'gpa', 'endDate'],
+      fields: ['startDate', 'gpa', 'endDate', 'isCurrent'],
     },
   ];
 
   const { currentStep, next, prev } = useStepControls(0);
 
   const onSubmit = (formData: any) => {
+    const { isCurrent, ...rest } = formData;
+
+    //  const payload = {
+    //    ...formData,
+    //    isCurrent: Boolean(formData.isCurrent),
+    //    startDate: monthToIso(formData.startDate)!,
+    //    // endDate: formData.endDate ? monthToIso(formData.endDate) : undefined,
+    //    endDate: formData.isCurrent
+    //      ? null
+    //      : formData.endDate
+    //        ? monthToIso(formData.endDate)
+    //        : undefined,
+    //  };
+
     const payload = {
-      ...formData,
-      startDate: monthToIso(formData.startDate)!,
-      endDate: formData.endDate ? monthToIso(formData.endDate) : undefined,
+      ...rest,
+      isCurrentlyStudying: Boolean(isCurrent),
+      startDate: monthToIso(rest.startDate)!,
+      // endDate: formData.endDate ? monthToIso(formData.endDate) : undefined,
+      endDate: isCurrent
+        ? null
+        : rest.endDate
+          ? monthToIso(rest.endDate)
+          : undefined,
     };
 
     if (isEdit && payload._id) {
@@ -606,6 +654,10 @@ export const AddEducation: React.FC<{
                       <Input
                         {...field}
                         placeholder="e.g., University of Technology"
+                        onChange={(e) => {
+                          field.onChange(e);
+                          clearErrors('institution');
+                        }}
                         required
                       />
                     </FormControl>
@@ -620,7 +672,15 @@ export const AddEducation: React.FC<{
                   <FormItem className="mt-6">
                     <FormLabel>Degree*</FormLabel>
                     <FormControl>
-                      <DegreeSelector field={field as any} />
+                      <DegreeSelector
+                        field={{
+                          value: field.value,
+                          onChange: (v) => {
+                            field.onChange(v);
+                            clearErrors('degree');
+                          },
+                        }}
+                      />
                     </FormControl>
                     <FormMessage className="text-xs text-red-600" />
                   </FormItem>
@@ -637,7 +697,14 @@ export const AddEducation: React.FC<{
                   <FormItem>
                     <FormLabel>Field of Study</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="e.g., Computer Science" />
+                      <Input
+                        {...field}
+                        placeholder="e.g., Computer Science"
+                        onChange={(e) => {
+                          field.onChange(e);
+                          clearErrors('fieldOfStudy');
+                        }}
+                      />
                     </FormControl>
                     <FormMessage className="text-xs text-red-600 mt-1" />
                   </FormItem>
@@ -649,7 +716,13 @@ export const AddEducation: React.FC<{
                 render={({ field }) => (
                   <FormItem className="mt-6">
                     <FormLabel>Country*</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={(v) => {
+                        field.onChange(v);
+                        clearErrors('country');
+                      }}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a country" />
@@ -686,13 +759,15 @@ export const AddEducation: React.FC<{
                               ? new Date(field.value + '-01')
                               : undefined
                           }
-                          setDate={(date) =>
-                            field.onChange(date ? format(date, 'yyyy-MM') : '')
-                          }
+                          setDate={(date) => {
+                            field.onChange(date ? format(date, 'yyyy-MM') : '');
+                            clearErrors('startDate');
+                            clearErrors('endDate');
+                          }}
                           placeholder="Select start month & year"
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs text-red-500 mt-1" />
                     </FormItem>
                   )}
                 />
@@ -706,14 +781,18 @@ export const AddEducation: React.FC<{
                         {/* <Input type="month" {...field} placeholder="Present" /> */}
                         <MonthYearPicker
                           date={
-                            field.value
-                              ? new Date(field.value + '-01')
-                              : undefined
+                            isCurrent
+                              ? undefined
+                              : field.value
+                                ? new Date(field.value + '-01')
+                                : undefined
                           }
-                          setDate={(date) =>
-                            field.onChange(date ? format(date, 'yyyy-MM') : '')
-                          }
+                          setDate={(date) => {
+                            field.onChange(date ? format(date, 'yyyy-MM') : '');
+                            clearErrors('endDate');
+                          }}
                           placeholder="Select end month & year"
+                          disabled={isCurrent}
                           maxDate={new Date()}
                         />
                       </FormControl>
@@ -722,6 +801,26 @@ export const AddEducation: React.FC<{
                   )}
                 />
               </div>
+              <FormField
+                control={control}
+                name="isCurrent"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2 mt-6">
+                    <FormControl>
+                      <Checkbox
+                        checked={!!field.value}
+                        onCheckedChange={(v) => {
+                          field.onChange(v === true);
+                          clearErrors('endDate');
+                        }}
+                      />
+                    </FormControl>
+                    <FormLabel className="!mt-0">
+                      I am currently studying
+                    </FormLabel>
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={control}
                 name="gpa"
@@ -736,6 +835,10 @@ export const AddEducation: React.FC<{
                         step="0.1"
                         min="0"
                         max="100"
+                        onChange={(e) => {
+                          field.onChange(e);
+                          clearErrors('gpa');
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -824,7 +927,15 @@ export const AddProject: React.FC<{
   });
 
   const dispatch = useDispatch();
-  const { handleSubmit, control, reset, watch, setValue, trigger } = form;
+  const {
+    handleSubmit,
+    control,
+    reset,
+    watch,
+    setValue,
+    trigger,
+    clearErrors,
+  } = form;
   const isCurrent = watch('isCurrent');
 
   useEffect(() => {
@@ -909,6 +1020,10 @@ export const AddProject: React.FC<{
                       <Input
                         placeholder="e.g., AI-Powered Chatbot"
                         {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          clearErrors('projectName');
+                        }}
                         required
                       />
                     </FormControl>
@@ -927,6 +1042,10 @@ export const AddProject: React.FC<{
                         placeholder="Describe your project, its goals, and your role."
                         rows={5}
                         {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          clearErrors('description');
+                        }}
                         required
                       />
                     </FormControl>
@@ -953,9 +1072,10 @@ export const AddProject: React.FC<{
                               ? new Date(field.value + '-01')
                               : undefined
                           }
-                          setDate={(date) =>
-                            field.onChange(date ? format(date, 'yyyy-MM') : '')
-                          }
+                          setDate={(date) => {
+                            field.onChange(date ? format(date, 'yyyy-MM') : '');
+                            clearErrors('startDate');
+                          }}
                           placeholder="Select start month & year"
                         />
                       </FormControl>
@@ -982,9 +1102,10 @@ export const AddProject: React.FC<{
                               ? new Date(field.value + '-01')
                               : undefined
                           }
-                          setDate={(date) =>
-                            field.onChange(date ? format(date, 'yyyy-MM') : '')
-                          }
+                          setDate={(date) => {
+                            field.onChange(date ? format(date, 'yyyy-MM') : '');
+                            clearErrors('endDate');
+                          }}
                           placeholder="Select end month & year"
                           disabled={isCurrent}
                           maxDate={new Date()}
@@ -1003,7 +1124,10 @@ export const AddProject: React.FC<{
                     <FormControl>
                       <Checkbox
                         checked={!!field.value}
-                        onCheckedChange={(v) => field.onChange(v === true)}
+                        onCheckedChange={(v) => {
+                          field.onChange(v === true);
+                          clearErrors('endDate');
+                        }}
                       />
                     </FormControl>
                     <FormLabel className="!mt-0">
@@ -1023,7 +1147,15 @@ export const AddProject: React.FC<{
                   <FormItem>
                     <FormLabel>Technologies Used</FormLabel>
                     <FormControl>
-                      <TechnologyInput field={field as any} />
+                      <TechnologyInput
+                        field={{
+                          value: field.value,
+                          onChange: (v) => {
+                            field.onChange(v);
+                            clearErrors('technologies');
+                          },
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1041,6 +1173,10 @@ export const AddProject: React.FC<{
                         <Input
                           placeholder="https://github.com/user/project"
                           {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            clearErrors('link');
+                          }}
                           className="pl-9"
                         />
                       </FormControl>
@@ -1084,7 +1220,8 @@ const experienceSchema = z
     designation: z.string().min(1, 'Designation is required'),
     employmentType: z.string().optional(),
     location: z.string().optional(),
-    isCurrent: z.boolean().optional(),
+    // isCurrent: z.boolean().optional(),
+    currentlyWorking: z.boolean().optional(),
     startDate: z.string().min(1, 'Start date is required'),
     endDate: z.string().optional(),
     description: z.string().optional(),
@@ -1100,6 +1237,7 @@ export const AddExperience: React.FC<{
     employmentType: string;
     location: string;
     isCurrent: boolean;
+    currentlyWorking: boolean;
     startDate: string;
     endDate: string;
     responsibilities: string;
@@ -1114,7 +1252,8 @@ export const AddExperience: React.FC<{
       designation: data?.designation || '',
       employmentType: data?.employmentType || '',
       location: data?.location || '',
-      isCurrent: Boolean(data?.isCurrent),
+      // isCurrent: Boolean(data?.isCurrent),
+      currentlyWorking: Boolean(data?.currentlyWorking ?? data?.isCurrent),
       startDate: toMonth(data?.startDate),
       endDate: toMonth(data?.endDate),
       responsibilities: data?.responsibilities || '',
@@ -1124,12 +1263,23 @@ export const AddExperience: React.FC<{
   });
 
   const dispatch = useDispatch();
-  const { handleSubmit, control, watch, setValue, trigger, reset } = form;
-  const isCurrent = watch('isCurrent');
+  const {
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    trigger,
+    reset,
+    clearErrors,
+  } = form;
+  // const isCurrent = watch('isCurrent');
+  const currentlyWorking = watch('currentlyWorking');
 
   useEffect(() => {
-    if (isCurrent) setValue('endDate', '');
-  }, [isCurrent, setValue]);
+    //       if (isCurrent) setValue('endDate', '');
+    if (currentlyWorking) setValue('endDate', '');
+    // }, [isCurrent, setValue]);
+  }, [currentlyWorking, setValue]);
 
   const steps: StepDef[] = [
     {
@@ -1148,7 +1298,8 @@ export const AddExperience: React.FC<{
       id: 'timeline',
       title: 'Timeline & Responsibilities',
       icon: Calendar,
-      fields: ['startDate', 'endDate', 'isCurrent', 'responsibilities'],
+      // fields: ['startDate', 'endDate', 'isCurrent', 'responsibilities'],
+      fields: ['startDate', 'endDate', 'currentlyWorking', 'responsibilities'],
     },
   ];
 
@@ -1158,7 +1309,8 @@ export const AddExperience: React.FC<{
     const payload = {
       ...formData,
       startDate: monthToIso(formData.startDate)!,
-      endDate: formData.isCurrent ? undefined : monthToIso(formData.endDate),
+      // endDate: formData.isCurrent ? undefined : monthToIso(formData.endDate),
+      endDate: formData.currentlyWorking ? null : monthToIso(formData.endDate),
     };
 
     if (isEdit && payload._id) {
@@ -1206,6 +1358,10 @@ export const AddExperience: React.FC<{
                       <Input
                         {...field}
                         placeholder="e.g., Company Inc."
+                        onChange={(e) => {
+                          field.onChange(e);
+                          clearErrors('company');
+                        }}
                         required
                       />
                     </FormControl>
@@ -1223,6 +1379,10 @@ export const AddExperience: React.FC<{
                       <Input
                         {...field}
                         placeholder="e.g., Software Engineer"
+                        onChange={(e) => {
+                          field.onChange(e);
+                          clearErrors('designation');
+                        }}
                         required
                       />
                     </FormControl>
@@ -1242,7 +1402,10 @@ export const AddExperience: React.FC<{
                       <FormLabel>Employment Type</FormLabel>
                       <Select
                         value={field.value}
-                        onValueChange={field.onChange}
+                        onValueChange={(v) => {
+                          field.onChange(v);
+                          clearErrors('employmentType');
+                        }}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1271,6 +1434,10 @@ export const AddExperience: React.FC<{
                         <Input
                           placeholder="e.g., San Francisco, CA"
                           {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            clearErrors('location');
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1296,9 +1463,11 @@ export const AddExperience: React.FC<{
                               ? new Date(field.value + '-01')
                               : undefined
                           }
-                          setDate={(date) =>
-                            field.onChange(date ? format(date, 'yyyy-MM') : '')
-                          }
+                          setDate={(date) => {
+                            field.onChange(date ? format(date, 'yyyy-MM') : '');
+                            clearErrors('startDate');
+                            clearErrors('endDate');
+                          }}
                           placeholder="Select start month & year"
                         />
                       </FormControl>
@@ -1326,11 +1495,13 @@ export const AddExperience: React.FC<{
                               ? new Date(field.value + '-01')
                               : undefined
                           }
-                          setDate={(date) =>
-                            field.onChange(date ? format(date, 'yyyy-MM') : '')
-                          }
+                          setDate={(date) => {
+                            field.onChange(date ? format(date, 'yyyy-MM') : '');
+                            clearErrors('endDate');
+                          }}
                           placeholder="Select end month & year"
-                          disabled={isCurrent}
+                          // disabled={isCurrent}
+                          disabled={currentlyWorking}
                           maxDate={new Date()}
                         />
                       </FormControl>
@@ -1339,15 +1510,18 @@ export const AddExperience: React.FC<{
                   )}
                 />
               </div>
-              {/* <FormField
+              <FormField
                 control={control}
-                name="isCurrent"
+                name="currentlyWorking"
                 render={({ field }) => (
                   <FormItem className="flex items-center space-x-2 mt-6">
                     <FormControl>
                       <Checkbox
                         checked={!!field.value}
-                        onCheckedChange={(v) => field.onChange(v === true)}
+                        onCheckedChange={(v) => {
+                          field.onChange(v === true);
+                          clearErrors('endDate');
+                        }}
                       />
                     </FormControl>
                     <FormLabel className="!mt-0">
@@ -1355,7 +1529,7 @@ export const AddExperience: React.FC<{
                     </FormLabel>
                   </FormItem>
                 )}
-              /> */}
+              />
               <FormField
                 control={control}
                 name="description"
@@ -1367,6 +1541,10 @@ export const AddExperience: React.FC<{
                         placeholder="Describe your key responsibilities and achievements."
                         rows={4}
                         {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          clearErrors('description');
+                        }}
                       />
                     </FormControl>
                     <FormMessage />

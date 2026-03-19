@@ -6,6 +6,7 @@ import BlogComments from '../../models/blogs/BlogComments.js';
 import axios from 'axios';
 import { cloudinary } from '../../config/cloudinary.js';
 import fs from 'fs';
+import slugify from 'slugify';
 
 /**
  * Build the standard aggregation pipeline for a single blog by _id.
@@ -187,7 +188,6 @@ export const createBlog = async (req, res) => {
   try {
     let {
       title,
-      slug,
       shortDescription,
       fullDescription,
       author,
@@ -203,6 +203,17 @@ export const createBlog = async (req, res) => {
 
     if (publishStatus) {
       publishStatus = publishStatus.toUpperCase();
+    }
+
+    const slug = `${slugify(title, {
+      lower: true,
+      strict: true,
+      remove: /[*+~.()"!:@]/g,
+    })}-${Date.now()}`;
+
+    const existing = await Blog.findOne({ slug });
+    if (existing) {
+      return res.status(400).json({ message: 'Slug already exists.' });
     }
 
     const data = {
@@ -1261,7 +1272,7 @@ export const deleteBlogTag = async (req, res) => {
  */
 export const listBlogTags = async (req, res) => {
   try {
-    let { page = 1, limit = 10, search, isActive } = req.query;
+    let { page = 1, limit, search, isActive } = req.query;
     page = Math.max(1, parseInt(page, 10));
     limit = Math.max(1, parseInt(limit, 10));
 

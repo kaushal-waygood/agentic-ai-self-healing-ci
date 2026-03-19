@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/popover';
 import {
   Eye,
-  Download,
   MessageSquare,
   ArrowUpDown,
   Loader2,
@@ -22,9 +21,12 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  Tag,
+  LayoutGrid,
+  PlusCircle,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -34,12 +36,14 @@ const BlogsPage = () => {
 
   // Destructure from store correctly
   const {
-    blogListdata, // Matches your console.log and store state
+    blogListdata,
     blogPaginator,
     getBlogList,
-    deleteBlog,
-    bulkDeleteBlogs,
     getDeleteBlog,
+    bulkDeleteBlogs,
+    isBlogStatusLoading,
+    updatingBlogId,
+    updateBlogStatus,
     isLoading,
   } = useBlogStore();
 
@@ -166,13 +170,34 @@ const BlogsPage = () => {
       {
         accessorKey: 'isActive',
         header: 'Visibility',
-        cell: ({ row }) => (
-          <div
-            className={`text-[10px] font-bold ${row.original.isActive ? 'text-indigo-600' : 'text-slate-400'}`}
-          >
-            {row.original.isActive ? 'PUBLIC' : 'HIDDEN'}
-          </div>
-        ),
+        cell: ({ row }) => {
+          // Check if this specific row is the one being updated
+          const isThisRowLoading =
+            isBlogStatusLoading && updatingBlogId === row.original._id;
+
+          return (
+            <Button
+              variant="ghost" // Using ghost or similar for a cleaner look
+              disabled={isThisRowLoading}
+              className={`text-[10px] font-bold min-w-[70px] ${
+                row.original.isActive ? 'text-indigo-600' : 'text-slate-400'
+              }`}
+              onClick={() => {
+                updateBlogStatus(row.original._id, {
+                  isActive: !row.original.isActive,
+                });
+              }}
+            >
+              {isThisRowLoading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : row.original.isActive ? (
+                'PUBLIC'
+              ) : (
+                'HIDDEN'
+              )}
+            </Button>
+          );
+        },
       },
       {
         id: 'actions',
@@ -216,7 +241,6 @@ const BlogsPage = () => {
                       variant="destructive"
                       onClick={async () => {
                         await getDeleteBlog(row.original._id);
-                        toast.success('Deleted');
                         setIsDelOpen(false);
                       }}
                     >
@@ -230,16 +254,21 @@ const BlogsPage = () => {
         },
       },
     ],
-    [router, deleteBlog],
+    [
+      router,
+      getDeleteBlog,
+      getBlogList, // Add this
+      currentPage, // Add this
+      searchQuery, // Add this
+      currentStatus,
+    ],
   );
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-indigo-600">
-            Blog Management
-          </h1>
+          <h1 className="text-3xl font-bold text-blue-500">Blog Management</h1>
           <p className="text-gray-500">
             Managing {blogPaginator?.itemCount || 0} articles across the
             platform
@@ -248,20 +277,25 @@ const BlogsPage = () => {
         <div className="flex gap-3">
           <Button
             onClick={() => router.push('/dashboard/blog/tags')}
-            className="bg-indigo-600 hover:bg-indigo-700"
+            className="font-bold flex items-center gap-2"
           >
+            <Tag size={18} />
             Tags
           </Button>
+
           <Button
             onClick={() => router.push('/dashboard/blog/category')}
-            className="bg-indigo-600 hover:bg-indigo-700"
+            className="font-bold flex items-center gap-2"
           >
+            <LayoutGrid size={18} />
             Category
           </Button>
+
           <Button
             onClick={() => router.push('/dashboard/blog/post')}
-            className="bg-indigo-600 hover:bg-indigo-700"
+            className="font-bold flex items-center gap-2"
           >
+            <PlusCircle size={18} />
             Create Post
           </Button>
         </div>
@@ -316,7 +350,7 @@ const BlogsPage = () => {
           <Loader2 className="h-10 w-10 animate-spin text-indigo-500" />
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className=" ">
           <DataTable
             columns={columns}
             data={blogListdata || []}

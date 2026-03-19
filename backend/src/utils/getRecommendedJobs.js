@@ -40,7 +40,8 @@ function extractProfileFromStudent(student) {
   };
 }
 
-function buildSearchQuery(student, agentConfig) {
+function buildSearchQuery(student, agentConfig, queryOverride) {
+  if (queryOverride) return queryOverride;
   const parts = [];
   const role = agentConfig?.jobTitle || student?.jobRole;
   if (role) parts.push(String(role));
@@ -49,17 +50,15 @@ function buildSearchQuery(student, agentConfig) {
   return parts.filter(Boolean).join(' ').trim() || 'Software Engineer';
 }
 
-/**
- * Build jobHelpers context from studentProfile + agentConfig for accurate job matching.
- */
 function buildRecommendationContext(
   studentId,
   studentProfile,
   agentConfig,
   appliedJobIds,
+  queryOverride,
 ) {
   const profile = extractProfileFromStudent(studentProfile);
-  const query = buildSearchQuery(studentProfile, agentConfig);
+  const query = buildSearchQuery(studentProfile, agentConfig, queryOverride);
 
   const filters = {};
   const country =
@@ -88,6 +87,7 @@ function buildRecommendationContext(
       saved: new Set(),
       views: {},
     },
+    queryOverride: queryOverride || null,
   };
 }
 
@@ -97,8 +97,9 @@ export const getRecommendedJobs = async ({
   studentProfile,
   appliedJobIds = [],
   limit = 50,
-  skipExternalFetch = false, // true for autopilot to avoid RapidAPI 429
-  includeAppliedInResults = false, // true for agent dashboard - show jobs even if already applied
+  skipExternalFetch = false,
+  includeAppliedInResults = false,
+  queryOverride,
 }) => {
   const student = studentProfile || (await Student.findById(studentId).lean());
   if (!student) throw new Error('Student not found');
@@ -109,10 +110,16 @@ export const getRecommendedJobs = async ({
     student,
     agentConfig,
     appliedJobIds,
+    queryOverride,
   );
   context.skipExternalFetch = skipExternalFetch;
   context.includeAppliedInResults = includeAppliedInResults;
   context.skipCacheForAgent = includeAppliedInResults;
+
+  if (queryOverride) {
+    context.query = queryOverride;
+    context.profile.titles = normalizeSet([queryOverride]);
+  }
 
   // Merge JobInteraction-based applied/saved if available (e.g. from dashboard)
   const interactionCtx = await buildInteractionContext(studentId);
@@ -128,7 +135,7 @@ export const getRecommendedJobs = async ({
   let candidates = await retrieveCandidates(context, poolSize);
   let filterContext = context;
 
-  // When autopilot gets 0 local jobs, retry with relaxed country filter (DB may have jobs from other regions)
+  // When autopilot gets 0 local jobs, retry with relaxed country filter
   if (
     skipExternalFetch &&
     candidates.length === 0 &&
@@ -138,7 +145,7 @@ export const getRecommendedJobs = async ({
     delete relaxedContext.filters.country;
     relaxedContext.skipExternalFetch = true;
     candidates = await retrieveCandidates(relaxedContext, poolSize);
-    filterContext = relaxedContext; // use relaxed filters so we don't filter out the fallback jobs
+    filterContext = relaxedContext;
   }
 
   let filtered = applyFilters(candidates, filterContext);
@@ -148,7 +155,6 @@ export const getRecommendedJobs = async ({
     agentConfig?.isRemote || student?.jobPreferences?.isRemote;
   if (prefersRemote) {
     const remoteOnly = filtered.filter((j) => !!j.remote);
-    // Keep non-remote jobs as fallback when no remote jobs found (don't drop all jobs)
     filtered = remoteOnly.length > 0 ? remoteOnly : filtered;
   }
 
@@ -168,6 +174,7 @@ export const getRecommendedJobs = async ({
       isRemote: !!job.remote,
       rankScore: job.rankScore,
     }));
+    console.log(`[DEBUG_JOBS] Top ${preview.length} jobs:`, preview);
   }
 
   return jobs;

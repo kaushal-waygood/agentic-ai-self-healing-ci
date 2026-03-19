@@ -6,6 +6,7 @@ import {
   getSinglePilotAgent,
   removeAutoPilotAgent,
   startAgentJobTailoredGeneration,
+  singleActivateAgent,
 } from '../controllers/autopilotAgent.controller.js';
 import express from 'express';
 import {
@@ -46,5 +47,11 @@ router.delete(
   removeAutoPilotAgent,
 );
 router.post('/activate/:id', authMiddleware, isGeneralUser, activateAgent);
+router.patch(
+  '/agent/active/:id',
+  authMiddleware,
+  isGeneralUser,
+  singleActivateAgent,
+);
 
 export default router;
