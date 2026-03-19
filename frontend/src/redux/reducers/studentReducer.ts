@@ -28,6 +28,7 @@ export interface Education {
   country: string;
   gpa?: string;
   isCurrent?: boolean;
+  isCurrentlyStudying?: boolean;
   startDate: string; // ISO
   endDate?: string; // ISO | undefined
 }
@@ -39,6 +40,7 @@ export interface Experience {
   employmentType?: string;
   location?: string;
   isCurrent?: boolean;
+  currentlyWorking?: boolean;
   startDate: string; // ISO
   endDate?: string; // ISO | undefined
   responsibilities?: string;

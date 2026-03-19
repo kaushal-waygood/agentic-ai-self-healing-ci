@@ -70,6 +70,7 @@ export const useProfile = () => {
   const studentWrapper = useSelector(
     (state: RootState) => state.student.students?.[0],
   );
+  const authUser = useSelector((state: RootState) => state.auth.user);
 
   const studentData = studentWrapper?.student;
 
@@ -97,19 +98,23 @@ export const useProfile = () => {
   ------------------------------ */
 
   useEffect(() => {
-    if (!studentData) return;
+    // if (!studentData) return;
+    if (!studentData && !authUser) return;
+    const resolvedEmail = authUser?.email ?? studentData?.email ?? '';
     setProfile({
-      fullName: studentData.fullName ?? '',
-      email: studentData.email ?? '',
-      phone: studentData.phone ?? '',
-      jobRole: studentData.jobRole ?? '',
-      location: studentData.location ?? '',
-      avatar: studentData.profileImage ?? '',
-      uploadedCV: studentData.resumeUrl ?? '',
+      fullName: studentData?.fullName ?? '',
+      // email: studentData.email ?? '',
+      email: resolvedEmail,
+      phone: studentData?.phone ?? '',
+      jobRole: studentData?.jobRole ?? '',
+      location: studentData?.location ?? '',
+      avatar: studentData?.profileImage ?? '',
+      uploadedCV: studentData?.resumeUrl ?? '',
     });
 
-    setPreview(studentData.profileImage || dummyAvatar);
-  }, [studentData]);
+    setPreview(studentData?.profileImage || dummyAvatar);
+    // }, [studentData]);
+  }, [studentData, authUser]);
 
   /* -----------------------------
      Input handlers

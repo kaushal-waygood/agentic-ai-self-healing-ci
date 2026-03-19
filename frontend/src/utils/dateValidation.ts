@@ -104,8 +104,11 @@ export const validateExperienceDates = (
  * This can be imported and used directly in schemas
  */
 export const validateEndDate = (data: any, ctx: any) => {
+  const isCurrent = Boolean(data?.isCurrent ?? data?.currentlyWorking);
+
   // End date required check
-  if (!data.isCurrent && !data.endDate) {
+  // if (!data.isCurrent && !data.endDate) {
+  if (!isCurrent && !data.endDate) {
     ctx.addIssue({
       code: 'custom',
       message: 'End date is required if not currently working',
@@ -115,7 +118,8 @@ export const validateEndDate = (data: any, ctx: any) => {
   }
 
   // End date after start date check
-  if (!data.isCurrent && data.startDate && data.endDate) {
+  // if (!data.isCurrent && data.startDate && data.endDate) {
+  if (!isCurrent && data.startDate && data.endDate) {
     const start = new Date(data.startDate + '-01');
     const end = new Date(data.endDate + '-01');
 
@@ -130,7 +134,8 @@ export const validateEndDate = (data: any, ctx: any) => {
   }
 
   // End date not in future check
-  if (!data.isCurrent && data.endDate) {
+  // if (!data.isCurrent && data.endDate) {
+  if (!isCurrent && data.endDate) {
     const end = new Date(data.endDate + '-01');
     const now = new Date();
     const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -154,8 +159,11 @@ export const validateEndDate = (data: any, ctx: any) => {
 export const createDateRefinements = () => {
   return {
     validateEndDate: (data: any, ctx: any) => {
+      const isCurrent = Boolean(data?.isCurrent ?? data?.currentlyWorking);
+
       // End date required check
-      if (!data.isCurrent && !data.endDate) {
+      // if (!data.isCurrent && !data.endDate) {
+      if (!isCurrent && !data.endDate) {
         ctx.addIssue({
           code: 'custom',
           message: 'End date is required if not currently working',
@@ -165,7 +173,8 @@ export const createDateRefinements = () => {
       }
 
       // End date after start date check
-      if (!data.isCurrent && data.startDate && data.endDate) {
+      //  if (!data.isCurrent && data.startDate && data.endDate) {
+      if (!isCurrent && data.startDate && data.endDate) {
         const start = new Date(data.startDate + '-01');
         const end = new Date(data.endDate + '-01');
 
@@ -180,7 +189,8 @@ export const createDateRefinements = () => {
       }
 
       // End date not in future check
-      if (!data.isCurrent && data.endDate) {
+      // if (!data.isCurrent && data.endDate) {
+      if (!isCurrent && data.endDate) {
         const end = new Date(data.endDate + '-01');
         const now = new Date();
         const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);

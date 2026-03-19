@@ -131,10 +131,39 @@ const Experience = () => {
                     </div>
                   )}
 
-                  {exp.location && (
-                    <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                      <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                      <span>{exp.location}</span>
+                    {exp.experienceYrs > 0 && (
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span>{exp.experienceYrs} years</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <span>
+                        {formatDateForMonthInput(exp.startDate)} to{' '}
+                        {/* {formatDateForMonthInput(exp.endDate) || 'Present'} */}
+                        {exp.currentlyWorking
+                          ? 'Present'
+                          : formatDateForMonthInput(exp.endDate) || 'Present'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* {exp.technologies?.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Technologies:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {exp.technologies.map((tech: string) => (
+                          <span
+                            key={tech}
+                            className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

@@ -93,11 +93,16 @@ export default function ResetPasswordPage() {
 
       // Redirect to login page after successful reset
       window.location.href = '/login';
-    } catch (error) {
+      // } catch (error) {
+    } catch (error: any) {
       console.error('Reset password error:', error);
+      const message =
+        error?.response?.data?.message ||
+        'Failed to reset password. Please try again.';
       toast({
         title: 'Error',
-        description: 'Failed to reset password. Please try again.',
+        // description: 'Failed to reset password. Please try again.',
+        description: message,
         variant: 'destructive',
       });
     }
