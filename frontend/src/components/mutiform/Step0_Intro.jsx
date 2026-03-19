@@ -498,7 +498,7 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
                 return (
                   <div key={key}>
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                      {DATE_LABELS[key]} ({list.length})
+                      {list.length}
                     </p>
                     <ul className="space-y-2">
                       {list.map((job) => {
