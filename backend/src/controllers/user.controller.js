@@ -1042,7 +1042,8 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Passwords do not match' });
 
     const user = await User.findOne({ email }).select(
-      '+passwordResetToken +passwordResetExpires',
+      // '+passwordResetToken +passwordResetExpires',
+      '+password +passwordResetToken +passwordResetExpires',
     );
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -1052,6 +1053,15 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired token' });
     if (user.passwordResetExpires < new Date())
       return res.status(400).json({ message: 'Token has expired' });
+
+    if (user.password) {
+      const isSamePassword = await user.isPasswordCorrect(newPassword);
+      if (isSamePassword) {
+        return res.status(400).json({
+          message: 'New password cannot be the same as current password',
+        });
+      }
+    }
 
     user.password = newPassword;
     user.passwordResetToken = undefined;
