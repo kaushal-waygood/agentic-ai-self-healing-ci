@@ -79,11 +79,13 @@ const USAGE_LIMIT_INCREMENTS = {
 };
 
 function computeDailyStreakUpdate(user, { allowRecovery = true } = {}) {
-  const today = dayjs().startOf('day');
+  // const today = dayjs().startOf('day');
+  const today = dayjs().tz(IST).startOf('day');
 
   const streak = user.dailyStreak || {};
   const lastClaimedAt = streak.lastClaimedAt
-    ? dayjs(streak.lastClaimedAt).startOf('day')
+    ? //  ? dayjs(streak.lastClaimedAt).startOf('day')
+      dayjs(streak.lastClaimedAt).tz(IST).startOf('day')
     : null;
 
   // Already claimed today
@@ -277,6 +279,7 @@ export const getDailyStreak = async (req, res) => {
         current: streak.current || 0,
         longest: streak.longest || 0,
         lastClaimedAt: streak.lastClaimedAt || null,
+        freezeTokens: streak.freezeTokens || 0,
       },
       canClaimToday,
     });
