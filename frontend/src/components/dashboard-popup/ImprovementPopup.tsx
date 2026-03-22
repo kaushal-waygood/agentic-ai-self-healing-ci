@@ -7,13 +7,19 @@ import { Button } from '@/components/ui/button';
 import apiInstance from '@/services/api';
 
 interface ImprovementPopupProps {
-  onClose: () => void;
-  onYes?: () => void;
+  feedbackCategory: string;
+  feedbackPath: string;
+  onDismiss: () => void;
+  onSubmitSuccess: () => void;
+  onCloseAfterSubmit: () => void;
 }
 
 export default function ImprovementPopup({
-  onClose,
-  onYes,
+  feedbackCategory,
+  feedbackPath,
+  onDismiss,
+  onSubmitSuccess,
+  onCloseAfterSubmit,
 }: ImprovementPopupProps) {
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,11 +38,12 @@ export default function ImprovementPopup({
     setIsSubmitting(true);
     try {
       await apiInstance.post('/user/feedback', {
+        category: feedbackCategory,
         feedback,
-        type: 'improvement-suggestion',
+        path: feedbackPath,
       });
       setSubmitted(true);
-      if (onYes) onYes();
+      onSubmitSuccess();
     } catch (error) {
       console.error('Feedback submit failed:', error);
     } finally {
@@ -44,7 +51,14 @@ export default function ImprovementPopup({
     }
   };
 
-  const handleClose = () => onClose();
+  const handleClose = () => {
+    if (submitted) {
+      onCloseAfterSubmit();
+      return;
+    }
+
+    onDismiss();
+  };
 
   if (!mounted) return null;
 
@@ -54,14 +68,14 @@ export default function ImprovementPopup({
       {/* Increased Z-Index to 9999 to outrank other modals */}
       <div
         className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]"
-        onClick={onClose}
+        onClick={handleClose}
       />
       <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none">
         <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl p-6 pointer-events-auto">
           {showCalendar ? (
             <>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="absolute top-4 right-4 p-1 hover:bg-gray-100 rounded-full"
               >
                 <X className="w-4 h-4 text-gray-500" />
@@ -104,14 +118,17 @@ export default function ImprovementPopup({
               <p className="text-sm text-gray-500 mt-2">
                 We appreciate your feedback!
               </p>
-              <Button onClick={onClose} className="mt-4 bg-gray-900 text-white">
+              <Button
+                onClick={onCloseAfterSubmit}
+                className="mt-4 bg-gray-900 text-white"
+              >
                 Close
               </Button>
             </div>
           ) : (
             <>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="absolute top-4 right-4 p-1 hover:bg-gray-100 rounded-full"
               >
                 <X className="w-4 h-4 text-gray-500" />

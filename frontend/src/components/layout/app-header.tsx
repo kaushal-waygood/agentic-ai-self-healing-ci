@@ -483,7 +483,8 @@ const AppHeader = ({
         .filter(
           (key) =>
             key === 'streak_popup_shown' ||
-            key.startsWith('streak_popup_shown_'),
+            key.startsWith('streak_popup_shown_') ||
+            key.startsWith('improvement_popup_attempted_'),
         )
         .forEach((key) => sessionStorage.removeItem(key));
       dispatch(logoutRequest());

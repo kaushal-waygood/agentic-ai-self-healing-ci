@@ -15,8 +15,8 @@ import DashboardFooter from '@/components/layout/DashboardFooter';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Footer } from '@/components/layout/footer';
 import { useDispatch, useSelector } from 'react-redux';
-import ProtectedRoute from '@/components/protected/ProtectedRoute';
-import FeedbackPopup from '@/components/ui/feedbackPopup';
+// import ProtectedRoute from '@/components/protected/ProtectedRoute';
+// import FeedbackPopup from '@/components/ui/feedbackPopup';
 import { FeedbackProvider } from '@/components/Feedback-context/feedbackContext';
 import logRocketAnalytics from '@/components/logrocket/logrocket';
 import { RootState } from '@/redux/rootReducer';
@@ -28,6 +28,17 @@ import {
   fetchDailyStreakRequest,
   getTotalCreditRequest,
 } from '@/redux/reducers/creditReducer';
+import {
+  IMPROVEMENT_POPUP_EVENT_NAME,
+  dismissImprovementPopup,
+  getImprovementPopupEventAttemptId,
+  getImprovementPopupDelayMs,
+  getImprovementPopupSessionAttemptKey,
+  markImprovementPopupPending,
+  markImprovementPopupSubmitted,
+  readImprovementPopupState,
+} from '@/lib/improvement-popup';
+import type { PendingImprovementEvent } from '@/lib/improvement-popup';
 
 interface SidebarContextType {
   isOpen: boolean;
@@ -56,32 +67,88 @@ function getStreakPopupStorageKey() {
   return `streak_popup_shown_${formattedDate}`;
 }
 
+const IMPROVEMENT_SAFE_ROUTE_PREFIXES = [
+  '/dashboard/search-jobs',
+  '/dashboard/my-docs',
+  '/dashboard/applications',
+  '/dashboard/notifications',
+  '/dashboard/credits',
+];
+
+const ACTIVE_IDLE_WINDOW_MS = 15_000;
+
+function isImprovementSafeRoute(pathname: string) {
+  if (pathname === '/dashboard') return true;
+
+  return IMPROVEMENT_SAFE_ROUTE_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+function hasBlockingModal() {
+  if (typeof document === 'undefined') return false;
+
+  if (document.querySelector('[role="dialog"], [aria-modal="true"]')) {
+    return true;
+  }
+
+  const overlayCandidates = document.querySelectorAll<HTMLElement>(
+    '[class*="fixed"][class*="inset-0"], [data-state="open"]',
+  );
+
+  return Array.from(overlayCandidates).some((element) => {
+    const style = window.getComputedStyle(element);
+    if (
+      style.display === 'none' ||
+      style.visibility === 'hidden' ||
+      style.pointerEvents === 'none' ||
+      style.position !== 'fixed'
+    ) {
+      return false;
+    }
+
+    const rect = element.getBoundingClientRect();
+    const coversViewport =
+      rect.width >= window.innerWidth - 8 &&
+      rect.height >= window.innerHeight - 8;
+
+    if (!coversViewport) return false;
+
+    return (
+      style.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
+      style.backdropFilter !== 'none'
+    );
+  });
+}
+
 export default function DashboardLayoutClient({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const isDashboardPage = pathname.startsWith('/dashboard');
+  const isOnboardingPage = pathname === '/dashboard/onboarding-tour';
+  const showDashboardUI = isDashboardPage && !isOnboardingPage;
   const isStreakPopupRoute =
-    pathname.startsWith('/dashboard') &&
-    pathname !== '/dashboard/onboarding-tour';
+    isDashboardPage && pathname !== '/dashboard/onboarding-tour';
   const [isOpen, setIsOpen] = useState(true);
   const [isPinned, setPinned] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [showImprovementPopup, setShowImprovementPopup] = useState(false);
-  const [hasUserEngaged, setHasUserEngaged] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout>();
-  const [lastDismissedPath, setLastDismissedPath] = useState<string | null>(
-    null,
-  );
-
-  const popupShownForPathRef = useRef<Set<string>>(new Set());
+  const improvementTimerRef = useRef<NodeJS.Timeout>();
+  const lastUserActivityRef = useRef(Date.now());
 
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
-  const [globalLastDismissTime, setGlobalLastDismissTime] = useState<number>(0);
+  // const [globalLastDismissTime, setGlobalLastDismissTime] =
+  //   useState<number>(0);
+  const improvementUserId = user?._id || user?.id || null;
+  const [pendingImprovementEvent, setPendingImprovementEvent] =
+    useState<PendingImprovementEvent | null>(null);
+  const [submittedUntil, setSubmittedUntil] = useState<number | null>(null);
   // const { streak, claiming, claim } = useDailyStreak();
   const { streak } = useDailyStreak();
 
@@ -116,75 +183,183 @@ export default function DashboardLayoutClient({
   }, [isStreakPopupRoute, streak?.canClaimToday]);
 
   useEffect(() => {
-    // 1. Check if user already saw it this session OR permanently
-    const hasShownImprovement = sessionStorage.getItem(
-      'improvement_popup_shown',
-    );
-
-    // Check local storage for permanent completion
-    const feedbackData = localStorage.getItem('feedback_completed');
-    let isPermanentlyCompleted = false;
-    if (feedbackData) {
-      const { expiry } = JSON.parse(feedbackData);
-      isPermanentlyCompleted = Date.now() < expiry;
-    }
-
-    // If they already interacted, don't start the timer
-    if (hasShownImprovement || isPermanentlyCompleted) {
+    if (!improvementUserId) {
+      setPendingImprovementEvent(null);
+      setSubmittedUntil(null);
       return;
     }
 
-    // 2. Clear existing timers on route change to prevent "stacking"
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
+    const nextState = readImprovementPopupState(improvementUserId);
+    setPendingImprovementEvent(nextState.pendingEvent);
+    setSubmittedUntil(nextState.submittedUntil);
+  }, [improvementUserId]);
 
-    // 3. Set the 30-second timer (30,000ms)
-    timerRef.current = setTimeout(() => {
-      setShowImprovementPopup(true);
-      // Mark as shown so a refresh doesn't trigger it again instantly
-      sessionStorage.setItem('improvement_popup_shown', 'true');
-    }, 30000);
+  useEffect(() => {
+    if (!improvementUserId) return;
+
+    const handleImprovementEvent = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{ type?: PendingImprovementEvent['type'] }>
+      ).detail;
+
+      if (!detail?.type) return;
+
+      const nextState = markImprovementPopupPending(
+        improvementUserId,
+        detail.type,
+      );
+      setPendingImprovementEvent(nextState.pendingEvent);
+      setSubmittedUntil(nextState.submittedUntil);
+    };
+
+    window.addEventListener(
+      IMPROVEMENT_POPUP_EVENT_NAME,
+      handleImprovementEvent as EventListener,
+    );
 
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      window.removeEventListener(
+        IMPROVEMENT_POPUP_EVENT_NAME,
+        handleImprovementEvent as EventListener,
+      );
     };
-  }, [pathname]); // Restarts the 30s clock whenever they change pages
+  }, [improvementUserId]);
+
+  useEffect(() => {
+    const recordActivity = () => {
+      lastUserActivityRef.current = Date.now();
+    };
+
+    recordActivity();
+    window.addEventListener('click', recordActivity);
+    window.addEventListener('scroll', recordActivity);
+    window.addEventListener('keydown', recordActivity);
+    window.addEventListener('mousemove', recordActivity);
+    window.addEventListener('touchstart', recordActivity);
+    document.addEventListener('visibilitychange', recordActivity);
+
+    return () => {
+      window.removeEventListener('click', recordActivity);
+      window.removeEventListener('scroll', recordActivity);
+      window.removeEventListener('keydown', recordActivity);
+      window.removeEventListener('mousemove', recordActivity);
+      window.removeEventListener('touchstart', recordActivity);
+      document.removeEventListener('visibilitychange', recordActivity);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (improvementTimerRef.current) {
+      clearInterval(improvementTimerRef.current);
+    }
+
+    if (!improvementUserId || !pendingImprovementEvent) return;
+    if (submittedUntil && submittedUntil > Date.now()) return;
+    if (!isImprovementSafeRoute(pathname) || showImprovementPopup) return;
+    if (showStreakPopup || isSearchOpen) return;
+
+    const sessionAttemptKey =
+      getImprovementPopupSessionAttemptKey(improvementUserId);
+    const currentAttemptId = getImprovementPopupEventAttemptId(
+      pendingImprovementEvent,
+    );
+    const attemptedEventId = sessionStorage.getItem(sessionAttemptKey);
+    if (attemptedEventId === currentAttemptId) return;
+
+    let remainingMs = getImprovementPopupDelayMs(pendingImprovementEvent.type);
+
+    improvementTimerRef.current = setInterval(() => {
+      const isVisible = document.visibilityState === 'visible';
+      const isUserActive =
+        Date.now() - lastUserActivityRef.current <= ACTIVE_IDLE_WINDOW_MS;
+      const onSafeRoute = isImprovementSafeRoute(window.location.pathname);
+
+      if (
+        !isVisible ||
+        !isUserActive ||
+        !onSafeRoute ||
+        showStreakPopup ||
+        isSearchOpen ||
+        hasBlockingModal()
+      ) {
+        return;
+      }
+
+      remainingMs -= 1000;
+
+      if (remainingMs > 0) return;
+
+      sessionStorage.setItem(sessionAttemptKey, currentAttemptId);
+      sessionStorage.removeItem('improvement_popup_shown');
+      setShowImprovementPopup(true);
+
+      if (improvementTimerRef.current) {
+        clearInterval(improvementTimerRef.current);
+      }
+    }, 1000);
+
+    return () => {
+      if (improvementTimerRef.current) {
+        clearInterval(improvementTimerRef.current);
+      }
+    };
+  }, [
+    improvementUserId,
+    pendingImprovementEvent,
+    submittedUntil,
+    pathname,
+    showImprovementPopup,
+    showStreakPopup,
+    isSearchOpen,
+  ]);
 
   const handleDismissPopup = () => {
     setShowImprovementPopup(false);
 
-    sessionStorage.setItem('improvement_popup_shown', 'true');
+    if (!improvementUserId) return;
 
-    setLastDismissedPath(pathname);
-    setGlobalLastDismissTime(Date.now());
+    const nextState = dismissImprovementPopup(improvementUserId);
+    setPendingImprovementEvent(nextState.pendingEvent);
+    setSubmittedUntil(nextState.submittedUntil);
   };
-  const handleYesInteraction = () => {
+
+  const handleImprovementSubmitSuccess = () => {
+    if (!improvementUserId) return;
+
+    const nextState = markImprovementPopupSubmitted(improvementUserId);
+    setPendingImprovementEvent(nextState.pendingEvent);
+    setSubmittedUntil(nextState.submittedUntil);
+  };
+
+  const handleSubmittedPopupClose = () => {
     setShowImprovementPopup(false);
-    popupShownForPathRef.current.add('/dashboard/*');
-    localStorage.setItem(
-      'feedback_completed',
-      JSON.stringify({
-        completed: ['/dashboard/*'],
-        expiry: Date.now() + 30 * 24 * 60 * 60 * 1000,
-      }),
-    );
-    sessionStorage.setItem('improvement_popup_shown', 'true');
   };
+  // const handleYesInteraction = () => {
+  //   setShowImprovementPopup(false);
+  //   popupShownForPathRef.current.add('/dashboard/*');
+  //   localStorage.setItem(
+  //     'feedback_completed',
+  //     JSON.stringify({
+  //       completed: ['/dashboard/*'],
+  //       expiry: Date.now() + 30 * 24 * 60 * 60 * 1000,
+  //     }),
+  //   );
+  //   sessionStorage.setItem('improvement_popup_shown', 'true');
+  // };
 
-  useEffect(() => {
-    const feedbackData = localStorage.getItem('feedback_completed');
-    if (feedbackData) {
-      const { completed, expiry } = JSON.parse(feedbackData);
-      if (Date.now() < expiry) {
-        completed.forEach((path: string) =>
-          popupShownForPathRef.current.add(path),
-        );
-      } else {
-        localStorage.removeItem('feedback_completed');
-      }
-    }
-  }, []);
+  // useEffect(() => {
+  //   const feedbackData = localStorage.getItem('feedback_completed');
+  //   if (feedbackData) {
+  //     const { completed, expiry } = JSON.parse(feedbackData);
+  //     if (Date.now() < expiry) {
+  //       completed.forEach((path: string) =>
+  //         popupShownForPathRef.current.add(path),
+  //       );
+  //     } else {
+  //       localStorage.removeItem('feedback_completed');
+  //     }
+  //   }
+  // }, []);
 
   useEffect(() => {
     const update = () => setIsDesktop(window.innerWidth >= 1024);
@@ -209,9 +384,9 @@ export default function DashboardLayoutClient({
       document.body.style.overflow = '';
     };
   }, [isOpen]);
-  const isDashboardPage = pathname.startsWith('/dashboard');
-  const isOnboardingPage = pathname === '/dashboard/onboarding-tour';
-  const showDashboardUI = isDashboardPage && !isOnboardingPage;
+  // const isDashboardPage = pathname.startsWith('/dashboard');
+  // const isOnboardingPage = pathname === '/dashboard/onboarding-tour';
+  // const showDashboardUI = isDashboardPage && !isOnboardingPage;
 
   useEffect(() => {
     const saved = localStorage.getItem('sidebar-state');
@@ -292,21 +467,21 @@ export default function DashboardLayoutClient({
     });
   }, [user]);
 
-  useEffect(() => {
-    const handleUserActivity = () => {
-      setHasUserEngaged(true);
-    };
+  // useEffect(() => {
+  //   const handleUserActivity = () => {
+  //     setHasUserEngaged(true);
+  //   };
 
-    window.addEventListener('click', handleUserActivity);
-    window.addEventListener('scroll', handleUserActivity);
-    window.addEventListener('keydown', handleUserActivity);
+  //   window.addEventListener('click', handleUserActivity);
+  //   window.addEventListener('scroll', handleUserActivity);
+  //   window.addEventListener('keydown', handleUserActivity);
 
-    return () => {
-      window.removeEventListener('click', handleUserActivity);
-      window.removeEventListener('scroll', handleUserActivity);
-      window.removeEventListener('keydown', handleUserActivity);
-    };
-  }, []);
+  //   return () => {
+  //     window.removeEventListener('click', handleUserActivity);
+  //     window.removeEventListener('scroll', handleUserActivity);
+  //     window.removeEventListener('keydown', handleUserActivity);
+  //   };
+  // }, []);
 
   return (
     <FeedbackProvider>
@@ -372,8 +547,13 @@ export default function DashboardLayoutClient({
         {/* feedback popup in 1 second delay */}
         {showImprovementPopup && (
           <ImprovementPopup
-            onClose={handleDismissPopup}
-            onYes={handleYesInteraction}
+            feedbackCategory={
+              pendingImprovementEvent?.type ?? 'improvement_general'
+            }
+            feedbackPath={pathname}
+            onDismiss={handleDismissPopup}
+            onSubmitSuccess={handleImprovementSubmitSuccess}
+            onCloseAfterSubmit={handleSubmittedPopupClose}
           />
         )}
         {isStreakPopupRoute && (

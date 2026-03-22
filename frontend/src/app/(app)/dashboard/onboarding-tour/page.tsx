@@ -41,6 +41,7 @@ import { RootState } from '@/redux/rootReducer';
 import { useSelector, useDispatch } from 'react-redux';
 import { start } from 'repl';
 import { useToast } from '@/hooks/use-toast';
+import { dispatchImprovementPopupEvent } from '@/lib/improvement-popup';
 
 // --- START: TYPE DEFINITIONS ---
 type EducationEntry = {
@@ -493,6 +494,7 @@ const OnboardingPage = () => {
   //   router.push('/dashboard');
   // };
   const handleDashboardRedirect = () => {
+    dispatchImprovementPopupEvent('onboarding_complete');
     router.push(`/dashboard?from=onboarding`);
   };
 
