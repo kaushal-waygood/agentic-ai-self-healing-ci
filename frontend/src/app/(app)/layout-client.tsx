@@ -130,8 +130,7 @@ export default function DashboardLayoutClient({
   const isDashboardPage = pathname.startsWith('/dashboard');
   const isOnboardingPage = pathname === '/dashboard/onboarding-tour';
   const showDashboardUI = isDashboardPage && !isOnboardingPage;
-  const isStreakPopupRoute =
-    isDashboardPage && pathname !== '/dashboard/onboarding-tour';
+  const isStreakPopupRoute = pathname === '/dashboard';
   const [isOpen, setIsOpen] = useState(true);
   const [isPinned, setPinned] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -139,6 +138,12 @@ export default function DashboardLayoutClient({
   const [isDesktop, setIsDesktop] = useState(false);
   const [showImprovementPopup, setShowImprovementPopup] = useState(false);
   const improvementTimerRef = useRef<NodeJS.Timeout>();
+  const streakPopupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const streakPopupWatcherRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const lastUserActivityRef = useRef(Date.now());
 
   const dispatch = useDispatch();
@@ -162,25 +167,79 @@ export default function DashboardLayoutClient({
   const [showStreakPopup, setShowStreakPopup] = useState(false);
 
   useEffect(() => {
-    // if (!streak?.canClaimToday) {
+    const clearStreakPopupTimer = () => {
+      if (streakPopupTimerRef.current) {
+        clearTimeout(streakPopupTimerRef.current);
+        streakPopupTimerRef.current = null;
+      }
+    };
+
+    const clearStreakPopupWatcher = () => {
+      if (streakPopupWatcherRef.current) {
+        clearInterval(streakPopupWatcherRef.current);
+        streakPopupWatcherRef.current = null;
+      }
+    };
+
+    clearStreakPopupTimer();
+    clearStreakPopupWatcher();
+
     if (!isStreakPopupRoute || !streak?.canClaimToday) {
       setShowStreakPopup(false);
       return;
     }
 
     const streakPopupStorageKey = getStreakPopupStorageKey();
-    // const hasShownStreak = sessionStorage.getItem('streak_popup_shown');
-    const hasShownStreak = sessionStorage.getItem(streakPopupStorageKey);
-    if (hasShownStreak) return;
 
-    const timer = setTimeout(() => {
-      setShowStreakPopup(true);
-      // sessionStorage.setItem('streak_popup_shown', 'true');
-      sessionStorage.setItem(streakPopupStorageKey, 'true');
-    }, 5000);
+    const syncStreakPopupSchedule = () => {
+      const hasShownStreak = sessionStorage.getItem(streakPopupStorageKey);
+      const isBlocked =
+        showImprovementPopup || isSearchOpen || hasBlockingModal();
 
-    return () => clearTimeout(timer);
-  }, [isStreakPopupRoute, streak?.canClaimToday]);
+      if (hasShownStreak || showStreakPopup) {
+        clearStreakPopupTimer();
+        clearStreakPopupWatcher();
+        return;
+      }
+
+      if (isBlocked) {
+        clearStreakPopupTimer();
+        return;
+      }
+
+      if (streakPopupTimerRef.current) return;
+
+      streakPopupTimerRef.current = setTimeout(() => {
+        streakPopupTimerRef.current = null;
+
+        if (
+          sessionStorage.getItem(streakPopupStorageKey) ||
+          showImprovementPopup ||
+          isSearchOpen ||
+          hasBlockingModal()
+        ) {
+          return;
+        }
+
+        setShowStreakPopup(true);
+        sessionStorage.setItem(streakPopupStorageKey, 'true');
+      }, 5000);
+    };
+
+    syncStreakPopupSchedule();
+    streakPopupWatcherRef.current = setInterval(syncStreakPopupSchedule, 250);
+
+    return () => {
+      clearStreakPopupTimer();
+      clearStreakPopupWatcher();
+    };
+  }, [
+    isStreakPopupRoute,
+    streak?.canClaimToday,
+    showImprovementPopup,
+    isSearchOpen,
+    showStreakPopup,
+  ]);
 
   useEffect(() => {
     if (!improvementUserId) {
