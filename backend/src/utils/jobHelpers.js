@@ -624,17 +624,29 @@ export function applyFilters(jobs, context) {
   };
   const { applied, saved, views } = interactions;
 
-  // When country is null/undefined/empty → no country filter (global mode)
   const targetCountry = country ? country.toUpperCase().trim() : '';
   const targetState = state?.toLowerCase().trim();
   const targetCity = city?.toLowerCase().trim();
   const targetType = employmentType?.toUpperCase().trim();
 
+  // Agent mode only: pre-compute tokens from queryOverride for title relevance check.
+  // This is ONLY active when an agent sets queryOverride (e.g. "devops engineer").
+  // Regular search and profile-based recommendation are NOT affected.
+  const agentQueryTokens = context.queryOverride
+    ? context.queryOverride
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(
+          (t) =>
+            t.length >= 2 &&
+            !['in', 'at', 'for', 'the', 'and', 'or', 'of'].includes(t),
+        )
+    : [];
+
   return jobs.filter((job) => {
     if (!job || !job.isActive) return false;
 
-    // For short search queries (1-2 tokens), require query in title to avoid
-    // irrelevant jobs that only match via "contact HR" etc. in description
+    // --- Existing search-mode title check (unchanged) ---
     const rawQuery = (context.query || '').toLowerCase().trim();
     const queryTokens = rawQuery.split(/\s+/).filter((t) => t.length >= 2);
     if (
@@ -657,7 +669,23 @@ export function applyFilters(jobs, context) {
       if (!hasTokenMatch) return false;
     }
 
-    // Filter out jobs the user has applied to or saved (unless includeAppliedInResults for agent dashboard)
+    // --- NEW: Agent mode title relevance check ---
+    // Only fires when queryOverride is set (agent job search).
+    // At least ONE token from the agent query must appear in the job title.
+    // Does NOT affect regular search or profile-based recommendation.
+    if (
+      context.type === 'recommendation' &&
+      agentQueryTokens.length > 0 &&
+      job.title
+    ) {
+      const titleLower = job.title.toLowerCase();
+      const hasRelevantToken = agentQueryTokens.some((t) =>
+        titleLower.includes(t),
+      );
+      if (!hasRelevantToken) return false;
+    }
+
+    // --- Existing applied/saved filter (unchanged) ---
     const jobIdStr = String(job._id);
     if (
       !context.includeAppliedInResults &&
@@ -667,11 +695,7 @@ export function applyFilters(jobs, context) {
       return false;
     }
 
-    // Filter out jobs heavily viewed but not acted upon (>5 recent decayed views)
-    // if (job._id && views[jobIdStr] && views[jobIdStr] > 5) {
-    //   return false;
-    // }
-
+    // --- Existing employment type filter (unchanged) ---
     if (targetType) {
       const targetTypesClean = targetType
         .split(',')
@@ -697,14 +721,13 @@ export function applyFilters(jobs, context) {
       if (!typeMatch) return false;
     }
 
+    // --- Existing location filters (unchanged) ---
     const jLoc = job.location || {};
     const jobCountry = job.country?.toUpperCase().trim();
     const jobCity =
       (typeof jLoc === 'string' ? jLoc : jLoc.city)?.toLowerCase() || '';
     const jobState = (jLoc.state || '').toLowerCase();
 
-    // Remote jobs: bypass location in global mode or recommendation mode,
-    // or when job country matches target.
     if (job.remote === true && !targetCity && !targetState) {
       const isGlobal = !targetCountry;
       const isRecommendation = context.type === 'recommendation';
@@ -716,11 +739,9 @@ export function applyFilters(jobs, context) {
     const locationBlob =
       `${jobCity} ${jobState} ${job.description?.slice(0, 150).toLowerCase()}`.trim();
 
-    // Skip country check entirely in global mode (targetCountry = '')
     if (targetCountry) {
       const isISOPerfect = Boolean(jobCountry && jobCountry === targetCountry);
 
-      // Universal fuzzy match: derive ISO-2 from location text
       let isCountryNameMatch = false;
       if (!isISOPerfect) {
         for (const [name, code] of Object.entries(COUNTRY_NAME_TO_ISO2)) {
@@ -939,9 +960,10 @@ export function stripYearTokens(query) {
 }
 
 async function keywordSearch(context, limit = 100, dateFilter = {}) {
-  if (!context.query) return [];
+  const rawQuery = context.queryOverride || context.query;
+  if (!rawQuery) return [];
 
-  const tokens = context.query
+  const tokens = rawQuery
     .split(/\s+/)
     .map((t) => t.trim())
     .filter((t) => t.length >= 2 && !SEARCH_STOP_WORDS.has(t.toLowerCase()));
@@ -953,8 +975,6 @@ async function keywordSearch(context, limit = 100, dateFilter = {}) {
 
   const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  // For recommendation/autopilot: long profile queries make $and impossible (e.g. "sd" in every job).
-  // Use $or with first 12 tokens so jobs matching ANY key term are found; ranking refines later.
   const isRecommendation = context.type === 'recommendation';
   const MAX_TOKENS = isRecommendation ? 12 : 50;
   const tokensToUse =
@@ -962,9 +982,18 @@ async function keywordSearch(context, limit = 100, dateFilter = {}) {
       ? meaningfulTokens.slice(0, MAX_TOKENS)
       : meaningfulTokens;
 
+  // For agent mode (queryOverride set): short queries like "devops engineer"
+  // must match ALL tokens in title/tags/etc — use $and so we don't pull in
+  // every "Software Engineer" just because it contains the word "engineer".
+  // For long profile-based recommendation queries (>6 tokens): keep $or so
+  // jobs matching ANY key skill/title are found — ranking refines later.
+  // For regular search mode: always use $and (existing behavior unchanged).
+  const useOrMode =
+    isRecommendation && !context.queryOverride && tokensToUse.length > 6;
+
   let filter;
-  if (isRecommendation && tokensToUse.length > 3) {
-    // Match jobs containing ANY of the key terms (software, engineer, intern, etc.)
+  if (useOrMode) {
+    // Long profile-based recommendation query — existing $or behavior
     const allFieldMatches = tokensToUse.flatMap((token) => {
       const regex = new RegExp(`\\b${escapeRegex(token)}`, 'i');
       return [
@@ -981,6 +1010,7 @@ async function keywordSearch(context, limit = 100, dateFilter = {}) {
       ...dateFilter,
     };
   } else {
+    // Agent query OR short recommendation OR search mode — require ALL tokens
     const andConditions = tokensToUse.map((token) => {
       const pattern = `\\b${escapeRegex(token)}`;
       const regex = new RegExp(pattern, 'i');

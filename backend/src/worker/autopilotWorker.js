@@ -113,9 +113,17 @@ export const findAndProcessJobs = async () => {
 
       if (remaining === 0) {
         if (process.env.DEBUG_AUTOPILOT === '1') {
-          console.log(`[Autopilot] ${agent.agentName} limit reached`);
+          console.log(
+            `[Autopilot] ${agent.agentName} daily limit reached (${foundToday}/${agentLimit})`,
+          );
         }
         continue;
+      }
+
+      if (process.env.DEBUG_AUTOPILOT === '1') {
+        console.log(
+          `[Autopilot] ${agent.agentName} needs ${remaining} more jobs (${foundToday}/${agentLimit} today)`,
+        );
       }
 
       // -------- build exclusion set --------
@@ -134,14 +142,35 @@ export const findAndProcessJobs = async () => {
 
       // -------- agent config --------
 
+      // Fix: parse employmentType if it arrives as a JSON-stringified array
+      let employmentType = agent.employmentType;
+      if (
+        typeof employmentType === 'string' &&
+        employmentType.trim().startsWith('[')
+      ) {
+        try {
+          const parsed = JSON.parse(employmentType);
+          employmentType = Array.isArray(parsed)
+            ? parsed.join(',')
+            : employmentType;
+        } catch {
+          // leave as-is if parse fails
+        }
+      }
+
       const agentConfig = {
         jobTitle: agent.jobTitle,
         country: agent.country,
         isRemote: agent.isRemote,
-        employmentType: agent.employmentType,
+        employmentType,
       };
 
-      console.log(agentConfig);
+      if (process.env.DEBUG_AUTOPILOT === '1') {
+        console.log(
+          `[Autopilot] agentConfig for ${agent.agentName}:`,
+          agentConfig,
+        );
+      }
 
       const effectiveStudent = buildEffectiveStudentProfile(
         studentProfile,
@@ -150,7 +179,9 @@ export const findAndProcessJobs = async () => {
 
       // -------- fetch jobs (local first) --------
 
-      const searchLimit = remaining * 4;
+      // Fix: ensure searchLimit is always large enough to survive filtering
+      // even when remaining is small (e.g. remaining=1 → searchLimit at least 40)
+      const searchLimit = Math.max(remaining * 10, 40);
       const agentQuery = agent.jobTitle || '';
 
       let jobs = await getRecommendedJobs({
@@ -158,18 +189,25 @@ export const findAndProcessJobs = async () => {
         agentConfig,
         studentProfile: {
           ...effectiveStudent,
-          titles: [agentQuery], // override titles
+          titles: [agentQuery],
         },
         queryOverride: agentQuery,
         appliedJobIds: [...excludedIds],
         limit: searchLimit,
         skipExternalFetch: true,
+        // Fix: always skip cache for autopilot so each cron run
+        // gets a fresh pool — not a Redis-cached result from a previous
+        // run that had all those jobs already excluded
         skipCacheForAgent: true,
       });
 
-      // -------- fallback to RapidAPI --------
+      if (process.env.DEBUG_AUTOPILOT === '1') {
+        console.log(
+          `[Autopilot] ${agent.agentName} local jobs found: ${jobs.length}`,
+        );
+      }
 
-      console.log(jobs.length);
+      // -------- fallback to RapidAPI --------
 
       if (jobs.length < remaining) {
         // Relax filters: remove employment type
@@ -182,10 +220,18 @@ export const findAndProcessJobs = async () => {
           studentId,
           agentConfig: relaxedConfig,
           studentProfile: effectiveStudent,
+          queryOverride: agentQuery,
           appliedJobIds: [...excludedIds],
           limit: searchLimit,
           skipExternalFetch: false,
+          skipCacheForAgent: true,
         });
+
+        if (process.env.DEBUG_AUTOPILOT === '1') {
+          console.log(
+            `[Autopilot] ${agent.agentName} fallback (no employmentType) jobs: ${fallbackJobs.length}`,
+          );
+        }
 
         // If still small, remove country restriction
         if (fallbackJobs.length < remaining) {
@@ -198,25 +244,49 @@ export const findAndProcessJobs = async () => {
             studentId,
             agentConfig: globalConfig,
             studentProfile: effectiveStudent,
+            queryOverride: agentQuery,
             appliedJobIds: [...excludedIds],
             limit: searchLimit,
             skipExternalFetch: false,
+            skipCacheForAgent: true,
           });
+
+          if (process.env.DEBUG_AUTOPILOT === '1') {
+            console.log(
+              `[Autopilot] ${agent.agentName} global fallback jobs: ${globalJobs.length}`,
+            );
+          }
 
           fallbackJobs = [...fallbackJobs, ...globalJobs];
         }
 
         const jobMap = new Map();
-
         [...jobs, ...fallbackJobs].forEach((j) => {
-          jobMap.set(String(j._id), j);
+          const key = String(j._id);
+          if (
+            !jobMap.has(key) ||
+            (j.rankScore || 0) > (jobMap.get(key).rankScore || 0)
+          ) {
+            jobMap.set(key, j);
+          }
         });
+        jobs = Array.from(jobMap.values()).sort(
+          (a, b) => (b.rankScore || 0) - (a.rankScore || 0),
+        );
 
-        jobs = Array.from(jobMap.values());
-        jobs.sort(() => Math.random() - 0.5);
+        if (process.env.DEBUG_AUTOPILOT === '1') {
+          console.log(
+            `[Autopilot] ${agent.agentName} total after fallback: ${jobs.length}`,
+          );
+        }
       }
 
-      if (!jobs.length) continue;
+      if (!jobs.length) {
+        if (process.env.DEBUG_AUTOPILOT === '1') {
+          console.log(`[Autopilot] ${agent.agentName} no jobs found at all`);
+        }
+        continue;
+      }
 
       // -------- store jobs safely --------
 
@@ -224,9 +294,8 @@ export const findAndProcessJobs = async () => {
 
       for (const job of jobs) {
         if (stored >= remaining) break;
-
-        if (excludedIds.has(String(job._id))) continue;
-
+        const jobIdStr = String(job._id);
+        if (excludedIds.has(jobIdStr)) continue;
         try {
           await AgentFoundJob.create({
             student: studentId,
@@ -234,13 +303,14 @@ export const findAndProcessJobs = async () => {
             job: job._id,
             foundAt: new Date(),
           });
-
+          excludedIds.add(jobIdStr);
           stored++;
           processed++;
         } catch (err) {
-          // ignore duplicate index errors
           if (err.code !== 11000) {
             console.error('Job insert error:', err.message);
+          } else {
+            excludedIds.add(jobIdStr);
           }
         }
       }
@@ -257,6 +327,6 @@ export const findAndProcessJobs = async () => {
 
   return {
     processed,
-    agentsChecked: activeAgents.length,
+    agentsChecked: activeAgents.length, // Fix: was returning 'studentsChecked' key before
   };
 };

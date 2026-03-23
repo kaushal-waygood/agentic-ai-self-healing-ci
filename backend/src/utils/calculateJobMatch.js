@@ -1,268 +1,317 @@
 import { genAIRequest as genAI } from '../config/gemini.js';
 
 /* =========================================================
-   Helper Utilities
+   WHY THIS APPROACH
+   
+   Previous versions used keyword extraction (stop-words, fluff-word
+   lists, tech whitelists) to compare JD against candidate profile.
+   Every approach failed on domain diversity:
+   - Stop-word filter: floods keywords with prose ("binding","hats","analysts")
+   - Fluff-word filter: requires maintaining domain-specific lists forever
+   - Tech whitelist: works for MERN, fails for pharma/finance/legal/HR/design
+   
+   Root cause: text parsing cannot reliably identify "what skills this JD
+   requires" across all domains. That is exactly what an LLM is good at.
+   
+   Solution: two parallel AI calls.
+   1. SCORING CALL  — structured JSON, returns all numeric scores + matched/
+      missing skills. Fast, deterministic, domain-agnostic.
+   2. RECOMMENDATION CALL — free-text recommendation + improved summary.
+   
+   Both run in parallel so total latency = max(t1, t2), not t1+t2.
+   No keyword extraction. No domain assumptions. No lists to maintain.
 ========================================================= */
 
-const STOP_WORDS = new Set([
-  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of',
-  'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been', 'be', 'have',
-  'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may',
-  'might', 'must', 'shall', 'can', 'need', 'dare', 'ought', 'used', 'you',
-  'we', 'they', 'this', 'that', 'these', 'those', 'it', 'its',
-]);
+const clamp = (v, min = 1, max = 10) =>
+  Math.max(min, Math.min(Math.round(v), max));
 
-// Company blurb / marketing words that inflate keyword count but aren't job requirements
-const JD_FLUFF = new Set([
-  'work', 'one', 'finest', 'companies', 'aimed', 'making', 'life', 'easier',
-  'every', 'employee', 'employer', 'our', 'client', 'provide', 'wide', 'range',
-  'include', 'among', 'other', 'features', 'works', 'leading', 'startups', 'well',
-  'bigger', 'corporate', 'team', 'founded', 'led', 'business', 'experts', 'who',
-  'bring', 'them', 'more', 'than', 'decades', 'experience', 'sales', 'marketing',
-  'transformation', 'seamless', 'their', 'clients', 'building', 'easy', 'system',
-  'directly', 'affecting', 'culture', 'workplace', 'positively', 'solving',
-  'challenges', 'what', 'future', 'use', 'helping', 'creating', 'vision', 'roadmap',
-  'payroll', 'product', 'company', 'built', 'modern', 'services', 'automated',
-  'recruitment', 'candidate', 'management', 'digital', 'assessment', 'tools',
-  'analytics', 'leave', 'performance', 'exit', 'engagement', 'iso', 'iec', 'certified',
-]);
-
-const extractKeywords = (text) => {
-  const words = (text || '').toLowerCase().match(/[a-zA-Z\+\#\.]{2,}/g) || [];
-  return [...new Set(words)].filter(
-    (w) =>
-      !STOP_WORDS.has(w) &&
-      !JD_FLUFF.has(w) &&
-      w.length >= 3,
-  );
-};
-
-const array = (v) => (Array.isArray(v) ? v : []);
-const clamp = (v) => Math.max(1, Math.min(Math.round(v), 10));
-const top = (arr, n = 5) => array(arr).slice(0, n);
+const pct = (v) => Math.max(0, Math.min(100, Math.round(v)));
 
 /* =========================================================
-   Weight Based ATS Scoring (Skills 40% + Exp 40% + Edu 20%)
+   Candidate profile serialiser
+   Produces a compact, readable summary for the AI prompt.
+   Compact = fewer tokens = faster + cheaper.
 ========================================================= */
 
-function evaluateSkills(studentSkills, keywords) {
-  const meaningfulKeywords = keywords.filter((k) => k.length >= 3);
-  const matched = studentSkills.filter((s) =>
-    meaningfulKeywords.some((k) => s.skill.toLowerCase().includes(k)),
+function serialiseCandidate(student) {
+  const skills = (student.skills || [])
+    .map((s) => `${s.skill}${s.level ? ` (${s.level})` : ''}`)
+    .join(', ');
+
+  const experience = (student.experience || [])
+    .map((e) => {
+      const yrs = e.experienceYrs ? ` — ${e.experienceYrs} yrs` : '';
+      const desc = e.description ? `\n    ${e.description}` : '';
+      return `  • ${e.title || 'Role'} at ${e.company || '?'}${yrs}${desc}`;
+    })
+    .join('\n');
+
+  const education = (student.education || [])
+    .map((e) => `  • ${e.degree || '?'} — ${e.institute || '?'}`)
+    .join('\n');
+
+  const projects = (student.projects || [])
+    .map((p) => {
+      const tech =
+        Array.isArray(p.technologies) && p.technologies.length
+          ? ` [${p.technologies.join(', ')}]`
+          : '';
+      return `  • ${p.projectName}${tech}: ${p.description || ''}`;
+    })
+    .join('\n');
+
+  const totalYrs = (student.experience || []).reduce(
+    (s, e) => s + (Number(e.experienceYrs) || 0),
+    0,
   );
-  const missing = meaningfulKeywords.filter(
-    (k) => !studentSkills.some((s) => s.skill.toLowerCase().includes(k)),
-  );
 
-  const score = Math.min((matched.length / (meaningfulKeywords.length || 1)) * 40, 40);
-  return { matched, missing, score };
-}
-
-function evaluateExperience(experience, keywords) {
-  let hits = 0;
-  experience.forEach((exp) => {
-    keywords.forEach((k) => {
-      if (exp.description?.toLowerCase().includes(k)) hits++;
-    });
-  });
-
-  return { score: Math.min(hits * 2, 40) };
-}
-
-function evaluateEducation(education, jd) {
-  const requireDegree = /(bachelor|degree|b\.tech|bsc)/i.test(jd);
-  const hasDegree = education.some((e) =>
-    /(bachelor|degree|b\.tech|bsc)/i.test(e.degree),
-  );
-
-  return { score: hasDegree ? 20 : requireDegree ? 10 : 15 };
+  return [
+    `SKILLS: ${skills || 'None listed'}`,
+    `TOTAL EXPERIENCE: ${totalYrs} years`,
+    experience ? `EXPERIENCE:\n${experience}` : 'EXPERIENCE: None',
+    education ? `EDUCATION:\n${education}` : 'EDUCATION: None',
+    projects ? `PROJECTS:\n${projects}` : 'PROJECTS: None',
+  ].join('\n\n');
 }
 
 /* =========================================================
-   New Feature: Role Fit %, Seniority %, Tech Fit %
+   CALL 1 — Structured scoring
+   Returns all numeric scores + matched/missing skill lists.
+   Prompt asks strictly for JSON so parsing is reliable.
 ========================================================= */
 
-// Skills match: how well CV skills align with job description requirements (works for any job type)
-function computeSkillsFit(matched, totalKeywords) {
-  const n = matched.length;
-  if (n === 0) return 0;
-  const denom = Math.max(n, Math.min(totalKeywords, 40));
-  return Math.min(100, Math.round((n / denom) * 100));
+const SCORING_PROMPT = (jd, jobTitle, candidateSummary) =>
+  `
+You are an expert recruitment analyst. Evaluate how well this candidate matches the job.
+
+Analyse the Job Description carefully to identify the required skills, technologies,
+domain knowledge, experience level and qualifications — regardless of industry or domain
+(tech, finance, pharma, legal, HR, design, operations, etc.).
+
+Then evaluate the candidate against each dimension.
+
+Return ONLY valid JSON. No markdown, no backticks, no explanation outside the JSON.
+
+{
+  "matchScore": <integer 1-10>,
+  "skillsFitPercent": <integer 0-100>,
+  "experienceFitPercent": <integer 0-100>,
+  "seniorityFitPercent": <integer 0-100>,
+  "skillsMatched": ["skill1", "skill2"],
+  "skillsMissing": ["skill1", "skill2"],
+  "suggestions": ["suggestion1", "suggestion2"],
+  "poorFit": <true|false>
 }
 
-// Experience match: how well work experience descriptions align with job description keywords
-function computeExperienceFit(experience, keywords) {
-  let hits = 0;
+Rules:
+- matchScore: overall fit 1–10 (10 = perfect match).
+- skillsFitPercent: % of JD-required skills/tools/knowledge the candidate has.
+- experienceFitPercent: % match between candidate's work history and JD requirements.
+- seniorityFitPercent: how well candidate's experience level matches the JD seniority.
+- skillsMatched: specific skills/tools from the JD that the candidate has.
+- skillsMissing: specific skills/tools from the JD that the candidate lacks.
+- suggestions: 2–4 concrete, actionable steps to improve this candidate's fit.
+- poorFit: true only if this is a fundamentally different domain (e.g. software dev applying to surgeon role).
+- Be accurate and honest. Do not inflate scores. Do not deflate for minor gaps.
+- Domain does not matter — evaluate finance, pharma, tech, legal, HR equally rigorously.
 
-  experience.forEach((exp) => {
-    keywords.forEach((k) => {
-      if (exp.description?.toLowerCase().includes(k)) hits++;
-    });
-  });
+JOB TITLE: ${jobTitle || 'Not specified'}
 
-  return Math.min(Math.round((hits / (keywords.length || 1)) * 100), 100);
-}
+JOB DESCRIPTION:
+${jd.slice(0, 3000)}
 
-// Seniority match: years of experience vs JD requirements
-function computeSeniorityFit(student, jobDescription, poorFit = false) {
-  if (poorFit) return 0; // Don't inflate seniority when skills don't align
-  const minExpMatch = /(1|2|3|4|5|6|7|8|9|10)\+?\s*years/i.exec(jobDescription);
-  const minExp = minExpMatch ? Number(minExpMatch[1]) : 0;
-  const userExp = student.totalExperienceYears || 0;
-
-  if (!minExp) return 80; // JD does not specify
-  if (userExp >= minExp) return 100;
-  if (userExp >= minExp * 0.7) return 75;
-  if (userExp >= minExp * 0.4) return 50;
-  return 30;
-}
+CANDIDATE PROFILE:
+${candidateSummary}
+`.trim();
 
 /* =========================================================
-   Suggestions Engine
+   CALL 2 — Recommendation text
+   Free-text, runs in parallel with scoring call.
 ========================================================= */
 
-function generateSuggestions(student, missing, poorFit = false) {
-  const s = [];
+const RECOMMENDATION_PROMPT = (jd, jobTitle, candidateSummary) =>
+  `
+You are a professional resume coach and career advisor.
 
-  if (poorFit) {
-    s.push('This role appears to be in a different domain than your profile. Consider applying to roles that align with your skills and experience.');
-    return s;
+Write two things:
+1. "recommendation": A 3–5 sentence honest, motivational assessment of how well this
+   candidate fits the role. Mention specific matching strengths AND gaps if any.
+   Be domain-agnostic — works for tech, finance, pharma, legal, etc.
+2. "improvedSummary": A 3–4 sentence resume summary rewritten specifically for this
+   job to maximise the candidate's chances. Use the candidate's real experience —
+   do not invent anything.
+
+Return ONLY valid JSON. No markdown, no backticks.
+{ "recommendation": "text", "improvedSummary": "text" }
+
+JOB TITLE: ${jobTitle || 'Not specified'}
+
+JOB DESCRIPTION:
+${jd.slice(0, 2000)}
+
+CANDIDATE PROFILE:
+${candidateSummary}
+`.trim();
+
+/* =========================================================
+   Safe JSON parser — handles minor AI formatting slips
+========================================================= */
+
+function safeParseJSON(raw) {
+  const text = (typeof raw === 'string' ? raw : String(raw || ''))
+    .replace(/```json|```/g, '')
+    .trim();
+
+  // Try direct parse first
+  try {
+    return JSON.parse(text);
+  } catch (_) {}
+
+  // Try extracting first {...} block
+  const first = text.indexOf('{');
+  const last = text.lastIndexOf('}');
+  if (first !== -1 && last !== -1 && last > first) {
+    try {
+      return JSON.parse(text.slice(first, last + 1));
+    } catch (_) {}
   }
-  if (missing.length) s.push(`Upskill in: ${missing.slice(0, 8).join(', ')}`);
-  if ((student.projects || []).length < 2)
-    s.push('Add more production-level projects.');
-  if ((student.skills || []).every((x) => x.level === 'BEGINNER'))
-    s.push('Upgrade a core skill beyond beginner level.');
-  if (!(student.experience || []).length) s.push('Add work experience or internships.');
 
-  return s;
+  return null;
 }
 
 /* =========================================================
-   AI Resume Summary + Recommendation Text
+   Fallback scoring — used when AI scoring call fails.
+   Pure algorithmic, domain-agnostic at the text level.
+   Not great, but better than crashing.
 ========================================================= */
 
-async function rewriteRecommendation(
-  student,
+function algorithmicFallback(student, jd) {
+  // Only thing we can do without domain knowledge: check if candidate
+  // has ANY content vs an empty profile
+  const hasSkills = (student.skills || []).length > 0;
+  const hasExperience = (student.experience || []).length > 0;
+  const hasEducation = (student.education || []).length > 0;
+
+  const completeness = [hasSkills, hasExperience, hasEducation].filter(
+    Boolean,
+  ).length;
+
+  return {
+    matchScore: Math.max(1, completeness * 2), // 2, 4, or 6
+    skillsFitPercent: hasSkills ? 30 : 0,
+    experienceFitPercent: hasExperience ? 30 : 0,
+    seniorityFitPercent: 50,
+    skillsMatched: [],
+    skillsMissing: [],
+    suggestions: [
+      'Complete your profile with skills, experience and education for accurate scoring.',
+    ],
+    poorFit: false,
+    _fallback: true, // internal flag, not sent to client
+  };
+}
+
+/* =========================================================
+   MAIN EXPORT
+========================================================= */
+
+export async function calculateJobMatch(
   jobDescription,
+  student,
   jobTitle = '',
-  poorFit = false,
-  skillsFit = 0,
-  experienceFit = 0,
 ) {
-  // When poor fit: use programmatic fallback so we never get overly optimistic LLM output
-  if (poorFit) {
+  const candidateSummary = serialiseCandidate(student);
+
+  // ── Run both AI calls in parallel ──────────────────────────────────
+  const [scoringResult, recommendationResult] = await Promise.allSettled([
+    genAI(
+      SCORING_PROMPT(jobDescription, jobTitle, candidateSummary),
+      { endpoint: 'job-match-scoring', temperature: 0.1 },
+      // low temperature = more deterministic numeric output
+    ),
+    genAI(RECOMMENDATION_PROMPT(jobDescription, jobTitle, candidateSummary), {
+      endpoint: 'job-match-recommendation',
+      temperature: 0.5,
+    }),
+  ]);
+
+  // ── Parse scoring result ────────────────────────────────────────────
+  let scores;
+  if (scoringResult.status === 'fulfilled') {
+    scores = safeParseJSON(scoringResult.value);
+  }
+
+  if (!scores || typeof scores.matchScore !== 'number') {
+    // AI scoring failed or returned unparseable output → algorithmic fallback
+    console.warn('Job match scoring AI failed, using algorithmic fallback');
+    scores = algorithmicFallback(student, jobDescription);
+  }
+
+  // ── Parse recommendation result ─────────────────────────────────────
+  let llm = { recommendation: null, improvedSummary: null };
+  if (recommendationResult.status === 'fulfilled') {
+    llm = safeParseJSON(recommendationResult.value) || llm;
+  }
+
+  // If recommendation AI failed, generate a minimal programmatic one
+  // using the scores we already have
+  if (!llm.recommendation) {
+    const fit =
+      scores.matchScore >= 7
+        ? 'strong'
+        : scores.matchScore >= 5
+          ? 'moderate'
+          : 'limited';
     const topSkills = (student.skills || [])
-      .slice(0, 5)
+      .slice(0, 4)
       .map((s) => s.skill)
       .join(', ');
-    return {
-      recommendation:
-        'Your profile has limited overlap with this role (skills match ' +
-        skillsFit +
-        '%, experience match ' +
-        experienceFit +
-        '%). This position may not align well with your background. Consider focusing on roles that match your experience—for example, positions that require ' +
-        (topSkills || 'your core skills') +
-        '.',
-      improvedSummary:
-        'Highlight your strengths for roles in your domain. Emphasize ' +
-        (topSkills || 'your most relevant skills and experience') +
-        ' when applying to positions that align with your profile.',
-    };
+    llm.recommendation =
+      `Your profile shows a ${fit} match for this role (${scores.matchScore}/10). ` +
+      (scores.skillsMatched?.length
+        ? `Key matching strengths: ${scores.skillsMatched.slice(0, 5).join(', ')}. `
+        : '') +
+      (scores.skillsMissing?.length
+        ? `Consider developing: ${scores.skillsMissing.slice(0, 3).join(', ')}.`
+        : '');
+    llm.improvedSummary =
+      `Professional with expertise in ${topSkills || 'relevant skills'}, ` +
+      `seeking to contribute to this role with hands-on experience and ` +
+      `a track record of delivering results.`;
   }
 
-  const prompt = `
-You are a professional job-match & resume coach.
-Analyze the student's background vs the Job Description and generate:
-- recommendation: A positive, motivational paragraph about their fit for this role.
-- improvedSummary: A rewritten resume summary tailored to this job to increase hiring chance.
-
-Return strictly JSON (NO markdown, NO backticks):
-{
- "recommendation":"text",
- "improvedSummary":"text"
-}
-
-Job Title: ${jobTitle || 'Not provided'}
-Job Description: ${jobDescription.slice(0, 1500)}
-Student Skills: ${(student.skills || []).map((s) => s.skill).join(', ')}
-Student Projects: ${(student.projects || []).map((p) => p.projectName).join(', ')}
-Student Experience: ${JSON.stringify(student.experience || [])}
-`;
-
-  try {
-    const raw = await genAI(prompt);
-    const text = (typeof raw === 'string' ? raw : raw?.text || '').trim();
-    const first = text.indexOf('{');
-    const last = text.lastIndexOf('}');
-    return JSON.parse(text.slice(first, last + 1));
-  } catch (e) {
-    return {
-      recommendation:
-        'We could not generate a tailored recommendation. Review the job requirements and highlight relevant experience in your application.',
-      improvedSummary: 'Focus on transferable skills and relevant experience in your summary.',
-    };
-  }
-}
-
-/* =========================================================
-   FINAL MAIN FUNCTION (Used in Controller)
-========================================================= */
-
-export async function calculateJobMatch(jobDescription, student, jobTitle = '') {
-  const fullContext = `${jobTitle || ''} ${jobDescription || ''}`;
-  const keywords = extractKeywords(fullContext);
-
-  const skills = evaluateSkills(student.skills || [], keywords);
-  const exp = evaluateExperience(student.experience || [], keywords);
-  const edu = evaluateEducation(student.education || [], jobDescription);
-
-  const skillsFit = computeSkillsFit(skills.matched, keywords.length);
-  const experienceFit = computeExperienceFit(student.experience || [], keywords);
-
-  // Poor fit: no skill overlap, OR skills+experience fit both very low (mismatched role)
-  const poorFit =
-    (skills.matched.length === 0 && keywords.length >= 5) ||
-    (skillsFit < 15 && experienceFit < 25);
-
-  let weightedScore = skills.score + exp.score + edu.score;
-  if (poorFit) {
-    weightedScore = Math.min(weightedScore, 12); // Cap at ~1/10 when poor fit
-  }
-  const matchScore = clamp(weightedScore / 10);
-
-  const seniorityFit = computeSeniorityFit(student, jobDescription, poorFit);
-
-  const suggestions = generateSuggestions(student, skills.missing, poorFit);
-  const llm = await rewriteRecommendation(
-    student,
-    jobDescription,
-    jobTitle,
-    poorFit,
-    skillsFit,
-    experienceFit,
-  );
+  // ── Clamp / sanitise all numeric fields from AI output ─────────────
+  const matchScore = clamp(scores.matchScore ?? 1, 1, 10);
+  const skillsFitPercent = pct(scores.skillsFitPercent ?? 0);
+  const experienceFitPercent = pct(scores.experienceFitPercent ?? 0);
+  const seniorityFitPercent = pct(scores.seniorityFitPercent ?? 0);
+  const skillsMatched = Array.isArray(scores.skillsMatched)
+    ? scores.skillsMatched
+    : [];
+  const skillsMissing = Array.isArray(scores.skillsMissing)
+    ? scores.skillsMissing
+    : [];
+  const suggestions = Array.isArray(scores.suggestions)
+    ? scores.suggestions
+    : [];
 
   return {
     matchScore,
-    skillsFitPercent: skillsFit,
-    experienceFitPercent: experienceFit,
-    seniorityFitPercent: seniorityFit,
-    // Backward compatibility
-    techFitPercent: skillsFit,
-    roleFitPercent: experienceFit,
-
+    skillsFitPercent,
+    experienceFitPercent,
+    seniorityFitPercent,
+    // backward compat aliases
+    techFitPercent: skillsFitPercent,
+    roleFitPercent: experienceFitPercent,
     breakdown: {
-      skills: `${skillsFit}%`,
-      experience: `${experienceFit}%`,
-      seniority: `${seniorityFit}%`,
+      skills: `${skillsFitPercent}%`,
+      experience: `${experienceFitPercent}%`,
+      seniority: `${seniorityFitPercent}%`,
     },
-
-    skillsMatched: skills.matched,
-    skillsMissing: skills.missing,
+    skillsMatched,
+    skillsMissing,
     suggestions,
-    recommendation: llm.recommendation,
-    improvedSummary: llm.improvedSummary,
+    recommendation: llm.recommendation || '',
+    improvedSummary: llm.improvedSummary || '',
   };
 }
