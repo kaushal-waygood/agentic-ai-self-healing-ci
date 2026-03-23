@@ -34,8 +34,7 @@ export const useEditableMaterial = ({
   const [cvNameInput, setCvNameInput] = useState('');
 
   const { students } = useSelector((state: RootState) => state.student);
-
-  const hasChanges = localContent !== content;
+  // const hasChanges = localContent !== content;
 
   // STRONGER PURGE: Removes all styles, head tags, and extra metadata
   const purgeInternalStyles = (html: string) => {
@@ -50,11 +49,22 @@ export const useEditableMaterial = ({
       .trim();
   };
 
+  const lastSavedContentRef = useRef('');
+  const isInternalContentUpdateRef = useRef(false);
+  const [hasChanges, setHasChanges] = useState(false);
+
   useEffect(() => {
     if (!isEditing) {
       const clean = purgeInternalStyles(content);
       setLocalContent(clean);
       updateWordCount(clean);
+
+      if (isInternalContentUpdateRef.current) {
+        isInternalContentUpdateRef.current = false;
+      } else {
+        lastSavedContentRef.current = clean;
+        setHasChanges(false);
+      }
     }
   }, [content, isEditing]);
 
@@ -79,27 +89,31 @@ export const useEditableMaterial = ({
     }
   }, []);
 
-  const handleEditorKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-        e.preventDefault();
-        if (editorRef.current) {
-          const sel = window.getSelection();
-          const range = document.createRange();
-          range.selectNodeContents(editorRef.current);
-          sel?.removeAllRanges();
-          sel?.addRange(range);
-        }
+  const handleEditorKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+      e.preventDefault();
+      if (editorRef.current) {
+        const sel = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(editorRef.current);
+        sel?.removeAllRanges();
+        sel?.addRange(range);
       }
-    },
-    [],
-  );
+    }
+  }, []);
 
   const toggleEdit = () => {
     if (isEditing) {
       const finalHtml = purgeInternalStyles(editorRef.current?.innerHTML || '');
+      const isContentPropChanging = finalHtml !== content;
+
+      if (isContentPropChanging) {
+        isInternalContentUpdateRef.current = true;
+      }
+
       setLocalContent(finalHtml);
       setContent(finalHtml);
+      setHasChanges(finalHtml !== lastSavedContentRef.current);
       toast({ title: 'Draft Updated' });
     }
     setIsEditing(!isEditing);
@@ -163,6 +177,8 @@ export const useEditableMaterial = ({
         template: template?.id,
       });
 
+      lastSavedContentRef.current = htmlToSave;
+      setHasChanges(false);
       toast({ title: 'Saved Successfully' });
       setIsNamingDialogDisplayed(false);
     } catch (e) {
