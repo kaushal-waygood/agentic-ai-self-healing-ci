@@ -104,11 +104,8 @@ const Step0_SimpleIntroSlim = ({
   return (
     <div className="w-full max-w-5xl mx-auto px-4 py-6 space-y-6">
       {/* ── Hero Header ── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 text-white p-6 shadow-xl shadow-purple-200">
+      <div className="relative overflow-hidden rounded-lg bg-header-gradient-primary text-white p-6 shadow-xl shadow-purple-200">
         {/* decorative blobs */}
-        <div className="pointer-events-none absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5" />
-        <div className="pointer-events-none absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-white/5" />
-        <div className="pointer-events-none absolute top-4 right-32 w-20 h-20 rounded-full bg-white/5" />
 
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
