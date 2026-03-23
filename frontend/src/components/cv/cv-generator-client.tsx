@@ -31,6 +31,7 @@ import JobWizard from './components/JobWizard';
 import CVGeneratorClient from './CVGeneratorClient';
 import ContextWizard from './ContextWizard';
 import FinalResultView from '../cover-letter/components/FinalResultView';
+import { dispatchImprovementPopupEvent } from '@/lib/improvement-popup';
 
 /* ---------- helpers ---------- */
 
@@ -416,6 +417,7 @@ export function CvGeneratorClient() {
         title: 'CV Generated & Auto-saved!',
         description: 'Your new CV draft has been added to your saved list.',
       });
+      dispatchImprovementPopupEvent('cv_generate_complete');
     } catch (error: any) {
       console.error('error triggerd', error);
       if (

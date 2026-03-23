@@ -20,6 +20,7 @@ import { ReviewAndApply } from './ReviewAndApply';
 import { toast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
 import { set } from 'lodash-es';
+import { dispatchImprovementPopupEvent } from '@/lib/improvement-popup';
 
 const JobDetailPage = () => {
   const { jobId } = useParams();
@@ -143,6 +144,7 @@ const JobDetailPage = () => {
       const response = await apiInstance.get(
         '/students/jobs/events?type=APPLIED',
       );
+      dispatchImprovementPopupEvent('job_apply_success');
       router.replace('/dashboard/search-jobs');
 
       toast({

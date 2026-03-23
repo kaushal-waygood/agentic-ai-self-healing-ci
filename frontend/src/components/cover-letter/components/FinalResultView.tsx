@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle, FileText, Loader2, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import apiInstance from '@/services/api';
+import { dispatchImprovementPopupEvent } from '@/lib/improvement-popup';
 
 type Props = {
   cvlink?: string;
@@ -89,6 +90,13 @@ export default function FinalResultView({
           setIsGenerating(false);
           setShowNotification(true);
           onStatusCompleted?.();
+          if (documentType === 'cv') {
+            dispatchImprovementPopupEvent('cv_generate_complete');
+          } else if (documentType === 'cl') {
+            dispatchImprovementPopupEvent('cover_letter_complete');
+          } else if (documentType === 'application') {
+            dispatchImprovementPopupEvent('job_apply_success');
+          }
           // Trigger notification refresh so bell updates instantly (ZOB-116)
           window.dispatchEvent(new CustomEvent('document-generation-complete'));
         }

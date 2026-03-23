@@ -769,12 +769,12 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <LayoutDashboard className="w-8 h-8 mr-3 text-headingTextPrimary" />
             ZobsAI Dashboard
-            <button
+            {/* <button
               id="start-tour-btn"
               className=" mx-5 border hidden md:block rounded-lg px-2 text-white bg-buttonPrimary hover:bg-blue-800"
             >
               <p className="text-2xl ">Start Tour</p>
-            </button>
+            </button> */}
           </h1>
 
           {/* MODIFIED: Use `authUser` directly from Redux */}
