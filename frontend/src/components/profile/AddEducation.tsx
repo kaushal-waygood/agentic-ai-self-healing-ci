@@ -863,6 +863,59 @@ export const AddEducation: React.FC<{
   );
 };
 /* ---------------------------- Project Validation Schema ------------------------- */
+const MAX_PROJECT_URL_LENGTH = 200;
+
+const REPOSITORY_HOSTS = new Set(['github.com', 'gitlab.com', 'bitbucket.org']);
+
+const DEEP_REPOSITORY_SEGMENTS = new Set([
+  'actions',
+  'blob',
+  'browse',
+  'commit',
+  'commits',
+  'compare',
+  'issues',
+  'merge-requests',
+  'merge_requests',
+  'pipelines',
+  'pull',
+  'pull-requests',
+  'pulls',
+  'raw',
+  'releases',
+  'src',
+  'tree',
+  'wiki',
+]);
+
+const isAllowedProjectLink = (value: string) => {
+  if (!value) return true;
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.replace(/^www\./, '').toLowerCase();
+
+    if (!REPOSITORY_HOSTS.has(hostname)) {
+      return true;
+    }
+
+    const pathSegments = url.pathname
+      .split('/')
+      .filter(Boolean)
+      .map((segment) => segment.toLowerCase());
+
+    return !pathSegments.some((segment, index) => {
+      if (segment === '-' && index < pathSegments.length - 1) {
+        return DEEP_REPOSITORY_SEGMENTS.has(pathSegments[index + 1]);
+      }
+
+      return DEEP_REPOSITORY_SEGMENTS.has(segment);
+    });
+  } catch {
+    return true;
+  }
+};
+
 const projectSchema = z.object({
   _id: z.string().optional(),
   projectName: z
@@ -883,7 +936,15 @@ const projectSchema = z.object({
       z
         .string()
         .url('Please enter a valid URL starting with http:// or https://')
-        .regex(/^https?:\/\//, 'URL must start with http:// or https://'),
+        .regex(/^https?:\/\//, 'URL must start with http:// or https://')
+        .max(
+          MAX_PROJECT_URL_LENGTH,
+          'Project URL is too long. Use the main project or repository link only',
+        )
+        .refine(isAllowedProjectLink, {
+          message:
+            'Use the main project or repository URL, not a deep file, folder, or commit link',
+        }),
       z.literal(''),
     ])
     .optional(),
