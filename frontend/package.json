@@ -85,6 +85,7 @@
   },
   "devDependencies": {
     "@locator/babel-jsx": "^0.4.4",
+    "@tailwindcss/typography": "^0.5.19",
     "@types/js-cookie": "^3.0.6",
     "@types/lodash": "^4.17.20",
     "@types/lodash-es": "^4.17.12",

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { Send, User, Loader2, Sparkles, Bot, Zap } from 'lucide-react';
 import apiInstance from '@/services/api';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: string;
@@ -238,6 +239,22 @@ export function AiAssistantClient() {
               <div
                 className={`flex flex-col gap-1.5 max-w-[80%] ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
               >
+                {/* <div
+                  className={`relative px-5 py-3.5 rounded-3xl text-[15px] leading-relaxed shadow-sm ${
+                    msg.sender === 'user'
+                      ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-br-none'
+                      : 'bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-none'
+                  }`}
+                >
+                  {msg.sender === 'user' ? (
+                    <div className="whitespace-pre-wrap">{msg.text}</div>
+                  ) : (
+                    <div className="prose dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:p-0">
+                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    </div>
+                  )}
+                </div> */}
+
                 <div
                   className={`relative px-5 py-3.5 rounded-3xl text-[15px] leading-relaxed shadow-sm ${
                     msg.sender === 'user'
@@ -245,7 +262,18 @@ export function AiAssistantClient() {
                       : 'bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-none'
                   }`}
                 >
-                  {msg.text}
+                  {msg.sender === 'user' ? (
+                    <div className="whitespace-pre-wrap">{msg.text}</div>
+                  ) : (
+                    /* The 'prose' class enables the markdown styling.
+      'prose-sm' keeps the text size appropriate for a chat bubble.
+      'dark:prose-invert' ensures the text color looks good in dark mode.
+      'prose-p:leading-relaxed prose-pre:p-0' overrides specific spacing.
+    */
+                    <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:p-0 prose-ul:my-1 prose-li:my-0">
+                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    </div>
+                  )}
                 </div>
                 <span className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest ml-2">
                   {formatTime(msg.timestamp)}
