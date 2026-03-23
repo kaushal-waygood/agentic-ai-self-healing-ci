@@ -1652,32 +1652,111 @@ function stripHtmlToText(html = '') {
 }
 
 export const calculateJobMatchScore = async (req, res) => {
-  // BUG 6 FIX: extract studentId once and use it everywhere consistently
   const studentId = req.user._id;
 
   try {
-    const { jobDescription, jobTitle, savedCVId } = req.body;
+    const { jobDescription, jobTitle, savedCVId, generatedCVId } = req.body;
+    console.log(
+      'jobDescription',
+      jobDescription,
+      'jobTitle',
+      jobTitle,
+      'savedCVId',
+      savedCVId,
+      'generatedCVId',
+      generatedCVId,
+    );
 
     if (!jobDescription) {
       return res.status(400).json({ error: 'Job description required' });
     }
 
-    // BUG 2 FIX: removed the unused resolveUser() call entirely.
-    // If you need plan/credit gating, add it here explicitly:
-    //   const user = await resolveUser(studentId);
-    //   if (!user.canUseFeature('jobMatching')) return res.status(403)...
-
     let student;
 
-    if (savedCVId) {
-      // ── Saved CV path ──────────────────────────────────────────────
+    if (generatedCVId) {
+      // ── Generated CV path (StudentCV / AI-generated) ───────────────
+      if (!mongoose.Types.ObjectId.isValid(generatedCVId)) {
+        return res.status(400).json({ error: 'Invalid generatedCVId' });
+      }
+
+      const generated = await StudentCV.findOne({
+        _id: generatedCVId,
+        student: studentId,
+      });
+
+      if (!generated) {
+        return res.status(404).json({ error: 'Generated CV not found' });
+      }
+
+      if (generated.status !== 'completed' || !generated.cvData) {
+        return res
+          .status(422)
+          .json({ error: 'Generated CV is not ready or has no data' });
+      }
+
+      // Normalize the AI-generated CV shape into the format parsedCvToStudentForMatch expects.
+      // cvData.skills  = { Technical: "React, Node...", Tools: "Git..." }  → array of {skill, level}
+      // cvData.experience = [{ role, company, bullets, dates }]            → array of {title, company, description, experienceYrs}
+      const raw = generated.cvData;
+
+      const skillsArray = [];
+      if (
+        raw.skills &&
+        typeof raw.skills === 'object' &&
+        !Array.isArray(raw.skills)
+      ) {
+        for (const items of Object.values(raw.skills)) {
+          const list =
+            typeof items === 'string'
+              ? items
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              : Array.isArray(items)
+                ? items
+                : [];
+          for (const s of list) {
+            skillsArray.push({ skill: s, level: 'INTERMEDIATE' });
+          }
+        }
+      } else if (Array.isArray(raw.skills)) {
+        // already an array — pass through
+        raw.skills.forEach((s) =>
+          skillsArray.push({
+            skill: typeof s === 'string' ? s : s.skill || '',
+            level: s.level || 'INTERMEDIATE',
+          }),
+        );
+      }
+
+      const experienceArray = Array.isArray(raw.experience)
+        ? raw.experience.map((e) => ({
+            title: e.role || e.title || '',
+            company: e.company || '',
+            description: Array.isArray(e.bullets)
+              ? e.bullets.join(' ')
+              : e.description || '',
+            experienceYrs: Number(e.experienceYrs) || 0,
+            employmentType: e.employmentType || 'FULL-TIME',
+            currentlyWorking: !!e.currentlyWorking,
+          }))
+        : [];
+
+      student = parsedCvToStudentForMatch({
+        skills: skillsArray,
+        experience: experienceArray,
+        education: Array.isArray(raw.education) ? raw.education : [],
+        projects: Array.isArray(raw.projects) ? raw.projects : [],
+      });
+    } else if (savedCVId) {
+      // ── Saved CV path (StudentHtmlCV) ──────────────────────────────
       if (!mongoose.Types.ObjectId.isValid(savedCVId)) {
         return res.status(400).json({ error: 'Invalid savedCVId' });
       }
 
       const saved = await StudentHtmlCV.findOne({
         _id: savedCVId,
-        student: studentId, // BUG 6 FIX: use consistent studentId
+        student: studentId,
       });
 
       if (!saved) {
@@ -1698,9 +1777,7 @@ export const calculateJobMatchScore = async (req, res) => {
           .json({ error: 'Could not extract enough text from saved CV' });
       }
 
-      // BUG 3 FIX: parseCVData now receives the correct userId (studentId)
       const parsed = await parseCVData(text, studentId);
-      // parsedCvToStudentForMatch now preserves full skill + experience objects
       student = parsedCvToStudentForMatch(parsed);
     } else {
       // ── Live profile path ──────────────────────────────────────────
@@ -1720,8 +1797,6 @@ export const calculateJobMatchScore = async (req, res) => {
       student = { ...studentDetails, skills, experience, education, projects };
     }
 
-    // BUG 3 FIX: jobTitle is now passed in BOTH paths (was silently dropped
-    // in the old savedCVId path which called an older 2-arg version)
     const result = await calculateJobMatch(
       jobDescription,
       student,
@@ -1730,7 +1805,6 @@ export const calculateJobMatchScore = async (req, res) => {
 
     if (result) {
       try {
-        // BUG 6 FIX: use consistent studentId instead of re-reading req.user._id
         await User.updateOne(
           { _id: studentId },
           { $inc: { 'usageCounters.jobMatching': 1 } },
@@ -1747,8 +1821,6 @@ export const calculateJobMatchScore = async (req, res) => {
   } catch (err) {
     console.error('JobMatch Error:', err);
 
-    // Surface 400/422 errors from parseCVData as proper HTTP responses
-    // instead of swallowing them as 500
     if (err.status && err.status < 500) {
       return res.status(err.status).json({ error: err.message });
     }
