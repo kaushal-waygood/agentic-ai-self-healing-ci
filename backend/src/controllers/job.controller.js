@@ -41,6 +41,7 @@ import { StudentCoverLetter } from '../models/students/studentCoverLetter.model.
 import { StudentCL } from '../models/students/studentCL.model.js';
 import fs from 'fs'; // Required to read the uploaded files
 import { runEmailScrape } from '../config/geminiCron.js';
+import { ScheduledEmail } from '../models/ScheduledEmail.model.js';
 
 // --- Constants ---
 const SEARCH_TTL = 120; // seconds
@@ -2191,6 +2192,88 @@ export const scrapeRecruitmentEmails = async (req, res) => {
       });
     }
     console.error('[scrapeRecruitmentEmails]', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * POST /api/v1/jobs/schedule-email
+ * Saves a ScheduledEmail document to be delivered at the given UTC time.
+ */
+export const scheduleRecruitmentEmail = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const {
+      to,
+      subject,
+      bodyHtml,
+      coverLetterHtml,
+      scheduledAt, // ISO-8601 with tz offset e.g. "2025-06-10T09:00:00+05:30"
+      timezone, // IANA name e.g. "Asia/Kolkata"
+    } = req.body;
+
+    if (!to || !scheduledAt) {
+      return res.status(400).json({
+        success: false,
+        message: 'to and scheduledAt are required',
+      });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid recipient email' });
+    }
+
+    const sendDate = new Date(scheduledAt);
+    if (isNaN(sendDate.getTime())) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid scheduledAt date' });
+    }
+    if (sendDate <= new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'scheduledAt must be a future date/time',
+      });
+    }
+
+    const scheduled = await ScheduledEmail.create({
+      student: _id,
+      to,
+      subject: subject || 'Job Application',
+      bodyHtml: bodyHtml || '',
+      coverLetterHtml: coverLetterHtml || null,
+      scheduledAt: sendDate,
+      timezone: timezone || 'UTC',
+      status: 'pending',
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `Email to ${to} scheduled for ${sendDate.toUTCString()}`,
+      scheduledId: scheduled._id,
+    });
+  } catch (err) {
+    console.error('[scheduleRecruitmentEmail]', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * GET /api/v1/jobs/scheduled-emails
+ * Returns the logged-in student's scheduled emails (latest first).
+ */
+export const getScheduledEmails = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const emails = await ScheduledEmail.find({ student: _id })
+      .sort({ scheduledAt: -1 })
+      .limit(50);
+
+    return res.status(200).json({ success: true, emails });
+  } catch (err) {
+    console.error('[getScheduledEmails]', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };

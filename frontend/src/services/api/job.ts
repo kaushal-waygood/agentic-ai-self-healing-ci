@@ -116,3 +116,15 @@ export const scrapeRecruitmentEmail = async (params: {
   const response = await apiInstance.post('/jobs/scrape-emails', params);
   return response.data;
 };
+
+export const scheduleRecruitmentEmail = async (params: {
+  to: string;
+  subject: string;
+  bodyHtml: string;
+  coverLetterHtml?: string;
+  scheduledAt: string;
+  timezone: string;
+}) => {
+  const response = await apiInstance.post('/jobs/schedule-email', params);
+  return response.data;
+};
