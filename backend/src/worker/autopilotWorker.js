@@ -9,6 +9,8 @@ import { getRecommendedJobs } from '../utils/getRecommendedJobs.js';
 import { buildEffectiveStudentProfile } from '../utils/profileHydration.js';
 import { buildJobContextString } from '../utils/jobContext.js';
 import { processTailoredApplication } from '../utils/tailored.autopilot.js';
+import { Job } from '../models/jobs.model.js';
+import { runEmailScrape } from '../config/geminiCron.js';
 
 export const toBool = (v) => v === true || String(v).toLowerCase() === 'true';
 export const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
@@ -306,6 +308,63 @@ export const findAndProcessJobs = async () => {
           excludedIds.add(jobIdStr);
           stored++;
           processed++;
+
+          // 1. Scrape Emails in the background (if missing)
+          if (!job.scrapedEmails || job.scrapedEmails.length === 0) {
+            if (job.company) {
+              const locationStr = [
+                job.location?.city,
+                job.location?.state,
+                job.country,
+              ]
+                .filter(Boolean)
+                .join(', ');
+              runEmailScrape(job.company, locationStr)
+                .then((res) => {
+                  if (res?.allFoundDetails?.length > 0) {
+                    Job.updateOne(
+                      { _id: job._id },
+                      { $set: { scrapedEmails: res.allFoundDetails } },
+                    ).catch(console.error);
+                  }
+                })
+                .catch((e) =>
+                  console.error(
+                    `[Autopilot Scrape] Failed for ${job.company}:`,
+                    e.message,
+                  ),
+                );
+            }
+          }
+
+          // 2. Generate Draft Application tailored exactly to this job
+          const applicationData = buildApplicationData(
+            job,
+            effectiveStudent,
+            agent.finalTouch,
+          );
+          const newApp = await StudentApplication.create({
+            student: studentId,
+            job: job._id,
+            jobTitle: job.title,
+            jobCompany: job.company,
+            jobDescription: job.description,
+            status: 'Draft',
+          });
+
+          // Fire-and-forget generation so the worker loop doesn't timeout natively
+          processTailoredApplication(
+            studentId,
+            newApp._id,
+            applicationData,
+            null, // no realtime socket.io passed to the script level
+            null, // default gemini endpoint
+          ).catch((e) =>
+            console.error(
+              `[Autopilot Generation] Failed for app ${newApp._id}:`,
+              e.message,
+            ),
+          );
         } catch (err) {
           if (err.code !== 11000) {
             console.error('Job insert error:', err.message);
