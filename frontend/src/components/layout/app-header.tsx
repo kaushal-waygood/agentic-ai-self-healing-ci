@@ -499,7 +499,6 @@ const AppHeader = ({
     setIsNotificationOpen(false);
   };
 
-  console.log('user', user);
   if (!user) {
     return (
       <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm">
