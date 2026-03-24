@@ -69,6 +69,25 @@ const toMonth = (iso?: string) =>
 const monthToIso = (month?: string) =>
   month ? new Date(`${month}-01T00:00:00.000Z`).toISOString() : undefined;
 
+const normalizeSkillName = (value: unknown): string => {
+  if (typeof value !== 'string') return '';
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s\-'.,&]+/g, '');
+
+  for (let size = 1; size <= normalized.length / 2; size += 1) {
+    if (normalized.length % size !== 0) continue;
+
+    const chunk = normalized.slice(0, size);
+    if (chunk.repeat(normalized.length / size) === normalized) {
+      return chunk;
+    }
+  }
+
+  return normalized;
+};
+
 /* ---------------------------- Shared UI pieces --------------------------- */
 
 function useLockScroll() {
@@ -1665,9 +1684,15 @@ export const AddSkill: React.FC<{
       level: z.string().min(1, 'Level is required'),
     })
     .superRefine((data, ctx) => {
-      const isDuplicate = existingSkills.some(
-        (s) => s.skill.toLowerCase() === data.skill.toLowerCase(),
-      );
+      const normalizedSkill = normalizeSkillName(data.skill);
+      // const isDuplicate = existingSkills.some(
+      //   (s) => s.skill.toLowerCase() === data.skill.toLowerCase(),
+      // );
+      const isDuplicate =
+        normalizedSkill.length > 0 &&
+        existingSkills.some(
+          (s) => normalizeSkillName(s.skill) === normalizedSkill,
+        );
 
       if (isDuplicate) {
         ctx.addIssue({
