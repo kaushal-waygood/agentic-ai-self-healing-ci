@@ -33,6 +33,8 @@ import {
   getJobCandidateStats,
   getAllAppliedJobList,
   scrapeRecruitmentEmails,
+  scheduleRecruitmentEmail,
+  getScheduledEmails,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -51,6 +53,20 @@ router.post(
   authMiddleware,
   isGeneralUser,
   scrapeRecruitmentEmails,
+);
+
+router.post(
+  '/schedule-email',
+  authMiddleware,
+  isGeneralUser,
+  scheduleRecruitmentEmail,
+);
+
+router.get(
+  '/scheduled-emails',
+  authMiddleware,
+  isGeneralUser,
+  getScheduledEmails,
 );
 
 router.get('/get-jobs', authMiddleware, isGeneralUser, getAllAppliedJobList);

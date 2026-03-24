@@ -1,24 +1,28 @@
 // src/utils/tailored.autopilot.js
+
 import { genAIRequest as genAI } from '../config/gemini.js';
 import {
   generateCVPrompts,
   generateCoverLetterPrompts,
   generateEmailPrompt,
 } from './generateTailored.js';
-// Removed unused Student import
 import {
   notificationTemplates,
   sendRealTimeUserNotification,
 } from './notification.utils.js';
 import { StudentApplication } from '../models/students/studentApplication.model.js';
+import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
 
-// Cleanup helpers
+// ── Cleanup helpers ──────────────────────────────────────────
+
 const processCVResponse = (response) =>
   response.replace(/```json|```/g, '').trim();
 const processCoverLetterResponse = (response) =>
   response.replace(/```html|```/g, '').trim();
 const processEmailResponse = (response) =>
   response.replace(/```html|```/g, '').trim();
+
+// ── Retry wrapper ────────────────────────────────────────────
 
 const genAIWithRetry = async (
   prompt,
@@ -29,11 +33,7 @@ const genAIWithRetry = async (
 ) => {
   for (let i = 0; i < retries; i++) {
     try {
-      // Corrected arguments passed to genAI
-      return await genAI(prompt, {
-        userId: userId,
-        endpoint: endpoint,
-      });
+      return await genAI(prompt, { userId, endpoint });
     } catch (error) {
       if (i === retries - 1) throw error;
       await new Promise((r) => setTimeout(r, delay));
@@ -41,9 +41,12 @@ const genAIWithRetry = async (
   }
 };
 
-// Normalize payload so both API path and worker path work
+// ── Data normaliser (handles both API path and worker path) ──
+
 const normalizeApplicationData = (raw) => {
+  // Already normalised (has candidate at top level)
   if (raw?.candidate) return raw;
+  // Legacy shape: { student, job, finalTouch }
   return {
     job: {
       title: raw?.job?.title || '',
@@ -56,13 +59,54 @@ const normalizeApplicationData = (raw) => {
   };
 };
 
+// ── BUG 2 + 3 FIX: model-agnostic DB update ─────────────────
+//
+// Previously this function ALWAYS updated StudentApplication.
+// The manual endpoint (startAgentJobTailoredGeneration) creates a
+// StudentTailoredApplication record, so updateOne found 0 matching
+// docs and silently no-oped — generated content was lost.
+//
+// Fix: accept a `modelType` param that tells us which collection to
+// update, and a `statusMap` so each caller controls its own status
+// vocabulary ('Applied' for autopilot, 'completed' for manual).
+
+const resolveModel = (modelType) => {
+  if (modelType === 'StudentTailoredApplication')
+    return StudentTailoredApplication;
+  return StudentApplication; // safe default
+};
+
+// ── Main export ──────────────────────────────────────────────
+
+/**
+ * Generate CV, Cover Letter, and Email for a single application,
+ * then persist the results to the correct model.
+ *
+ * @param {ObjectId|string} userId
+ * @param {ObjectId|string} applicationId
+ * @param {object}          applicationData   — { job, candidate, coverLetter, preferences }
+ * @param {object|null}     io                — socket.io instance (optional)
+ * @param {string|null}     endpoint          — Gemini endpoint override (optional)
+ * @param {object}          options
+ * @param {'StudentApplication'|'StudentTailoredApplication'} options.modelType
+ *   Which Mongoose model holds the record. Default: 'StudentApplication'.
+ * @param {{ success: string, failed: string }} options.statusMap
+ *   Status strings to set on success/failure.
+ *   Default: { success: 'Applied', failed: 'Failed' }
+ */
 export const processTailoredApplication = async (
   userId,
   applicationId,
   applicationData,
   io,
   endpoint,
+  {
+    modelType = 'StudentApplication',
+    statusMap = { success: 'Applied', failed: 'Failed' },
+  } = {},
 ) => {
+  const Model = resolveModel(modelType);
+
   try {
     const data = normalizeApplicationData(applicationData);
 
@@ -90,20 +134,22 @@ export const processTailoredApplication = async (
     );
     const applicationEmail = processEmailResponse(emailResponse);
 
-    // ✅ FIX: Update the EXISTING application instead of creating a new one
-    await StudentApplication.updateOne(
+    // ✅ Save to whichever model created the record
+    await Model.updateOne(
       { _id: applicationId },
       {
         $set: {
           cvContent: tailoredCV,
           coverLetterContent: tailoredCoverLetter,
-          emailContent: applicationEmail, // Ensure field name matches schema (emailContent vs applicationEmail)
-          status: 'Applied', // Matches worker status flow
+          emailContent: applicationEmail,
+          status: statusMap.success,
           completedAt: new Date(),
+          error: null,
         },
       },
     );
 
+    // Real-time notification (best-effort)
     try {
       if (io) {
         await sendRealTimeUserNotification(
@@ -133,14 +179,12 @@ export const processTailoredApplication = async (
       error?.message || 'An unknown error occurred during generation.';
 
     try {
-      await StudentApplication.updateOne(
-        {
-          _id: applicationId,
-        },
+      await Model.updateOne(
+        { _id: applicationId },
         {
           $set: {
-            status: 'Failed',
-            error: errorMessage, // Ensure schema has 'error' field if you want to save this
+            status: statusMap.failed,
+            error: errorMessage,
             completedAt: new Date(),
           },
         },

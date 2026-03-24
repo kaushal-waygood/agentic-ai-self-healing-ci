@@ -1,55 +1,126 @@
+// src/cron/autopilot.cron.js
+
 import cron from 'node-cron';
 import { findAndProcessJobs } from '../worker/autopilotWorker.js';
+import { backfillMissingEmails } from '../worker/emailBackfillWorker.js';
+import { retryFailedApplications } from '../worker/retryWorker.js';
 
 const toBool = (v) => v === true || String(v).toLowerCase() === 'true';
+const isEnabled = () => toBool(process.env.AUTOGEN_TAILORED || 'false');
 
-let isRunning = false;
+// ── Per-job lock flags (prevent overlapping runs) ────────────
+const locks = {
+  findAndApply: false,
+  emailBackfill: false,
+  retryFailed: false,
+};
 
-const runAutopilotWorker = async () => {
-  if (isRunning) {
-    console.log('[AutopilotCron] Skipping - previous run still in progress.');
-    return;
-  }
-  if (!toBool(process.env.AUTOGEN_TAILORED || 'false')) {
+// ── Runner factory ───────────────────────────────────────────
+const makeRunner = (lockKey, label, handler) => async () => {
+  if (!isEnabled()) {
     if (process.env.DEBUG_AUTOPILOT === '1') {
       console.log(
-        '[AutopilotCron] Skipping - set AUTOGEN_TAILORED=true to enable.',
+        `[AutopilotCron] ${label} skipped — AUTOGEN_TAILORED not true`,
       );
     }
-    return; // Worker logic is disabled
+    return;
+  }
+  if (locks[lockKey]) {
+    console.log(
+      `[AutopilotCron] ${label} skipping — previous run still in progress`,
+    );
+    return;
   }
 
-  isRunning = true;
+  locks[lockKey] = true;
+  console.log(`🚀 [AutopilotCron] ${label} started...`);
+
   try {
-    console.log('🚀 [AutopilotCron] Starting autopilot job-finding cycle...');
-    const result = await findAndProcessJobs();
-    console.log(
-      `✅ [AutopilotCron] Cycle complete. Agents checked: ${result?.agentsChecked ?? 0}, Processed: ${result?.processed ?? 0}`,
-    );
+    const result = await handler();
+    console.log(`✅ [AutopilotCron] ${label} complete.`, result ?? '');
   } catch (err) {
-    console.error('❌ [AutopilotCron] Error:', err?.message || err);
+    console.error(`❌ [AutopilotCron] ${label} error:`, err?.message || err);
   } finally {
-    isRunning = false;
+    locks[lockKey] = false;
   }
 };
 
+// ── The three workers ────────────────────────────────────────
+
+// 1. Find new jobs + scrape emails + generate tailored applications
+const runFindAndApply = makeRunner('findAndApply', 'FindAndApply', async () => {
+  const result = await findAndProcessJobs();
+  return `Agents checked: ${result?.agentsChecked ?? 0}, Processed: ${result?.processed ?? 0}`;
+});
+
+// 2. Backfill emails for jobs that still have none
+const runEmailBackfill = makeRunner(
+  'emailBackfill',
+  'EmailBackfill',
+  async () => {
+    const result = await backfillMissingEmails();
+    return `Jobs backfilled: ${result?.backfilled ?? 0}`;
+  },
+);
+
+// 3. Retry applications that previously failed generation
+const runRetryFailed = makeRunner('retryFailed', 'RetryFailed', async () => {
+  const result = await retryFailedApplications();
+  return `Retried: ${result?.retried ?? 0}`;
+});
+
+// ── Scheduler ────────────────────────────────────────────────
+
 /**
- * Schedule the autopilot worker to run periodically.
- * @param {string} schedule - Cron expression (default: every 15 minutes)
+ * Start all autopilot cron jobs.
+ *
+ * Schedules (all overridable via env):
+ *   CRON_FIND_AND_APPLY   — default: every 1 min  (your original)
+ *   CRON_EMAIL_BACKFILL   — default: every 6 hours
+ *   CRON_RETRY_FAILED     — default: every 4 hours
+ *
+ * @param {object} io - socket.io instance (optional, for real-time notifications)
  */
-export const startAutopilotWorkerCron = (schedule = '*/1 * * * *') => {
+export const startAutopilotWorkerCron = (
+  io = null,
+  schedule = '*/1 * * * *',
+) => {
   if (process.env.AUTOPILOT_CRON_ENABLED === 'false') {
     console.log('[AutopilotCron] Disabled via AUTOPILOT_CRON_ENABLED=false');
     return null;
   }
 
-  cron.schedule(schedule, runAutopilotWorker);
+  // 1. Find & Apply (your original schedule)
+  const findAndApplySchedule = process.env.CRON_FIND_AND_APPLY || schedule;
+  cron.schedule(findAndApplySchedule, runFindAndApply);
   console.log(
-    `🗓️  [AutopilotCron] Scheduled (${schedule}). Set AUTOGEN_TAILORED=true to enable processing.`,
+    `🗓️  [AutopilotCron] FindAndApply scheduled (${findAndApplySchedule})`,
   );
-  // Run once after 30s so first cycle doesn't wait for cron
-  if (toBool(process.env.AUTOGEN_TAILORED || 'false')) {
-    setTimeout(() => runAutopilotWorker(), 30000);
+
+  // 2. Email backfill
+  const emailBackfillSchedule =
+    process.env.CRON_EMAIL_BACKFILL || '0 */6 * * *';
+  cron.schedule(emailBackfillSchedule, runEmailBackfill);
+  console.log(
+    `🗓️  [AutopilotCron] EmailBackfill scheduled (${emailBackfillSchedule})`,
+  );
+
+  // 3. Retry failed
+  const retryFailedSchedule = process.env.CRON_RETRY_FAILED || '15 */4 * * *';
+  cron.schedule(retryFailedSchedule, runRetryFailed);
+  console.log(
+    `🗓️  [AutopilotCron] RetryFailed scheduled (${retryFailedSchedule})`,
+  );
+
+  console.log(
+    '[AutopilotCron] Set AUTOGEN_TAILORED=true to enable processing.',
+  );
+
+  // Run once after 30s on boot (your original behaviour)
+  if (isEnabled()) {
+    setTimeout(() => runFindAndApply(), 30_000);
   }
-  return runAutopilotWorker; // Export for manual trigger if needed
+
+  // Return manual triggers (useful for admin endpoints)
+  return { runFindAndApply, runEmailBackfill, runRetryFailed };
 };
