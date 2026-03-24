@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react';
+import React, { FC, useEffect, useState } from 'react';
 import {
   Copy,
   Edit3,
@@ -54,6 +54,8 @@ interface EditableMaterialProps {
   companyName?: string;
   location?: string | { city?: string; state?: string; country?: string };
   jobId?: string;
+  cvId?: string;
+  clId?: string;
   jobTitle?: string;
   jobDescription?: string;
 }
@@ -72,6 +74,8 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   companyName,
   location,
   jobId,
+  cvId,
+  clId,
   jobTitle,
   jobDescription,
 }) => {
@@ -82,6 +86,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isFindingEmail, setIsFindingEmail] = useState(false);
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+  const [customCompany, setCustomCompany] = useState<string>(companyName || '');
+
+  useEffect(() => {
+    setCustomCompany(companyName || '');
+  }, [companyName]);
   const [generatedSubject, setGeneratedSubject] = useState<string | null>(null);
   const [generatedBodyHtml, setGeneratedBodyHtml] = useState<string | null>(
     null,
@@ -186,10 +195,10 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   };
 
   const handleFindEmail = async () => {
-    if (!companyName?.trim()) {
+    if (!customCompany.trim() && !cvId && !clId) {
       toast({
         variant: 'destructive',
-        title: 'Company name is required to find email',
+        title: 'Company name or document ID is required to find email',
       });
       return;
     }
@@ -197,8 +206,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     try {
       const { scrapeRecruitmentEmail } = await import('@/services/api/job');
       const { email } = await scrapeRecruitmentEmail({
-        company: companyName.trim(),
+        company: customCompany.trim() || '',
         location: location ?? undefined,
+        jobId: jobId ?? undefined,
+        cvId: cvId ?? undefined,
+        clId: clId ?? undefined,
       });
       if (email) {
         setRecruiterEmailInput(email);
@@ -209,8 +221,13 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           title: 'Could not find recruitment email',
         });
       }
-    } catch {
-      toast({ variant: 'destructive', title: 'Failed to find email' });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to find email',
+        description:
+          error.response?.data?.message || 'An error occurred during search',
+      });
     } finally {
       setIsFindingEmail(false);
     }
@@ -452,8 +469,9 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         setBodyInput={setBodyInput}
         isSendingEmail={isSendingEmail}
         handleSendEmailConfirm={handleSendEmailConfirm}
-        companyName={companyName ?? ''}
-        showFindEmail={Boolean(companyName && onSendEmail)}
+        companyName={customCompany}
+        setCompanyName={setCustomCompany}
+        showFindEmail={!!customCompany.trim() || !!cvId || !!clId}
         handleFindEmail={handleFindEmail}
         isFindingEmail={isFindingEmail}
         canGenerateDraft={canGenerateDraft}

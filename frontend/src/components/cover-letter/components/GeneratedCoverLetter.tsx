@@ -47,24 +47,11 @@ const GeneratedCoverLetter = ({
   onSendEmail,
   defaultSubject = '',
   defaultBodyHtml = '',
+  clId,
 }: any) => {
   return (
     <div className="min-h-screen  p-2 md:p-3 lg:p-4">
       <div className="max-w-7xl mx-auto">
-        {/* Success Banner */}
-        {/* <div className="mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg p-2 shadow-lg">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-              <CheckCircle className="h-7 w-7 text-white" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold mb-1">
-                Cover Letter Generated!
-              </h2>
-            </div>
-          </div>
-        </div> */}
-
         <div className="flex flex-col gap-4">
           {/* Editor Card */}
           <div>
@@ -96,6 +83,7 @@ const GeneratedCoverLetter = ({
                   sendEmailHint="Cover letter only"
                   defaultSubject={defaultSubject}
                   defaultBodyHtml={defaultBodyHtml}
+                  clId={clId}
                 />
               </CardContent>
             </Card>

@@ -42,20 +42,18 @@ const EMAIL_CHANGE_OTP_EXP_MS = 10 * 60 * 1000; // 10 minutes
 const DEFAULT_RESET_EXP_MS = 60 * 60 * 1000; // 1 hour
 
 const BACKEND_API_BASE_URL =
-  process.env.BACKEND_URL ||
-  (process.env.NODE_ENV === 'production'
+  process.env.NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
     : process.env.NODE_ENV === 'development'
       ? 'https://api.dev.zobsai.com'
-      : `http://127.0.0.1:${process.env.PORT || 8080}`);
+      : `http://127.0.0.1:${process.env.PORT || 8080}`;
 
 const FRONTEND_URL =
-  process.env.FRONTEND_URL ||
-  (process.env.NODE_ENV === 'production'
+  process.env.NODE_ENV === 'production'
     ? 'https://zobsai.com'
     : process.env.NODE_ENV === 'development'
       ? 'https://dev.zobsai.com'
-      : 'http://127.0.0.1:3000');
+      : 'http://127.0.0.1:3000';
 
 /* -------------------------
    Helper Utilities
@@ -1003,9 +1001,9 @@ export const forgotPassword = async (req, res) => {
     user.passwordResetExpires = passwordResetExpires;
     await user.save();
 
-    const resetUrl = `${
-      FRONTEND_URL || 'http://127.0.0.1:3000'
-    }/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+    const resetUrl = `${FRONTEND_URL}/reset-password?token=${resetToken}&email=${encodeURIComponent(
+      email,
+    )}`;
 
     const mailHtml = `
       <h2>Password Reset Request</h2>
@@ -1023,6 +1021,7 @@ export const forgotPassword = async (req, res) => {
     return res.status(200).json({
       message:
         'If an account with that email exists, a password reset link has been sent',
+      resetToken, // 👈 Add this temporarily for debugging
     });
   } catch (error) {
     console.error('Forgot password error:', error);
@@ -1034,6 +1033,7 @@ export const forgotPassword = async (req, res) => {
 
 export const resetPassword = async (req, res) => {
   const { token, newPassword, confirmPassword, email } = req.body;
+  console.log(token, newPassword, confirmPassword, email);
   try {
     if (!token || !newPassword || !confirmPassword || !email) {
       return res.status(400).json({ message: 'All fields are required' });

@@ -96,6 +96,31 @@ function locationString(location) {
   return '';
 }
 
+function categorizeEmail(email) {
+  const namePart = email.split('@')[0].toLowerCase();
+
+  if (/(tech|engineering|dev|developer|software|it)\b/i.test(namePart))
+    return 'Tech';
+  if (
+    /(hr|careers|jobs|recruitment|talent|hiring|apply|people|joinus)\b/i.test(
+      namePart,
+    )
+  )
+    return 'HR';
+  if (/(sales|marketing|pr|media)\b/i.test(namePart)) return 'Sales';
+  if (/(contact|info|hello|admin|support)\b/i.test(namePart)) return 'General';
+
+  return 'Other';
+}
+
+function processFoundEmails(emails) {
+  return emails.map((email) => {
+    const domain = email.split('@')[1] || '';
+    const department = categorizeEmail(email);
+    return { email, domain, department };
+  });
+}
+
 // ── Core: Gemini with Google Search Grounding ────────────────
 async function searchWithGeminiGrounding(companyName, location, genAI) {
   const locStr = locationString(location);
@@ -188,7 +213,7 @@ No explanation, no markdown, just JSON.`;
  * Finds the best recruitment/HR email for a company.
  * @param {string} companyName
  * @param {string|object|undefined} location
- * @returns {{ email: string|null, allFound: string[], confidence: 'high'|'medium'|'low'|'none', source: string }}
+ * @returns {{ email: string|null, allFound: string[], allFoundDetails: object[], confidence: 'high'|'medium'|'low'|'none', source: string }}
  */
 export async function runEmailScrape(companyName, location) {
   if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is not set');
@@ -218,7 +243,13 @@ export async function runEmailScrape(companyName, location) {
 
   if (foundEmails.length === 0) {
     console.log('[EmailScrape] No email found by any method.');
-    return { email: null, allFound: [], confidence: 'none', source: 'none' };
+    return {
+      email: null,
+      allFound: [],
+      allFoundDetails: [],
+      confidence: 'none',
+      source: 'none',
+    };
   }
 
   // Step 3: Score and pick the best email
@@ -243,6 +274,7 @@ export async function runEmailScrape(companyName, location) {
   return {
     email: best.email,
     allFound: foundEmails,
+    allFoundDetails: processFoundEmails(foundEmails),
     confidence,
     source,
   };

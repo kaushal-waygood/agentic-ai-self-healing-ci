@@ -92,6 +92,15 @@ const jobSchema = new Schema(
 
     // ✅ New field to track search queries
     queries: [{ type: String }],
+
+    // --- Scraped Recruiter Emails ---
+    scrapedEmails: [
+      {
+        email: { type: String },
+        domain: { type: String },
+        department: { type: String }, // e.g. "Tech", "HR", "General"
+      },
+    ],
   },
   { timestamps: true },
 );
