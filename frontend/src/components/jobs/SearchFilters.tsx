@@ -169,37 +169,35 @@ export const SearchFilters = ({
             onChange={(e) => handleInputChange('query', e.target.value)}
             autoFocus
             onKeyDown={handleKeyDown}
-            className="pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all border-2"
+            className="!pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all border-2"
             aria-label="Search jobs"
           />
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-3 w-full md:w-auto">
           <button
             onClick={handleSearchClick}
             disabled={isSearching}
-            className={`flex items-center bg-buttonPrimary text-white justify-center gap-2 px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform ${
-              isSearching ? ' cursor-not-allowed' : ' hover:scale-105  '
+            className={`flex items-center justify-center gap-2 bg-buttonPrimary text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 shadow-md ${
+              isSearching
+                ? 'cursor-not-allowed opacity-75'
+                : 'hover:scale-105 hover:shadow-lg hover:brightness-110 active:scale-95'
             }`}
           >
             {isSearching ? (
-              <>
-                <Loader2
-                  className="w-10 h-6
-                 animate-spin duration-300"
-                />
-              </>
+              <Loader2 className="size-4 shrink-0 text-white animate-spin" />
             ) : (
-              <>Search </>
+              <Search className="size-4 shrink-0 text-white" />
             )}
+            <span>{isSearching ? 'Searching...' : 'Search'}</span>
           </button>
 
           <button
             onClick={onOpenFilterModal}
-            className="flex items-center justify-center gap-2 bg-buttonPrimary hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200/50"
+            className="flex items-center justify-center gap-2 bg-buttonPrimary text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 shadow-md hover:scale-105 hover:shadow-lg hover:brightness-110 active:scale-95"
           >
-            <Filter className="w-10 h-4" />
-            Filters
+            <Filter className="size-4 shrink-0 text-white" />
+            <span>Filters</span>
           </button>
         </div>
       </div>

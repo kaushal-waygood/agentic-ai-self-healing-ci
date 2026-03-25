@@ -75,7 +75,8 @@ export function* fetchDailyStreakSaga(): SagaIterator {
   try {
     const response: AxiosResponse = yield call(fetchDailyStreak);
 
-    yield put(fetchDailyStreakSuccess(response));
+    // yield put(fetchDailyStreakSuccess(response));
+    yield put(fetchDailyStreakSuccess(response.data));
   } catch (error: unknown) {
     yield put(
       fetchDailyStreakFailure(
@@ -88,8 +89,15 @@ export function* fetchDailyStreakSaga(): SagaIterator {
 export function* claimDailyStreakSaga(): SagaIterator {
   try {
     const response: AxiosResponse = yield call(claimDailyStreakApi);
-    yield put(claimDailyStreakSuccess(response.data));
+    //  yield put(claimDailyStreakSuccess(response.data));
+    yield put(
+      claimDailyStreakSuccess({
+        streak: response.data.streak,
+        canClaimToday: false,
+      }),
+    );
     yield put(getCreditRequest());
+    yield put(getTotalCreditRequest());
   } catch (error: unknown) {
     yield put(
       claimDailyStreakFailure(

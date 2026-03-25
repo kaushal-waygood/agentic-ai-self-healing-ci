@@ -26,6 +26,7 @@ const GeneratedCV = ({
   onSendEmail,
   defaultSubject = '',
   defaultBodyHtml = '',
+  cvId,
 }: any) => {
   const [editableContent, setEditableContent] = useState('');
   const [selectedTemplate, setSelectedTemplate] =
@@ -95,6 +96,7 @@ const GeneratedCV = ({
                 sendEmailHint="CV only"
                 defaultSubject={defaultSubject}
                 defaultBodyHtml={defaultBodyHtml}
+                cvId={cvId}
               />
             </div>
           </div>

@@ -38,8 +38,10 @@ import puppeteer from 'puppeteer';
 import { uploadBufferToCloudinary } from '../middlewares/multer.js';
 import { wrapCVHtml } from '../utils/cvTemplate.js';
 import { StudentCoverLetter } from '../models/students/studentCoverLetter.model.js';
+import { StudentCL } from '../models/students/studentCL.model.js';
 import fs from 'fs'; // Required to read the uploaded files
 import { runEmailScrape } from '../config/geminiCron.js';
+import { ScheduledEmail } from '../models/ScheduledEmail.model.js';
 
 // --- Constants ---
 const SEARCH_TTL = 120; // seconds
@@ -232,7 +234,11 @@ export async function searchJobs(req, res) {
     });
 
     const processPool = (jobsPool, ctx) => {
-      const filtered = applyFilters(jobsPool, ctx);
+      const validJobs = jobsPool.filter(
+        (job) => job.description && job.description.trim().length > 0,
+      );
+
+      const filtered = applyFilters(validJobs, ctx);
       const ranked = rankJobs(filtered, ctx);
       return ranked;
     };
@@ -2090,30 +2096,97 @@ export const applyJob = async (req, res) => {
 };
 
 export const scrapeRecruitmentEmails = async (req, res) => {
-  const { company, location } = req.body || {};
-  console.log(
-    '[scrapeRecruitmentEmails] company:',
-    company,
-    '| location:',
-    location,
-  );
+  let { company, location, jobId, cvId, clId } = req.body || {};
 
-  if (!company || typeof company !== 'string') {
+  try {
+    let jobObj = null;
+    if (cvId) {
+      const cv = await StudentCV.findById(cvId).select('jobId');
+      if (cv && cv.jobId) {
+        const job = await Job.findById(cv.jobId).select(
+          'company location scrapedEmails country',
+        );
+        jobObj = job;
+      }
+    } else if (clId) {
+      let cl = await StudentCL.findById(clId).select('jobId');
+      if (!cl) {
+        cl = await StudentCoverLetter.findById(clId).select('jobId');
+      }
+
+      if (cl && cl.jobId) {
+        const job = await Job.findById(cl.jobId).select(
+          'company location scrapedEmails country',
+        );
+        jobObj = job;
+      }
+    } else if (jobId) {
+      // If we don't have cvId or clId but we DO have jobId, find the job
+      if (mongoose.Types.ObjectId.isValid(jobId)) {
+        jobObj = await Job.findById(jobId).select(
+          'company location scrapedEmails country',
+        );
+      } else {
+        jobObj = await Job.findOne({ jobId }).select(
+          'company location scrapedEmails country',
+        );
+      }
+    }
+
+    if (jobObj) {
+      company = jobObj.company || company;
+      jobId = jobObj._id || jobId;
+
+      const loc = jobObj.location;
+      location =
+        [loc?.city, loc?.state, jobObj.country].filter(Boolean).join(', ') ||
+        location;
+
+      // ✅ Check if we ALREADY have emails stored for this job!
+      if (jobObj.scrapedEmails && jobObj.scrapedEmails.length > 0) {
+        return res.status(200).json({
+          success: true,
+          email: jobObj.scrapedEmails[0].email, // best match
+          allFound: jobObj.scrapedEmails.map((e) => e.email), // simple array of emails
+          allFoundDetails: jobObj.scrapedEmails, // full categorized objects
+          confidence: 'high (cached)',
+          source: 'database',
+        });
+      }
+    }
+  } catch (err) {
+    console.error(
+      '[scrapeRecruitmentEmails] Error resolving cv/cl id to job:',
+      err,
+    );
+  }
+
+  // ✅ Guard: abort early if company is still missing
+  if (!company || !company.trim()) {
     return res.status(400).json({
       success: false,
-      message: 'company is required (string)',
+      message:
+        'Company name could not be resolved. The CV/CL may not be linked to a job, or no company was provided.',
     });
   }
 
   try {
     const result = await runEmailScrape(company.trim(), location);
 
+    if (result.allFoundDetails && result.allFoundDetails.length > 0) {
+      await Job.updateOne(
+        { _id: jobId },
+        { $set: { scrapedEmails: result.allFoundDetails } },
+      );
+    }
+
     return res.status(200).json({
       success: true,
-      email: result.email, // best email or null
-      allFound: result.allFound, // all emails discovered
-      confidence: result.confidence, // 'high' | 'medium' | 'low' | 'none'
-      source: result.source, // how it was found
+      email: result.email,
+      allFound: result.allFound,
+      allFoundDetails: result.allFoundDetails || [],
+      confidence: result.confidence,
+      source: result.source,
     });
   } catch (err) {
     if (err.message?.includes('GEMINI_API_KEY')) {
@@ -2123,6 +2196,88 @@ export const scrapeRecruitmentEmails = async (req, res) => {
       });
     }
     console.error('[scrapeRecruitmentEmails]', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * POST /api/v1/jobs/schedule-email
+ * Saves a ScheduledEmail document to be delivered at the given UTC time.
+ */
+export const scheduleRecruitmentEmail = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const {
+      to,
+      subject,
+      bodyHtml,
+      coverLetterHtml,
+      scheduledAt, // ISO-8601 with tz offset e.g. "2025-06-10T09:00:00+05:30"
+      timezone, // IANA name e.g. "Asia/Kolkata"
+    } = req.body;
+
+    if (!to || !scheduledAt) {
+      return res.status(400).json({
+        success: false,
+        message: 'to and scheduledAt are required',
+      });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid recipient email' });
+    }
+
+    const sendDate = new Date(scheduledAt);
+    if (isNaN(sendDate.getTime())) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid scheduledAt date' });
+    }
+    if (sendDate <= new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'scheduledAt must be a future date/time',
+      });
+    }
+
+    const scheduled = await ScheduledEmail.create({
+      student: _id,
+      to,
+      subject: subject || 'Job Application',
+      bodyHtml: bodyHtml || '',
+      coverLetterHtml: coverLetterHtml || null,
+      scheduledAt: sendDate,
+      timezone: timezone || 'UTC',
+      status: 'pending',
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `Email to ${to} scheduled for ${sendDate.toUTCString()}`,
+      scheduledId: scheduled._id,
+    });
+  } catch (err) {
+    console.error('[scheduleRecruitmentEmail]', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * GET /api/v1/jobs/scheduled-emails
+ * Returns the logged-in student's scheduled emails (latest first).
+ */
+export const getScheduledEmails = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const emails = await ScheduledEmail.find({ student: _id })
+      .sort({ scheduledAt: -1 })
+      .limit(50);
+
+    return res.status(200).json({ success: true, emails });
+  } catch (err) {
+    console.error('[getScheduledEmails]', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };

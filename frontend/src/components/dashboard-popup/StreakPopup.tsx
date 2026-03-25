@@ -45,67 +45,72 @@ export default function StreakPopup({ isOpen, onClose }: StreakPopupProps) {
             exit={{ scale: 0.8, y: 50, opacity: 0 }}
             className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
           >
-            <div className="relative w-full max-w-md bg-gradient-to-br from-orange-100 via-pink-100 to-purple-100 rounded-2xl shadow-2xl border-2 border-yellow-400 overflow-hidden">
+            <div className="relative w-full max-w-md overflow-hidden rounded-[1.75rem] border-2 border-primary/20 bg-background shadow-2xl ring-1 ring-accent/10">
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 p-1 hover:bg-white/50 rounded-full z-10"
+                className="absolute top-4 right-4 z-20 rounded-full border border-border/70 bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm transition-colors hover:text-foreground"
               >
-                <X className="w-5 h-5 text-gray-600" />
+                <X className="w-5 h-5" />
               </button>
 
-              <div className="p-6 relative">
+              <div className="relative overflow-hidden bg-gradient-to-br from-primary/15 via-background to-accent/15 p-6">
+                <div className="absolute -left-12 top-6 h-32 w-32 rounded-full bg-primary/15 blur-3xl" />
+                <div className="absolute -right-10 bottom-0 h-36 w-36 rounded-full bg-accent/15 blur-3xl" />
+
                 <motion.div
                   animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="flex justify-center mb-2"
+                  className="relative z-10 mb-2 flex justify-center"
                 >
-                  <Flame className="w-20 h-20 text-orange-500 drop-shadow-lg" />
+                  <Flame className="w-20 h-20 text-primary drop-shadow-lg" />
                 </motion.div>
 
                 {/* Title */}
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <Sparkles className="w-5 h-5 text-yellow-500" />
-                  <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-pink-600">
+                <div className="relative z-10 mb-1 flex items-center justify-center gap-2">
+                  <Sparkles className="w-5 h-5 text-accent" />
+                  <h2 className="bg-gradient-to-r from-primary to-accent bg-clip-text text-3xl font-black text-transparent">
                     DAILY STREAK!
                   </h2>
-                  <Sparkles className="w-5 h-5 text-yellow-500" />
+                  <Sparkles className="w-5 h-5 text-accent" />
                 </div>
 
                 {/* Streak counter */}
                 <motion.div
-                  className="text-center mb-4"
+                  className="relative z-10 mb-4 text-center"
                   animate={{ y: [0, -5, 0] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
-                  <span className="text-5xl font-black text-orange-600">
+                  <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-5xl font-black text-transparent">
                     {streak?.current || 0}
                   </span>
-                  <span className="text-xl text-orange-400 ml-2">days</span>
+                  <span className="ml-2 text-xl text-muted-foreground">
+                    days
+                  </span>
                 </motion.div>
 
                 {/* Week dots */}
-                <div className="flex justify-between items-center mt-4 mb-4">
+                <div className="relative z-10 mb-4 mt-4 flex items-center justify-between">
                   {days.map((d, idx) => {
                     const isToday = idx === todayIdx;
                     const isActive = activeDays.includes(idx);
                     return (
                       <div key={idx} className="flex flex-col items-center">
                         {isToday ? (
-                          <Flame className="text-pink-500 w-8 h-8 drop-shadow-lg" />
+                          <Flame className="w-8 h-8 text-accent drop-shadow-lg" />
                         ) : (
                           <div
                             className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
                               isActive
-                                ? 'bg-gradient-to-br from-pink-500 to-orange-500 border-yellow-400'
-                                : 'bg-gray-200 border-gray-300'
+                                ? 'border-primary/30 bg-gradient-to-br from-primary to-accent shadow-md'
+                                : 'border-border bg-background/80 backdrop-blur-sm'
                             }`}
                           >
                             {isActive && (
-                              <Flame className="w-4 h-4 text-white" />
+                              <Flame className="w-4 h-4 text-primary-foreground" />
                             )}
                           </div>
                         )}
-                        <span className="text-xs font-bold mt-1 text-gray-700">
+                        <span className="mt-1 text-xs font-bold text-muted-foreground">
                           {d}
                         </span>
                       </div>
@@ -114,24 +119,30 @@ export default function StreakPopup({ isOpen, onClose }: StreakPopupProps) {
                 </div>
 
                 {/* Stats */}
-                <div className="flex justify-between bg-white/50 p-3 rounded-xl mb-4">
+                <div className="relative z-10 mb-4 flex justify-between rounded-2xl border border-border/80 bg-background/75 p-3 shadow-sm backdrop-blur-sm">
                   <div className="text-center">
-                    <span className="text-xl font-bold text-orange-600">
+                    <span className="text-xl font-bold text-primary">
                       {streak?.current || 0}
                     </span>
-                    <span className="text-xs text-gray-600 block">Current</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Current
+                    </span>
                   </div>
                   <div className="text-center">
-                    <span className="text-xl font-bold text-purple-600">
+                    <span className="text-xl font-bold text-accent">
                       {streak?.longest || 0}
                     </span>
-                    <span className="text-xs text-gray-600 block">Best</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Best
+                    </span>
                   </div>
                   <div className="text-center">
-                    <span className="text-xl font-bold text-pink-600">
+                    <span className="text-xl font-bold text-foreground">
                       {activeDays.length}
                     </span>
-                    <span className="text-xs text-gray-600 block">Active</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Active
+                    </span>
                   </div>
                 </div>
 
@@ -141,15 +152,15 @@ export default function StreakPopup({ isOpen, onClose }: StreakPopupProps) {
                   whileTap={{ scale: 0.95 }}
                   onClick={handleClaim}
                   disabled={!streak?.canClaimToday || claiming}
-                  className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 shadow-xl ${
+                  className={`relative z-10 flex w-full items-center justify-center gap-3 rounded-xl py-4 text-lg font-bold shadow-xl ${
                     streak?.canClaimToday && !claiming
-                      ? 'bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 text-white'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      ? 'bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground'
+                      : 'cursor-not-allowed bg-muted text-muted-foreground shadow-none'
                   }`}
                 >
                   {claiming ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                       <span>Claiming...</span>
                     </>
                   ) : (
@@ -161,7 +172,7 @@ export default function StreakPopup({ isOpen, onClose }: StreakPopupProps) {
                   )}
                 </motion.button>
 
-                <p className="text-center text-sm text-gray-600 mt-3">
+                <p className="relative z-10 mt-3 text-center text-sm text-muted-foreground">
                   {streak?.canClaimToday
                     ? "Don't break your streak! 🔥"
                     : 'Come back tomorrow for more! ✨'}

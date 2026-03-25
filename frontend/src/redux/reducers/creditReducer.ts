@@ -1,21 +1,35 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+type DailyStreakPayload = {
+  streak: {
+    current: number;
+    longest: number;
+    lastClaimedAt: string | null;
+    freezeTokens?: number;
+  };
+  canClaimToday: boolean;
+};
+
 interface CreditState {
   credit: number;
   claimCredits: any;
   loading: boolean;
   error: string | null;
-  streak: number; // Changed from 'any' to 'number'
+  // streak: number; // Changed from 'any' to 'number'
+  streak: DailyStreakPayload | null;
   canClaimToday: boolean;
+  claimingStreak: boolean;
 }
 
 const initialState: CreditState = {
   credit: 0,
-  streak: 0,
+  // streak: 0,
+  streak: null,
   claimCredits: null,
   loading: false,
   error: null,
   canClaimToday: false,
+  claimingStreak: false,
 };
 
 const creditSlice = createSlice({
@@ -68,7 +82,12 @@ const creditSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    fetchDailyStreakSuccess: (state, action: PayloadAction<any>) => {
+    // fetchDailyStreakSuccess: (state, action: PayloadAction<any>) => {
+
+    fetchDailyStreakSuccess: (
+      state,
+      action: PayloadAction<DailyStreakPayload>,
+    ) => {
       state.loading = false;
       state.error = null;
       state.streak = action.payload; // Fixed: was setting credit instead of streak
@@ -78,16 +97,22 @@ const creditSlice = createSlice({
       state.error = action.payload;
     },
     claimDailyStreakRequest: (state) => {
-      state.loading = true;
+      //  state.loading = true;
+      state.claimingStreak = true;
       state.error = null;
     },
-    claimDailyStreakSuccess: (state, action: PayloadAction<any>) => {
-      state.loading = false;
+    claimDailyStreakSuccess: (
+      state,
+      action: PayloadAction<DailyStreakPayload>,
+    ) => {
+      // state.loading = false;
+      state.claimingStreak = false;
       state.error = null;
       state.streak = action.payload;
     },
     claimDailyStreakFailure: (state, action: PayloadAction<string>) => {
-      state.loading = false;
+      //  state.loading = false;
+      state.claimingStreak = false;
       state.error = action.payload;
     },
   },

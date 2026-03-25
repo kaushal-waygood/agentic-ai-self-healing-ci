@@ -1,9 +1,13 @@
 import { requestNewFeature } from '../controllers/newFeature.controller.js';
 import { Router } from 'express';
-import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
+import {
+  authMiddleware,
+  isStudent,
+  isUserOrUniStudent,
+} from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-router.post('/', authMiddleware, isStudent, requestNewFeature);
+router.post('/', authMiddleware, isUserOrUniStudent, requestNewFeature);
 
 export default router;

@@ -479,6 +479,14 @@ const AppHeader = ({
       // remove feedback session token
       sessionStorage.removeItem('feedback_shown');
       sessionStorage.removeItem('improvement_popup_shown');
+      Object.keys(sessionStorage)
+        .filter(
+          (key) =>
+            key === 'streak_popup_shown' ||
+            key.startsWith('streak_popup_shown_') ||
+            key.startsWith('improvement_popup_attempted_'),
+        )
+        .forEach((key) => sessionStorage.removeItem(key));
       dispatch(logoutRequest());
       router.push('/login');
     } catch (error) {
@@ -491,6 +499,7 @@ const AppHeader = ({
     setIsNotificationOpen(false);
   };
 
+  console.log('user', user);
   if (!user) {
     return (
       <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm">
@@ -599,12 +608,11 @@ const AppHeader = ({
                   />
                 ) : (
                   <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl uppercase">
-                    {(user?.fullName || ' ').charAt(0)}
+                    {(studentWrapper?.student.fullName || ' ').charAt(0)}
                   </div>
                 )}
-
-                {/* <ChevronDown className="w-4 h-4 text-slate-600 hidden sm:block" /> */}
               </button>
+
               {isUserMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
                   <div className="p-4 border-b border-slate-100">
@@ -613,7 +621,7 @@ const AppHeader = ({
                         <Image width={48} height={48} src={preview} alt="" />
                       ) : (
                         <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-4xl uppercase">
-                          {(user?.fullName || ' ').charAt(0)}
+                          {(studentWrapper?.student.fullName || ' ').charAt(0)}
                         </div>
                       )}
 

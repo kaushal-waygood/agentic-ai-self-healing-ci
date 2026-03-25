@@ -14,6 +14,7 @@ import { getAutopilotRequest } from '@/redux/reducers/autopilotReducer';
 import AgentPreviewModal from './AgentPreviewModal';
 import GeneratingAgent from './step5GeneratingAgent';
 import FinalResultView from '../cover-letter/components/FinalResultView';
+import { dispatchImprovementPopupEvent } from '@/lib/improvement-popup';
 
 const MultiStepForm = () => {
   const [step, setStep] = useState(0);
@@ -241,6 +242,7 @@ const MultiStepForm = () => {
         title: 'Success',
         description: 'Agent created successfully!',
       });
+      dispatchImprovementPopupEvent('auto_apply_success');
     } catch (error) {
       console.error(error);
       // 1. Handle Incomplete Profile (403)

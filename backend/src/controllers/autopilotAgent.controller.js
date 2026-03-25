@@ -412,6 +412,8 @@ export const getAgentJobs = async (req, res) => {
  * Start tailored doc generation for a job found by an agent.
  * First find (jobs in accordion) -> user clicks Generate -> this endpoint.
  */
+// src/controllers/agentJobTailored.controller.js
+
 export const startAgentJobTailoredGeneration = async (req, res) => {
   const studentId = req.user._id;
   const { agentId: agentIdParam, jobId } = req.params;
@@ -504,11 +506,20 @@ export const startAgentJobTailoredGeneration = async (req, res) => {
     });
 
     const io = req.app.get('io');
+
+    // ✅ FIX: pass modelType + statusMap so processTailoredApplication
+    //    updates StudentTailoredApplication (not StudentApplication) and
+    //    uses the 'completed' / 'failed' status values this model expects.
     processTailoredApplication(
       studentId,
       application._id,
       applicationData,
       io,
+      null,
+      {
+        modelType: 'StudentTailoredApplication',
+        statusMap: { success: 'completed', failed: 'failed' },
+      },
     ).catch((err) =>
       console.error(
         `[AgentJobTailored] Failed for job ${jobId} agent ${agent.agentId}:`,

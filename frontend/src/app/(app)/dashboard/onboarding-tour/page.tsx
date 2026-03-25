@@ -41,6 +41,7 @@ import { RootState } from '@/redux/rootReducer';
 import { useSelector, useDispatch } from 'react-redux';
 import { start } from 'repl';
 import { useToast } from '@/hooks/use-toast';
+import { dispatchImprovementPopupEvent } from '@/lib/improvement-popup';
 
 // --- START: TYPE DEFINITIONS ---
 type EducationEntry = {
@@ -115,6 +116,7 @@ const OnboardingPage = () => {
 
   const { students } = useSelector((state: RootState) => state.student);
   const { user } = useSelector((state: RootState) => state.auth);
+
   const dispatch = useDispatch();
   const ANALYSIS_MESSAGES = [
     'Reading your resume…',
@@ -296,13 +298,6 @@ const OnboardingPage = () => {
     }
   };
 
-  // const handleNext = () => {
-  //   if (step < totalSteps) {
-  //     setDirection('forward');
-  //     setTimeout(() => setStep(step + 1), 50);
-  //   }
-  // };
-
   const handleNext = () => {
     setAttemptedNext(true);
 
@@ -450,29 +445,49 @@ const OnboardingPage = () => {
     }
   };
 
-  useEffect(() => {
-    if (!isLoading) return;
+  // useEffect(() => {
+  //   if (!isLoading) return;
 
-    // 1. Push a new state so the "Back" button has something to pop
-    // without actually leaving the current URL
+  //   // 1. Push a new state so the "Back" button has something to pop
+  //   // without actually leaving the current URL
+  //   window.history.pushState(null, '', window.location.href);
+
+  //   const handlePopState = (e: PopStateEvent) => {
+  //     if (isLoading) {
+  //       // 2. If they hit back, push the state again to "trap" them
+  //       // and show a warning if you wish
+  //       window.history.pushState(null, '', window.location.href);
+  //       alert('Please wait until resume extraction is complete.');
+  //     }
+  //   };
+
+  //   // Listen for the back button (popstate)
+  //   window.addEventListener('popstate', handlePopState);
+
+  //   return () => {
+  //     window.removeEventListener('popstate', handlePopState);
+  //   };
+  // }, [isLoading]);
+
+  useEffect(() => {
+    // FIX: Changed > to >= so it doesn't push state on the final submit step
+    if (!isLoading || step >= totalSteps) return;
+
     window.history.pushState(null, '', window.location.href);
 
     const handlePopState = (e: PopStateEvent) => {
-      if (isLoading) {
-        // 2. If they hit back, push the state again to "trap" them
-        // and show a warning if you wish
+      if (isLoading && step < totalSteps) {
         window.history.pushState(null, '', window.location.href);
-        alert('Please wait until resume extraction is complete.');
+        alert('Please wait until the process is complete.');
       }
     };
 
-    // Listen for the back button (popstate)
     window.addEventListener('popstate', handlePopState);
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [isLoading]);
+  }, [isLoading, step, totalSteps]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -489,11 +504,9 @@ const OnboardingPage = () => {
     };
   }, [isLoading]);
 
-  // const handleDashboardRedirect = () => {
-  //   router.push('/dashboard');
-  // };
   const handleDashboardRedirect = () => {
-    router.push(`/dashboard?from=onboarding`);
+    dispatchImprovementPopupEvent('onboarding_complete');
+    router.replace(`/dashboard?from=onboarding`);
   };
 
   // --- HELPER: Get Title and Icon for the current step ---

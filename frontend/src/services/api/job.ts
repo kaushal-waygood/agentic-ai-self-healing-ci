@@ -107,9 +107,24 @@ export const getRecommendJobs = async (params: {
 };
 
 export const scrapeRecruitmentEmail = async (params: {
-  company: string;
+  company?: string;
   location?: string | { city?: string; state?: string; country?: string };
+  jobId?: string;
+  cvId?: string;
+  clId?: string;
 }) => {
   const response = await apiInstance.post('/jobs/scrape-emails', params);
+  return response.data;
+};
+
+export const scheduleRecruitmentEmail = async (params: {
+  to: string;
+  subject: string;
+  bodyHtml: string;
+  coverLetterHtml?: string;
+  scheduledAt: string;
+  timezone: string;
+}) => {
+  const response = await apiInstance.post('/jobs/schedule-email', params);
   return response.data;
 };

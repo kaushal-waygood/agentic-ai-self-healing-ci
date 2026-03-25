@@ -86,6 +86,16 @@ const jobSchema = new Schema(
     // --- Metadata ---
     tags: [String],
     queries: [{ type: String, index: true }],
+
+    // --- Scraped Recruiter Emails ---
+    scrapedEmails: [
+      {
+        email: { type: String },
+        domain: { type: String },
+        department: { type: String }, // e.g. "Tech", "HR", "General"
+      },
+    ],
+
     isActive: { type: Boolean, default: true },
     views: { type: Number, default: 0 },
     job_embedding: {

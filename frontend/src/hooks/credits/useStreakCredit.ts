@@ -6,8 +6,8 @@ import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import {
-  fetchDailyStreakRequest,
-  getCreditRequest,
+  // fetchDailyStreakRequest,
+  // getCreditRequest,
   claimDailyStreakRequest,
 } from '@/redux/reducers/creditReducer';
 
@@ -29,12 +29,15 @@ export function useDailyStreak() {
     loading: creditLoading,
     error: creditError,
     claimCredits,
+    claimingStreak,
   } = useSelector((state: RootState) => state.credit);
 
   // Fetch moved to layout-client to avoid 3x duplication (header, popup, layout all use this hook)
 
   const streakData = useMemo(() => {
-    if (!reduxStreak?.data?.streak) {
+    const streakPayload = normalizeStreakPayload(reduxStreak);
+    //  if (!reduxStreak?.data?.streak) {
+    if (!streakPayload?.streak) {
       return {
         current: 0,
         longest: 0,
@@ -46,23 +49,32 @@ export function useDailyStreak() {
     }
 
     return {
-      current: reduxStreak.data.streak.current,
-      longest: reduxStreak.data.streak.longest,
-      lastClaimedAt: reduxStreak.data.streak.lastClaimedAt,
+      // current: reduxStreak.data.streak.current,
+      // longest: reduxStreak.data.streak.longest,
+      // lastClaimedAt: reduxStreak.data.streak.lastClaimedAt,
+      // activeDays: computeActiveDays(
+      //   reduxStreak.data.streak.current,
+      //   reduxStreak.data.streak.lastClaimedAt,
+      // ),
+      // canClaimToday: reduxStreak.data.canClaimToday,
+      // freezeTokens: reduxStreak.data.streak.freezeTokens ?? 0,
+      current: streakPayload.streak.current,
+      longest: streakPayload.streak.longest,
+      lastClaimedAt: streakPayload.streak.lastClaimedAt,
       activeDays: computeActiveDays(
-        reduxStreak.data.streak.current,
-        reduxStreak.data.streak.lastClaimedAt,
+        streakPayload.streak.current,
+        streakPayload.streak.lastClaimedAt,
       ),
-      canClaimToday: reduxStreak.data.canClaimToday,
-      freezeTokens: reduxStreak.data.streak.freezeTokens ?? 0,
+      canClaimToday: streakPayload.canClaimToday,
+      freezeTokens: streakPayload.streak.freezeTokens ?? 0,
     };
   }, [reduxStreak]);
 
   const claim = useCallback(async () => {
     try {
       dispatch(claimDailyStreakRequest());
-      dispatch(fetchDailyStreakRequest());
-      dispatch(getCreditRequest());
+      // dispatch(fetchDailyStreakRequest());
+      // dispatch(getCreditRequest());
     } catch (err: any) {
       console.error('Failed to claim streak:', err);
     }
@@ -73,10 +85,23 @@ export function useDailyStreak() {
     credit,
     loading: creditLoading,
     error: creditError,
+    claiming: claimingStreak,
     claim,
     claimCredits,
     reduxStreak,
   };
+}
+
+function normalizeStreakPayload(reduxStreak: any) {
+  if (reduxStreak?.streak) {
+    return reduxStreak;
+  }
+
+  if (reduxStreak?.data?.streak) {
+    return reduxStreak.data;
+  }
+
+  return null;
 }
 
 function getUiDayIndexFromDate(date: Date): number {

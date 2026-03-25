@@ -8,7 +8,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import apiInstance from '@/services/api';
 import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
-import { Search, Frown } from 'lucide-react';
+import {
+  Search,
+  Frown,
+  FileText,
+  Target,
+  Sparkles,
+  Briefcase,
+} from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
 import { useDispatch } from 'react-redux';
@@ -280,9 +287,9 @@ export default function JobsPage() {
                 <div className="flex flex-col items-center justify-center h-[calc(100vh-250px)] px-6 text-center animate-in fade-in zoom-in duration-500">
                   <div className="relative mb-8">
                     {/* Outer spinning ring */}
-                    <div className="w-20 h-20 border-4 border-purple-100 border-t-purple-600 rounded-full animate-spin"></div>
+                    <div className="w-20 h-20 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
                     {/* Inner Icon */}
-                    <Search className="w-8 h-8 text-purple-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                    <Search className="w-8 h-8 text-blue-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                   </div>
 
                   <h2 className="text-xl font-bold text-slate-800 mb-3">
@@ -313,22 +320,38 @@ export default function JobsPage() {
                 </div>
               )}
 
-              {/* ❌ No Jobs Found UI */}
+              {/* ❌ Left Side Search Prompt / No Results UI */}
               {!loading && !notification && jobs.length === 0 && (
-                <div className="flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg border">
-                  <div className="w-14 h-14 flex items-center justify-center rounded-full bg-gray-100 mb-4">
-                    <Frown className="w-7 h-7 text-gray-400" />
+                <div className="flex flex-col items-center justify-center text-center p-10 bg-white rounded-xl border border-gray-100 shadow-sm animate-in fade-in duration-500">
+                  {/* Visual Icon */}
+                  <div className="relative mb-6">
+                    <div className="absolute inset-0 bg-blue-100 rounded-full blur-xl opacity-50 scale-150"></div>
+                    <div className="relative w-16 h-16 flex items-center justify-center rounded-full bg-blue-50 border border-blue-100">
+                      <Search className="w-8 h-8 text-blue-500" />
+                    </div>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-1">
-                    No jobs found
+
+                  {/* Message Content */}
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">
+                    Find your next opportunity
                   </h3>
-                  <p className="text-sm text-gray-500 max-w-xs">
-                    Try adjusting your filters or search criteria to see more
-                    results.
+
+                  <p className="text-sm text-gray-500 max-w-[240px] leading-relaxed mb-6">
+                    Enter a job title, company, or keywords in the search bar
+                    above to see results.
                   </p>
+
+                  {/* Quick Helper Links */}
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <span className="text-[11px] font-medium px-3 py-1 bg-gray-50 text-gray-400 rounded-full border border-gray-100">
+                      Try "Developer"
+                    </span>
+                    <span className="text-[11px] font-medium px-3 py-1 bg-gray-50 text-gray-400 rounded-full border border-gray-100">
+                      Try "Design"
+                    </span>
+                  </div>
                 </div>
               )}
-
               {/* Job list */}
               {!notification &&
                 jobs.map((job: any) => (
@@ -380,13 +403,42 @@ export default function JobsPage() {
               ) : selectedJob ? (
                 <JobDetail job={selectedJob} />
               ) : (
-                <div className="flex flex-col items-center justify-center h-full p-12 bg-white border rounded-lg text-center">
-                  <Search className="w-12 h-12 text-purple-400 mb-4" />
-                  <p className="text-gray-500">
+                /* --- NEW EMPTY STATE UI --- */
+                <div className="flex flex-col items-center justify-center h-full p-10 bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-2xl text-center relative overflow-hidden">
+                  {/* Floating Icon Composition */}
+                  <div className="relative mb-8">
+                    <div className="w-24 h-24 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center relative z-10">
+                      <Briefcase className="w-10 h-10 text-blue-400" />
+                    </div>
+                  </div>
+
+                  {/* Dynamic Heading & Copy */}
+                  <h3 className="text-2xl font-bold text-slate-800 mb-3 relative z-10">
                     {jobs.length
-                      ? 'Select a job to view details'
-                      : 'Use the search filters above'}
+                      ? 'Ready to dive in?'
+                      : 'Find your next great role'}
+                  </h3>
+                  <p className="text-slate-500 max-w-sm mb-10 relative z-10 leading-relaxed">
+                    {jobs.length
+                      ? 'Select a position from the list to explore the role, analyze requirements, and let our AI tailor your application.'
+                      : "Use the search filters above to explore opportunities. Once you find a match, we'll help you craft the perfect application."}
                   </p>
+
+                  {/* App Feature Highlights (Fills empty space and builds excitement) */}
+                  <div className="flex flex-wrap justify-center gap-3 w-full max-w-md relative z-10">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full text-sm font-medium text-slate-600 border border-slate-200 shadow-sm hover:border-purple-200 transition-colors">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      AI Cover Letters
+                    </div>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full text-sm font-medium text-slate-600 border border-slate-200 shadow-sm hover:border-purple-200 transition-colors">
+                      <FileText className="w-4 h-4 text-blue-500" />
+                      Tailored CVs
+                    </div>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full text-sm font-medium text-slate-600 border border-slate-200 shadow-sm hover:border-purple-200 transition-colors">
+                      <Target className="w-4 h-4 text-emerald-500" />
+                      Smart Matching
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

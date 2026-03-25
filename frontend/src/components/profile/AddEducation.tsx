@@ -69,6 +69,25 @@ const toMonth = (iso?: string) =>
 const monthToIso = (month?: string) =>
   month ? new Date(`${month}-01T00:00:00.000Z`).toISOString() : undefined;
 
+const normalizeSkillName = (value: unknown): string => {
+  if (typeof value !== 'string') return '';
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s\-'.,&]+/g, '');
+
+  for (let size = 1; size <= normalized.length / 2; size += 1) {
+    if (normalized.length % size !== 0) continue;
+
+    const chunk = normalized.slice(0, size);
+    if (chunk.repeat(normalized.length / size) === normalized) {
+      return chunk;
+    }
+  }
+
+  return normalized;
+};
+
 /* ---------------------------- Shared UI pieces --------------------------- */
 
 function useLockScroll() {
@@ -863,6 +882,59 @@ export const AddEducation: React.FC<{
   );
 };
 /* ---------------------------- Project Validation Schema ------------------------- */
+const MAX_PROJECT_URL_LENGTH = 200;
+
+const REPOSITORY_HOSTS = new Set(['github.com', 'gitlab.com', 'bitbucket.org']);
+
+const DEEP_REPOSITORY_SEGMENTS = new Set([
+  'actions',
+  'blob',
+  'browse',
+  'commit',
+  'commits',
+  'compare',
+  'issues',
+  'merge-requests',
+  'merge_requests',
+  'pipelines',
+  'pull',
+  'pull-requests',
+  'pulls',
+  'raw',
+  'releases',
+  'src',
+  'tree',
+  'wiki',
+]);
+
+const isAllowedProjectLink = (value: string) => {
+  if (!value) return true;
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.replace(/^www\./, '').toLowerCase();
+
+    if (!REPOSITORY_HOSTS.has(hostname)) {
+      return true;
+    }
+
+    const pathSegments = url.pathname
+      .split('/')
+      .filter(Boolean)
+      .map((segment) => segment.toLowerCase());
+
+    return !pathSegments.some((segment, index) => {
+      if (segment === '-' && index < pathSegments.length - 1) {
+        return DEEP_REPOSITORY_SEGMENTS.has(pathSegments[index + 1]);
+      }
+
+      return DEEP_REPOSITORY_SEGMENTS.has(segment);
+    });
+  } catch {
+    return true;
+  }
+};
+
 const projectSchema = z.object({
   _id: z.string().optional(),
   projectName: z
@@ -883,7 +955,15 @@ const projectSchema = z.object({
       z
         .string()
         .url('Please enter a valid URL starting with http:// or https://')
-        .regex(/^https?:\/\//, 'URL must start with http:// or https://'),
+        .regex(/^https?:\/\//, 'URL must start with http:// or https://')
+        .max(
+          MAX_PROJECT_URL_LENGTH,
+          'Project URL is too long. Use the main project or repository link only',
+        )
+        .refine(isAllowedProjectLink, {
+          message:
+            'Use the main project or repository URL, not a deep file, folder, or commit link',
+        }),
       z.literal(''),
     ])
     .optional(),
@@ -1604,9 +1684,15 @@ export const AddSkill: React.FC<{
       level: z.string().min(1, 'Level is required'),
     })
     .superRefine((data, ctx) => {
-      const isDuplicate = existingSkills.some(
-        (s) => s.skill.toLowerCase() === data.skill.toLowerCase(),
-      );
+      const normalizedSkill = normalizeSkillName(data.skill);
+      // const isDuplicate = existingSkills.some(
+      //   (s) => s.skill.toLowerCase() === data.skill.toLowerCase(),
+      // );
+      const isDuplicate =
+        normalizedSkill.length > 0 &&
+        existingSkills.some(
+          (s) => normalizeSkillName(s.skill) === normalizedSkill,
+        );
 
       if (isDuplicate) {
         ctx.addIssue({

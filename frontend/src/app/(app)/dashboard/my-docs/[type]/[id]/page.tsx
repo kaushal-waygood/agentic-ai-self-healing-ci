@@ -355,8 +355,10 @@ const DocumentPage = () => {
   // ─── Render ───────────────────────────────────────────────────
   switch (type) {
     case 'cv':
+      const cvIdString = Array.isArray(id) ? id[0] : id;
       return (
         <GeneratedCV
+          cvId={cvIdString}
           generatedCvOutput={documentData}
           onSendEmail={(email, opts) =>
             handleSendEmail(email, { mode: 'cv', ...opts })
@@ -381,8 +383,10 @@ const DocumentPage = () => {
       );
 
     case 'cl':
+      const clIdString = Array.isArray(id) ? id[0] : id;
       return (
         <GeneratedCoverLetter
+          clId={clIdString}
           generatedLetter={documentData.content}
           setGeneratedLetter={() => {}}
           onSendEmail={(email, opts) =>

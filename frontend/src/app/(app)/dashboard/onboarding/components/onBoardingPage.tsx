@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/common/page-header';
 import { UserCheck } from 'lucide-react';
 import { ProfileForm } from '@/components/profile/profile-form';
+import { dispatchImprovementPopupEvent } from '@/lib/improvement-popup';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function OnboardingPage() {
         title: 'Profile Created!',
         description: 'Your information has been saved. Welcome to Zobsai!',
       });
+      dispatchImprovementPopupEvent('onboarding_complete');
       router.push('/dashboard');
       setIsSubmitting(false);
     }, 1000);

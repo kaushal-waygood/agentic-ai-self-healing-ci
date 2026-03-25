@@ -2029,7 +2029,10 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     });
 
     const processPool = (jobsPool, ctx) => {
-      const filtered = applyFilters(jobsPool, ctx);
+      const validJobs = jobsPool.filter(
+        (job) => job.description && job.description.trim().length > 0,
+      );
+      const filtered = applyFilters(validJobs, ctx);
       const ranked = rankJobsWithIntentBoost(filtered, ctx);
       return ranked;
     };

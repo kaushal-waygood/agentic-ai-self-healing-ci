@@ -31,7 +31,13 @@ export const initiateCVGeneration = async (
 ) => {
   try {
     const { _id } = req.user;
-    const { useProfile, finalTouch, savedCVId, flag } = req.body;
+    const {
+      useProfile,
+      finalTouch,
+      savedCVId,
+      flag,
+      jobId: reqJobId,
+    } = req.body;
 
     // 1. Validate User
     const user = await User.findById(_id).select(
@@ -145,7 +151,13 @@ export const initiateCVGeneration = async (
     const generatedCVTitle = `${student.fullName || user.fullName}'s CV (${
       jobTitle || 'New'
     })`;
-    const jobId = new mongoose.Types.ObjectId(); // Unique ID for this job context
+
+    let jobId;
+    if (reqJobId && mongoose.Types.ObjectId.isValid(reqJobId)) {
+      jobId = new mongoose.Types.ObjectId(reqJobId);
+    } else {
+      jobId = new mongoose.Types.ObjectId(); // Fallback if no valid job context
+    }
 
     // 3. Create Record in StudentCV Collection (NEW)
     const newCV = await StudentCV.create({

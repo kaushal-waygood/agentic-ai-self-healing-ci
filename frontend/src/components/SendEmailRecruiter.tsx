@@ -49,6 +49,7 @@ interface SendEmailDialogProps {
    */
   handleScheduledSend?: (options: ScheduledSendOptions) => void | Promise<void>;
   companyName: string;
+  setCompanyName?: (name: string) => void;
   cvFileName?: string;
   showFindEmail: boolean;
   handleFindEmail: () => void;
@@ -140,6 +141,7 @@ const SendEmailDialog: FC<SendEmailDialogProps> = ({
   handleSendEmailConfirm,
   handleScheduledSend,
   companyName,
+  setCompanyName,
   cvFileName = 'CV.pdf',
   showFindEmail,
   handleFindEmail,
@@ -242,7 +244,22 @@ const SendEmailDialog: FC<SendEmailDialogProps> = ({
         </AlertDialogHeader>
 
         {/* Body */}
-        <div className="px-6 pb-4 space-y-4">
+        <div className="px-6 pb-4 space-y-4 pt-2">
+          {/* Company */}
+          <div className="flex flex-col mb-1.5">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+              Company
+            </label>
+            <Input
+              type="text"
+              placeholder="e.g. Google, Amazon"
+              value={companyName}
+              onChange={(e) => setCompanyName?.(e.target.value)}
+              disabled={busy}
+              className="flex-1 rounded-xl border-gray-200 focus:border-violet-400 focus:ring-violet-200"
+            />
+          </div>
+
           {/* To */}
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
@@ -257,21 +274,20 @@ const SendEmailDialog: FC<SendEmailDialogProps> = ({
                 disabled={busy}
                 className="flex-1 rounded-xl border-gray-200 focus:border-violet-400 focus:ring-violet-200"
               />
-              {showFindEmail && (
-                <button
-                  type="button"
-                  onClick={handleFindEmail}
-                  disabled={isFindingEmail || busy}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 transition-colors"
-                >
-                  {isFindingEmail ? (
-                    <Loader2 className="animate-spin" size={15} />
-                  ) : (
-                    <Search size={15} />
-                  )}
-                  Find
-                </button>
-              )}
+
+              <button
+                type="button"
+                onClick={handleFindEmail}
+                disabled={isFindingEmail || busy}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 transition-colors"
+              >
+                {isFindingEmail ? (
+                  <Loader2 className="animate-spin" size={15} />
+                ) : (
+                  <Search size={15} />
+                )}
+                Find
+              </button>
             </div>
           </div>
 
@@ -281,21 +297,19 @@ const SendEmailDialog: FC<SendEmailDialogProps> = ({
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 Subject
               </label>
-              {canGenerateDraft && (
-                <button
-                  type="button"
-                  onClick={handleGenerateEmailDraft}
-                  disabled={isGeneratingDraft || busy}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isGeneratingDraft ? (
-                    <Loader2 className="animate-spin" size={13} />
-                  ) : (
-                    <Sparkles size={13} />
-                  )}
-                  Generate Draft
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleGenerateEmailDraft}
+                disabled={isGeneratingDraft || busy}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isGeneratingDraft ? (
+                  <Loader2 className="animate-spin" size={13} />
+                ) : (
+                  <Sparkles size={13} />
+                )}
+                Generate Draft
+              </button>
             </div>
             <Input
               placeholder="Job Application"

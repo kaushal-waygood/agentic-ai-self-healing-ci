@@ -37,6 +37,7 @@ export const initiateCoverLetterGeneration = async (
       savedCVId,
       outputFormat = 'plain',
       flag,
+      jobId: reqJobId,
     } = req.body;
 
     // 🔒 Validate user
@@ -65,7 +66,6 @@ export const initiateCoverLetterGeneration = async (
       normalized.profile.fullName = student.fullName || '';
       normalized.profile.email = student.email || '';
       normalized.profile.phone = student.phone || '';
-      // Assuming these are populated or exist on the student object
       normalized.profile.education = student.education || [];
       normalized.profile.experience = student.experience || [];
       normalized.profile.skills = student.skills || [];
@@ -78,8 +78,6 @@ export const initiateCoverLetterGeneration = async (
 
     // 1️⃣ Use full profile
     if (useProfile === 'true' || useProfile === true) {
-      // Use .lean() and populate if your relational data is in separate schemas
-      // For now assuming the necessary data is attached to the result or handled inside process logic
       const student = await Student.findById(_id).lean();
       if (!student) {
         return res.status(404).json({ error: 'Student profile not found' });
@@ -182,7 +180,12 @@ export const initiateCoverLetterGeneration = async (
       return res.status(404).json({ error: 'Student profile not found' });
     }
 
-    const jobId = new mongoose.Types.ObjectId();
+    let jobId;
+    if (reqJobId && mongoose.Types.ObjectId.isValid(reqJobId)) {
+      jobId = new mongoose.Types.ObjectId(reqJobId);
+    } else {
+      jobId = new mongoose.Types.ObjectId();
+    }
     const clTitle = `${student.fullName || 'My'} Cover Letter`;
 
     // CREATE separate document

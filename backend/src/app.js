@@ -35,6 +35,7 @@ import { startCronsRenew } from './config/renew-cron/cron.js';
 import { startPrefetchCron } from './config/cron-prefetch.js';
 import { clearExpiredEmailChangeRequests } from './utils/cron.js';
 import { startAutopilotWorkerCron } from './config/autopilotWorkerCron.js';
+import { startEmailScheduler } from './utils/emailScheduler.js';
 
 import {
   handleStripeWebhook,
@@ -121,6 +122,7 @@ startCronsRenew();
 startPrefetchCron();
 clearExpiredEmailChangeRequests();
 startAutopilotWorkerCron(); // Autopilot: find & process jobs for active agents (requires AUTOGEN_TAILORED=true)
+startEmailScheduler();
 
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/bring-zobs', bringZobsRoutes);

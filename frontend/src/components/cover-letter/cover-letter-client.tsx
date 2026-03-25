@@ -30,6 +30,7 @@ import ClGenerator from './cl-generator';
 import CustomizeWizard from './customizeWizard';
 import SavedCoverLetters from './components/SavedCl';
 import FinalResultView from './components/FinalResultView';
+import { dispatchImprovementPopupEvent } from '@/lib/improvement-popup';
 
 import { mockUserProfile, SavedCoverLetter } from '@/lib/data/user';
 import { Console } from 'console';
@@ -426,6 +427,7 @@ export function CoverLetterGeneratorClient() {
         title: 'Cover Letter Generated!',
         description: 'Your draft is ready.',
       });
+      dispatchImprovementPopupEvent('cover_letter_complete');
     } catch (error: any) {
       if (
         error?.response?.status === 403 &&
