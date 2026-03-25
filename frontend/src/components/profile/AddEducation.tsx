@@ -935,39 +935,41 @@ const isAllowedProjectLink = (value: string) => {
   }
 };
 
-const projectSchema = z.object({
-  _id: z.string().optional(),
-  projectName: z
-    .string()
-    .min(1, 'Project name is required')
-    .regex(
-      /^[a-zA-Z0-9\s\-'.,&!?()]+$/,
-      'Only letters, numbers, spaces, and basic punctuation allowed',
-    ),
-  description: z.string().min(1, 'Description is required'),
-  startDate: z.string().min(1, 'Start date is required'),
-  endDate: z.string().optional(),
-  isCurrent: z.boolean().optional(),
-  technologies: z.array(z.string()).optional(),
-  // link: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
-  link: z
-    .union([
-      z
-        .string()
-        .url('Please enter a valid URL starting with http:// or https://')
-        .regex(/^https?:\/\//, 'URL must start with http:// or https://')
-        .max(
-          MAX_PROJECT_URL_LENGTH,
-          'Project URL is too long. Use the main project or repository link only',
-        )
-        .refine(isAllowedProjectLink, {
-          message:
-            'Use the main project or repository URL, not a deep file, folder, or commit link',
-        }),
-      z.literal(''),
-    ])
-    .optional(),
-});
+const projectSchema = z
+  .object({
+    _id: z.string().optional(),
+    projectName: z
+      .string()
+      .min(1, 'Project name is required')
+      .regex(
+        /^[a-zA-Z0-9\s\-'.,&!?()]+$/,
+        'Only letters, numbers, spaces, and basic punctuation allowed',
+      ),
+    description: z.string().min(1, 'Description is required'),
+    startDate: z.string().min(1, 'Start date is required'),
+    endDate: z.string().optional(),
+    isCurrent: z.boolean().optional(),
+    technologies: z.array(z.string()).optional(),
+    // link: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+    link: z
+      .union([
+        z
+          .string()
+          .url('Please enter a valid URL starting with http:// or https://')
+          .regex(/^https?:\/\//, 'URL must start with http:// or https://')
+          .max(
+            MAX_PROJECT_URL_LENGTH,
+            'Project URL is too long. Use the main project or repository link only',
+          )
+          .refine(isAllowedProjectLink, {
+            message:
+              'Use the main project or repository URL, not a deep file, folder, or commit link',
+          }),
+        z.literal(''),
+      ])
+      .optional(),
+  })
+  .superRefine(validateEndDate);
 /* ---------------------------- AddProject (refactored) ------------------------- */
 
 export const AddProject: React.FC<{
@@ -984,6 +986,8 @@ export const AddProject: React.FC<{
     link: string;
   }>;
 }> = ({ onCancel, data, isEdit }) => {
+  const inferredIsCurrent =
+    Boolean(data?.isCurrent) || (!data?.endDate && !!data?._id);
   const form = useForm({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -991,8 +995,10 @@ export const AddProject: React.FC<{
       projectName: data?.projectName || '',
       description: data?.description || '',
       startDate: toMonth(data?.startDate),
-      endDate: data?.isCurrent ? '' : toMonth(data?.endDate),
-      isCurrent: Boolean(data?.isCurrent),
+      // endDate: data?.isCurrent ? '' : toMonth(data?.endDate),
+      // isCurrent: Boolean(data?.isCurrent),
+      endDate: inferredIsCurrent ? '' : toMonth(data?.endDate),
+      isCurrent: inferredIsCurrent,
       technologies: Array.isArray(data?.technologies)
         ? (data?.technologies as string[])
         : typeof data?.technologies === 'string'
@@ -1048,8 +1054,10 @@ export const AddProject: React.FC<{
   const onSubmit = (formData: any) => {
     const payload = {
       ...formData,
+      isCurrent: Boolean(formData.isCurrent),
       startDate: monthToIso(formData.startDate)!,
-      endDate: formData.isCurrent ? undefined : monthToIso(formData.endDate),
+      // endDate: formData.isCurrent ? undefined : monthToIso(formData.endDate),
+      endDate: formData.isCurrent ? null : monthToIso(formData.endDate),
       technologies: Array.isArray(formData.technologies)
         ? formData.technologies
         : [],
@@ -1155,6 +1163,7 @@ export const AddProject: React.FC<{
                           setDate={(date) => {
                             field.onChange(date ? format(date, 'yyyy-MM') : '');
                             clearErrors('startDate');
+                            clearErrors('endDate');
                           }}
                           placeholder="Select start month & year"
                         />
