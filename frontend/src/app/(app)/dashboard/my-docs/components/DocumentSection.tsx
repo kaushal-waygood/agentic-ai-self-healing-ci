@@ -28,6 +28,9 @@ export const DocumentSection = ({
   getStatusColor,
   formatDate,
   type,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
 }: any) => {
   const [visibleCount, setVisibleCount] = useState(10);
   // const [docState, setDocState] = useState<'generated' | 'saved'>('generated');
@@ -134,6 +137,10 @@ export const DocumentSection = ({
   };
 
   const generatedCount = Array.isArray(items) ? items.length : 0;
+  const visibleItems =
+    type === 'application'
+      ? filteredItems
+      : filteredItems.slice(0, visibleCount);
 
   const savedCount =
     type === 'cv'
@@ -320,33 +327,43 @@ export const DocumentSection = ({
         // This shows the filtered results
         <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
           {/* 5. Map over the filtered list */}
-          {filteredItems
-            .slice(0, visibleCount)
-            .map((item: any, index: number) => (
-              <DocumentCard
-                key={item._id}
-                index={index + 1}
-                item={item}
-                type={type}
-                onDelete={onDelete}
-                onDeleteSaved={onDeleteSaved}
-                onRenameSaved={onRenameSaved}
-                onRename={handleRenameDocument}
-                onCopy={onCopy}
-                onDownload={onDownload}
-                copiedId={copiedId}
-                getStatusIcon={getStatusIcon}
-                getStatusColor={getStatusColor}
-                formatDate={formatDate}
-                // onRenameSavedCv={handleRenameSavedCV}
-                docState={docState}
-              />
-            ))}
+          {visibleItems.map((item: any, index: number) => (
+            <DocumentCard
+              key={item._id}
+              index={index + 1}
+              item={item}
+              type={type}
+              onDelete={onDelete}
+              onDeleteSaved={onDeleteSaved}
+              onRenameSaved={onRenameSaved}
+              onRename={handleRenameDocument}
+              onCopy={onCopy}
+              onDownload={onDownload}
+              copiedId={copiedId}
+              getStatusIcon={getStatusIcon}
+              getStatusColor={getStatusColor}
+              formatDate={formatDate}
+              // onRenameSavedCv={handleRenameSavedCV}
+              docState={docState}
+            />
+          ))}
         </div>
       )}
 
       {/* Show "See More" only if not all items are visible */}
-      {visibleCount < filteredItems?.length && (
+      {type === 'application' && hasMore && (
+        <div className="text-center mt-4">
+          <button
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isLoadingMore ? 'Loading...' : 'See More'}
+          </button>
+        </div>
+      )}
+
+      {type !== 'application' && visibleCount < filteredItems?.length && (
         <div className="text-center mt-4">
           <button
             onClick={() => setVisibleCount(visibleCount + 10)}

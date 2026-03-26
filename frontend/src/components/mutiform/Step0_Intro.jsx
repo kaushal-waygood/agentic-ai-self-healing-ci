@@ -537,6 +537,36 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
     return 'Location N/A';
   };
 
+  const formatPostedDate = (job) => {
+    if (job?.jobPosted) return job.jobPosted;
+
+    if (job?.jobPostedAt) {
+      const postedAt = new Date(job.jobPostedAt);
+      if (!Number.isNaN(postedAt.getTime())) {
+        return postedAt.toLocaleDateString('en-US', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        });
+      }
+    }
+
+    return 'Date not available';
+  };
+
+  const formatFoundDate = (job) => {
+    if (!job?.foundAt) return 'Found date not available';
+
+    const foundAt = new Date(job.foundAt);
+    if (Number.isNaN(foundAt.getTime())) return 'Found date not available';
+
+    return foundAt.toLocaleDateString('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
   const parsedKeywords = (() => {
     try {
       return JSON.parse(agent.keywords?.[0] || '[]');
@@ -822,7 +852,7 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
                               <p className="font-semibold text-sm text-gray-800 truncate group-hover/job:text-purple-700 transition-colors">
                                 {job.title}
                               </p>
-                              <div className="flex items-center gap-3 mt-0.5">
+                              <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                                 <span className="flex items-center gap-1 text-xs text-gray-400">
                                   <Building2 className="w-3 h-3" />
                                   <span className="truncate max-w-[120px]">
@@ -832,6 +862,17 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
                                 <span className="flex items-center gap-1 text-xs text-gray-400">
                                   <MapPin className="w-3 h-3" />
                                   {formatLocation(job)}
+                                </span>
+                                <span className="flex items-center gap-1 text-xs text-gray-400">
+                                  <Clock className="w-3 h-3" />
+                                  {formatPostedDate(job)}
+                                </span>
+                                <span className="text-xs text-gray-300">|</span>
+                                <span className="flex items-center gap-1 text-xs text-gray-400">
+                                  <span className="font-medium text-gray-500">
+                                    Found:
+                                  </span>
+                                  {formatFoundDate(job)}
                                 </span>
                               </div>
                             </Link>

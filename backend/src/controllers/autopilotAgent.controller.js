@@ -217,8 +217,8 @@ export const createAutopilotAgent = async (req, res) => {
     const agentName = String(req.body.agentName).trim();
     const jobTitle = String(req.body.jobTitle).trim();
     const employmentType = req.body.employmentTypes;
-    const isRemote = Boolean(req.body.isRemote);
-    const isOnsite = Boolean(req.body.isOnsite);
+    const isRemote = toBool(req.body.isRemote);
+    const isOnsite = toBool(req.body.isOnsite);
     const keywords = String(req.body.keywords || '').trim();
     const cvOption =
       req.body.cvOption === 'uploaded_pdf' ? 'uploaded_pdf' : 'current_profile';

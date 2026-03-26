@@ -90,7 +90,19 @@ export const generateEmailDraft = async (params: {
   return response.data;
 };
 
-export const fetchTailoredApps = async () => {
-  const response = await apiInstance.get('/students/tailored-applications');
+export const fetchTailoredApps = async (params?: {
+  page?: number;
+  limit?: number;
+}) => {
+  const queryParams = new URLSearchParams();
+
+  if (params?.page) queryParams.set('page', String(params.page));
+  if (params?.limit) queryParams.set('limit', String(params.limit));
+
+  const response = await apiInstance.get(
+    `/students/tailored-applications${
+      queryParams.toString() ? `?${queryParams.toString()}` : ''
+    }`,
+  );
   return response;
 };
