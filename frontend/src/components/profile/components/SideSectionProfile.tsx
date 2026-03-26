@@ -38,6 +38,12 @@ import { SimplePhoneInput } from '@/components/common/SimplePhoneInput';
 import 'react-phone-number-input/style.css';
 import { isValidPhoneNumber } from 'react-phone-number-input';
 
+const formatFileSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+};
+
 const SideSectionProfile = () => {
   const {
     profile,
@@ -717,7 +723,8 @@ const SideSectionProfile = () => {
                   {file.name}
                 </p>
                 <p className="text-xs font-medium text-gray-500 mt-0.5">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                  {/* {(file.size / 1024 / 1024).toFixed(2)} MB */}
+                  {formatFileSize(file.size)}
                 </p>
               </div>
               <button
