@@ -228,7 +228,7 @@ export const FilterModal = ({
                 </div>
               </div>
 
-              {/* <div className="space-y-3">
+              <div className="space-y-3">
                 <h4 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
                   Experience Level
                 </h4>
@@ -239,14 +239,14 @@ export const FilterModal = ({
                       <FilterTag
                         key={level}
                         label={level.toLowerCase().replace(/_/g, ' ')}
-                        isSelected={localFilters.experience?.includes(level)} // Fixed logic here
+                        isSelected={localFilters.experience?.includes(level)}
                         onClick={() =>
                           handleSelectionChange('experience', level)
-                        } // Fixed logic here
+                        }
                       />
                     ))}
-                </div>  
-              </div> */}
+                </div>
+              </div>
             </div>
 
             {/* Education Tag Input */}

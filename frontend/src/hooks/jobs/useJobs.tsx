@@ -38,14 +38,22 @@ export const useJobs = () => {
     // 'Freelance',
   ]);
   const [experienceLevels] = useState<string[]>([
-    'Entry level',
-    'Mid level',
-    'Senior level',
-    'Executive level',
-    'Managerial level',
-    'Professional level',
-    'Technical level',
-    'Other',
+    // 'Entry level',
+    // 'Mid level',
+    // 'Senior level',
+    // 'Executive level',
+    // 'Managerial level',
+    // 'Professional level',
+    // 'Technical level',
+    // 'Other',
+
+    'Fresher',
+    '0 – 1 Year',
+    '1 – 3 Years',
+    '3 – 5 Years',
+    '5 – 7 Years',
+    '7 – 10 Years',
+    '10+ Years',
   ]);
 
   // Track the last fetch key so identical requests are never duplicated.
