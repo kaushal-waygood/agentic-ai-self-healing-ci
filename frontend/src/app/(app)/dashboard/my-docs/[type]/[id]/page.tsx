@@ -23,6 +23,7 @@ export interface SendEmailOptions {
   subject?: string;
   bodyHtml?: string;
   coverLetterHtml?: string;
+  resumeHtml?: string;
 }
 
 const DocumentPage = () => {
@@ -225,7 +226,7 @@ const DocumentPage = () => {
 
     if (mode === 'cv') {
       bodyHtml = bodyHtml || 'Please find my CV attached.';
-      htmlResume = documentData?.cv || '';
+      htmlResume = options?.resumeHtml || documentData?.cv || '';
       // htmlCoverLetter = whatever the user attached in the dialog (may be '')
     } else if (mode === 'cl') {
       bodyHtml = bodyHtml || 'Please find my cover letter attached.';
@@ -235,7 +236,7 @@ const DocumentPage = () => {
         bodyHtml ||
         documentData?.email ||
         'Please find my CV and cover letter attached.';
-      htmlResume = documentData?.cv || '';
+      htmlResume = options?.resumeHtml || documentData?.cv || '';
       htmlCoverLetter = htmlCoverLetter || documentData?.coverLetter || '';
     }
 

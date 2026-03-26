@@ -446,7 +446,7 @@ const mapAgentStatusToTailored = (status) => {
 };
 
 /** Normalize StudentApplication to match StudentTailoredApplication format for frontend */
-const normalizeAgentApplication = (app) => ({
+const normalizeAgentApplication = (app, { includeContent = true } = {}) => ({
   _id: app._id,
   student: app.student,
   jobId: app.job,
@@ -454,11 +454,15 @@ const normalizeAgentApplication = (app) => ({
   companyName: app.jobCompany,
   jobDescription: app.jobDescription,
   status: mapAgentStatusToTailored(app.status),
-  tailoredCV: app.cvContent ? { cv: app.cvContent } : {},
-  tailoredCoverLetter: app.coverLetterContent
-    ? { html: app.coverLetterContent }
-    : {},
-  applicationEmail: app.emailContent ? { html: app.emailContent } : {},
+  ...(includeContent
+    ? {
+        tailoredCV: app.cvContent ? { cv: app.cvContent } : {},
+        tailoredCoverLetter: app.coverLetterContent
+          ? { html: app.coverLetterContent }
+          : {},
+        applicationEmail: app.emailContent ? { html: app.emailContent } : {},
+      }
+    : {}),
   completedAt: app.completedAt,
   createdAt: app.createdAt,
   updatedAt: app.updatedAt,
@@ -468,23 +472,72 @@ const normalizeAgentApplication = (app) => ({
 export const getAllTailoredApplications = async (req, res) => {
   try {
     const { _id } = req.user;
+    const hasPaginationParams =
+      req.query.page !== undefined || req.query.limit !== undefined;
+    const rawPage = Number.parseInt(req.query.page, 10);
+    const rawLimit = Number.parseInt(req.query.limit, 10);
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    const limit =
+      Number.isFinite(rawLimit) && rawLimit > 0
+        ? Math.min(rawLimit, 100)
+        : 10;
+    const requiredWindow = page * limit;
 
-    const [tailoredApps, agentApps] = await Promise.all([
-      StudentTailoredApplication.find({ student: _id })
-        .sort({ createdAt: -1 })
-        .lean(),
-      StudentApplication.find({ student: _id }).sort({ createdAt: -1 }).lean(),
-    ]);
+    const tailoredListProjection =
+      '-tailoredCV -tailoredCoverLetter -applicationEmail -error -jobDescription -__v';
+    const agentListProjection =
+      'student job jobTitle jobCompany status completedAt createdAt updatedAt';
 
-    const normalizedAgent = agentApps.map(normalizeAgentApplication);
-    const merged = [...tailoredApps, ...normalizedAgent].sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+    const [tailoredCount, agentCount, tailoredApps, agentApps] =
+      await Promise.all([
+        StudentTailoredApplication.countDocuments({ student: _id }),
+        StudentApplication.countDocuments({ student: _id }),
+        StudentTailoredApplication.find({ student: _id })
+          .select(tailoredListProjection)
+          .sort({ createdAt: -1 })
+          .limit(requiredWindow)
+          .lean(),
+        StudentApplication.find({ student: _id })
+          .select(agentListProjection)
+          .sort({ createdAt: -1 })
+          .limit(requiredWindow)
+          .lean(),
+      ]);
+
+    const normalizedAgent = agentApps.map((app) =>
+      normalizeAgentApplication(app, { includeContent: false }),
     );
+    const merged = [...tailoredApps, ...normalizedAgent]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, requiredWindow);
 
-    res.status(200).json({ tailoredApplications: merged });
+    const totalApplications = tailoredCount + agentCount;
+
+    if (!hasPaginationParams) {
+      return res.status(200).json({ tailoredApplications: merged });
+    }
+
+    const totalPages =
+      totalApplications > 0 ? Math.ceil(totalApplications / limit) : 0;
+    const skip = (page - 1) * limit;
+    const paginatedApplications = merged.slice(skip, skip + limit);
+
+    return res.status(200).json({
+      tailoredApplications: paginatedApplications,
+      pagination: {
+        currentPage: page,
+        limit,
+        totalApplications,
+        totalPages,
+        hasNextPage: skip + limit < totalApplications,
+        hasPrevPage: page > 1,
+      },
+    });
   } catch (error) {
     console.error('Error fetching tailored applications:', error);
-    res.status(500).json({ error: 'Failed to retrieve tailored applications' });
+    return res
+      .status(500)
+      .json({ error: 'Failed to retrieve tailored applications' });
   }
 };
 

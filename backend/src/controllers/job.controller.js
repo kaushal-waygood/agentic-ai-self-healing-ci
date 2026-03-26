@@ -224,6 +224,7 @@ export async function searchJobs(req, res) {
     const state = context.filters?.state;
     const city = context.filters?.city;
     const employmentType = context.filters?.employmentType;
+    const experience = context.filters?.experience;
 
     // When the user explicitly provided a country, never fall back to global
     const userExplicitCountry = !!req.query.country;
@@ -251,7 +252,7 @@ export async function searchJobs(req, res) {
     const poolCacheKey = `search:pool:v2:${crypto
       .createHash('md5')
       .update(
-        `${context.query}:${country || ''}:${state || ''}:${city || ''}:${employmentType || ''}`,
+        `${context.query}:${country || ''}:${state || ''}:${city || ''}:${employmentType || ''}:${experience || ''}`,
       )
       .digest('hex')}`;
 
@@ -332,8 +333,9 @@ export async function searchJobs(req, res) {
           country: filterSet.country || country || 'IN',
           state: filterSet.state,
           city: filterSet.city,
-          minRequired: 200,
-          maxPages: 8,
+          employmentType: ctx.filters?.employmentType,
+          minRequired: experience ? 80 : 200,
+          maxPages: experience ? 3 : 8,
         });
 
         if (externalRaw.length) {

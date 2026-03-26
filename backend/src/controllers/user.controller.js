@@ -7,7 +7,6 @@ import { transporter } from '../utils/transporter.js';
 import bcrypt from 'bcryptjs';
 import redisClient from '../config/redis.js';
 import { google } from 'googleapis';
-import puppeteer from 'puppeteer';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config.js';
@@ -20,6 +19,7 @@ import qs from 'querystring';
 import { addCredits, CREDIT_EARN } from '../utils/credits.js';
 import { Feedback } from '../models/feedback.model.js';
 import { RecruiterEmailSent } from '../models/RecruiterEmailSent.model.js';
+import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
 
 import { v4 as uuidv4 } from 'uuid';
 import { LoginHistory } from '../models/analyics/loginHistory.model.js';
@@ -134,35 +134,17 @@ const processReferral = async (newUserId, referralCode) => {
   }
 };
 
-const convertHtmlToPdf = async (html, title = 'document', options = {}) => {
-  if (!html) throw new Error('HTML content is required.');
-
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+const convertHtmlToPdf = async (html, title = 'document', options = {}) =>
+  generatePdfFromHtml(html, {
+    title,
+    margin: {
+      top: '10mm',
+      right: '15mm',
+      bottom: '15mm',
+      left: '15mm',
+    },
+    ...options,
   });
-
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '10mm',
-        right: '15mm',
-        bottom: '15mm',
-        left: '15mm',
-      },
-      ...options,
-    });
-
-    return pdfBuffer;
-  } finally {
-    await browser.close();
-  }
-};
 
 /* -------------------------
    Google OAuth Configuration

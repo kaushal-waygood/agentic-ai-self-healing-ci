@@ -5,11 +5,18 @@ export async function generatePdfFromHtml(html, options = {}) {
 
   const browser = await puppeteer.launch({
     headless: 'new',
-    args: ['--no-sandbox'],
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+    ],
+    protocolTimeout: 120000,
   });
 
   try {
     const page = await browser.newPage();
+    page.setDefaultTimeout(60000);
     const fullHtml = html.includes('<html')
       ? html
       : `
@@ -25,12 +32,38 @@ export async function generatePdfFromHtml(html, options = {}) {
         <body>${html}</body>
       </html>`;
 
-    await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
+    await page.emulateMediaType('screen');
+
+    await page.setContent(fullHtml, {
+      waitUntil: ['load', 'networkidle0'],
+      timeout: 60000,
+    });
+
+    await page.addStyleTag({
+      content: `
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+        html, body {
+          height: auto !important;
+          overflow: visible !important;
+          display: block !important;
+        }
+      `,
+    });
+
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     const pdfOptions = {
       format: 'A4',
       printBackground: true,
       margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
+      timeout: 60000,
       ...options,
     };
 

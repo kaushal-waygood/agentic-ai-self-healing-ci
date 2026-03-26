@@ -318,8 +318,8 @@ const ResultStep = ({
                   setContent={setRefinedCv}
                   isHtml={true}
                   template={selectedTemplate}
-                  onSendEmail={(email, { subject, bodyHtml }) =>
-                    handleSendEmail(email, { mode: 'cv', subject, bodyHtml })
+                  onSendEmail={(email, options) =>
+                    handleSendEmail(email, { mode: 'cv', ...options })
                   }
                   defaultSubject={
                     jobContext && 'jobTitle' in jobContext
@@ -364,8 +364,8 @@ const ResultStep = ({
                 setContent={setTailoredCl}
                 template={null}
                 isHtml={true}
-                onSendEmail={(email, { subject, bodyHtml }) =>
-                  handleSendEmail(email, { mode: 'cl', subject, bodyHtml })
+                onSendEmail={(email, options) =>
+                  handleSendEmail(email, { mode: 'cl', ...options })
                 }
                 defaultSubject={
                   jobContext && 'jobTitle' in jobContext
@@ -428,8 +428,8 @@ const ResultStep = ({
                 setContent={setEmailDraft}
                 template={null}
                 isHtml={true}
-                onSendEmail={(email, { subject, bodyHtml }) =>
-                  handleSendEmail(email, { mode: 'tailored', subject, bodyHtml })
+                onSendEmail={(email, options) =>
+                  handleSendEmail(email, { mode: 'tailored', ...options })
                 }
                 defaultSubject={
                   jobContext && 'jobTitle' in jobContext
