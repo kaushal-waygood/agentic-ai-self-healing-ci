@@ -1,4 +1,7 @@
-import { applyFilters } from '../../src/utils/jobHelpers.js';
+import {
+  applyFilters,
+  rankJobsWithIntentBoost,
+} from '../../src/utils/jobHelpers.js';
 
 describe('Job Filters Utility', () => {
   const baseContext = {
@@ -104,6 +107,28 @@ describe('Job Filters Utility', () => {
 
       const result = applyFilters([jobNoCode], context);
       expect(result.length).toBe(1);
+    });
+  });
+
+  describe('rankJobsWithIntentBoost', () => {
+    it('should produce numeric rank scores even when jobPostedAt is invalid', () => {
+      const ranked = rankJobsWithIntentBoost(
+        [
+          getJobMock({
+            title: 'Backend Developer',
+            jobPostedAt: 'not-a-date',
+            remote: true,
+          }),
+        ],
+        {
+          filters: {},
+          profile: { titles: ['Backend Developer'] },
+        },
+      );
+
+      expect(ranked).toHaveLength(1);
+      expect(Number.isNaN(ranked[0].rankScore)).toBe(false);
+      expect(Number.isFinite(ranked[0].rankScore)).toBe(true);
     });
   });
 });

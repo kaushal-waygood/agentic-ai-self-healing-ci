@@ -20,10 +20,20 @@ const agentFoundJobSchema = new Schema(
       required: true,
       index: true,
     },
+    status: {
+      type: String,
+      enum: ['ACTIVE', 'NOT_INTERESTED', 'ARCHIVED'],
+      default: 'ACTIVE',
+      index: true,
+    },
     foundAt: {
       type: Date,
       default: Date.now,
       index: true,
+    },
+    resolvedAt: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true },

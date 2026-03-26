@@ -1,5 +1,3 @@
-// src/cron/autopilot.cron.js
-
 import cron from 'node-cron';
 import { findAndProcessJobs } from '../worker/autopilotWorker.js';
 import { backfillMissingEmails } from '../worker/emailBackfillWorker.js';
@@ -50,7 +48,16 @@ const makeRunner = (lockKey, label, handler) => async () => {
 // 1. Find new jobs + scrape emails + generate tailored applications
 const runFindAndApply = makeRunner('findAndApply', 'FindAndApply', async () => {
   const result = await findAndProcessJobs();
-  return `Agents checked: ${result?.agentsChecked ?? 0}, Processed: ${result?.processed ?? 0}`;
+  return [
+    `Agents checked: ${result?.agentsChecked ?? 0}`,
+    `Processed: ${result?.processed ?? 0}`,
+    `Already searched today: ${result?.alreadySearchedToday ?? 0}`,
+    `Pool already full: ${result?.poolAlreadyFull ?? 0}`,
+    `Plan agent cap reached: ${result?.planAgentCapReached ?? 0}`,
+    `No jobs found: ${result?.noJobsFound ?? 0}`,
+    `Autopilot disabled: ${result?.autopilotDisabled ?? 0}`,
+    `Missing profile: ${result?.missingProfile ?? 0}`,
+  ].join(', ');
 });
 
 // 2. Backfill emails for jobs that still have none

@@ -4,6 +4,7 @@ import {
   getAllPilotAgents,
   getAgentJobs,
   getSinglePilotAgent,
+  replaceAgentJob,
   removeAutoPilotAgent,
   startAgentJobTailoredGeneration,
   singleActivateAgent,
@@ -31,6 +32,12 @@ router.post(
 
 router.get('/get', authMiddleware, isGeneralUser, getAllPilotAgents);
 router.get('/get/:id/jobs', authMiddleware, isGeneralUser, getAgentJobs);
+router.post(
+  '/get/:agentId/jobs/:jobId/find-other',
+  authMiddleware,
+  isGeneralUser,
+  replaceAgentJob,
+);
 router.post(
   '/get/:agentId/jobs/:jobId/generate',
   authMiddleware,

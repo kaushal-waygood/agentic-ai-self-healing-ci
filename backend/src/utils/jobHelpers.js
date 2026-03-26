@@ -73,7 +73,12 @@ const EMPLOYMENT_TYPE_MAP = {
 };
 
 function freshnessScore(date, halfLifeDays = 14) {
-  const ageDays = (Date.now() - new Date(date)) / 86400000;
+  const timestamp = new Date(date).getTime();
+  if (!Number.isFinite(timestamp)) return 0;
+
+  const ageDays = (Date.now() - timestamp) / 86400000;
+  if (!Number.isFinite(ageDays)) return 0;
+
   return Math.pow(0.5, ageDays / halfLifeDays);
 }
 
@@ -903,10 +908,13 @@ export async function retrieveCandidates(context, limit = 300) {
         transformRapidApiJob(j, context.query),
       );
 
-      // NON-BLOCKING DB WRITE
-      upsertExternalJobs(formatted).catch((e) =>
-        console.error('retrieveCandidates Upsert Error:', e.message),
-      );
+      // BLOCKING DB WRITE required to ensure `_id` and `slug` are populated
+      // before returning jobs to the caller (e.g. Autopilot, frontend).
+      try {
+        await upsertExternalJobs(formatted);
+      } catch (e) {
+        console.error('retrieveCandidates Upsert Error:', e.message);
+      }
 
       const validExternal = applyFilters(formatted, context);
 
