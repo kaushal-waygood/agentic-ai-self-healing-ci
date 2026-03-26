@@ -96,6 +96,7 @@ import {
   getStudentStatsSuccess,
   getStudentStatsFailure,
 } from '../reducers/studentReducer';
+import { getTotalCreditRequest } from '../reducers/creditReducer';
 
 import {
   // details
@@ -547,6 +548,9 @@ function* postStudentEventsSaga(action: PayloadAction<Record<string, any>>) {
   try {
     const response: AxiosResponse = yield call(studentEvents, action.payload);
     yield put(postStudentEventsSuccess(response.data));
+    if (action.payload?.type === 'VISIT') {
+      yield put(getTotalCreditRequest());
+    }
   } catch (error) {
     yield put(postStudentEventsFailure(getErrorMessage(error)));
   }

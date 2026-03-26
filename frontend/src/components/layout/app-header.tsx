@@ -197,6 +197,7 @@ export const TotalCredit = () => {
 
   const { streak, claiming, claim, credit } = useDailyStreak();
   const dropdownRef = useRef(null);
+  const totalCredits = Number(credit) || 0;
 
   useEffect(() => {
     const openDropdown = () => setOpen(true);
@@ -242,7 +243,8 @@ export const TotalCredit = () => {
           >
             <Coins className="w-6 h-6 text-yellow-500" />
             <span className="text-sm font-medium text-gray-700">
-              {credit?.credits || 0}
+              {/* {credit?.credits || 0} */}
+              {totalCredits}
             </span>
           </Link>
         </Tooltip>

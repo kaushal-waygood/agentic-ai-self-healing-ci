@@ -104,10 +104,17 @@ const Project = () => {
                     <Calendar className="h-3.5 w-3.5 text-gray-400" />
                     <span className="font-medium text-gray-700">
                       {formatDateForMonthInput(proj.startDate)} —{' '}
-                      {formatDateForMonthInput(proj.endDate) || (
+                      {/* {formatDateForMonthInput(proj.endDate) || ( */}
+                      {proj.isCurrent ? (
                         <span className="text-green-600 font-semibold bg-green-50 px-1.5 py-0.5 rounded">
                           Present
                         </span>
+                      ) : (
+                        formatDateForMonthInput(proj.endDate) || (
+                          <span className="text-green-600 font-semibold bg-green-50 px-1.5 py-0.5 rounded">
+                            Present
+                          </span>
+                        )
                       )}
                     </span>
                   </div>

@@ -21,6 +21,22 @@ interface CreditState {
   claimingStreak: boolean;
 }
 
+function extractCreditsValue(payload: any): number | null {
+  if (typeof payload === 'number') {
+    return payload;
+  }
+
+  if (typeof payload?.credits === 'number') {
+    return payload.credits;
+  }
+
+  if (typeof payload?.data?.balance === 'number') {
+    return payload.data.balance;
+  }
+
+  return null;
+}
+
 const initialState: CreditState = {
   credit: 0,
   // streak: 0,
@@ -40,10 +56,15 @@ const creditSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    getCreditSuccess: (state, action: PayloadAction<number>) => {
+    // getCreditSuccess: (state, action: PayloadAction<number>) => {
+    getCreditSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
       state.error = null;
       state.claimCredits = action.payload;
+      const credits = extractCreditsValue(action.payload);
+      if (credits !== null) {
+        state.credit = credits;
+      }
     },
     getCreditFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -54,10 +75,12 @@ const creditSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    getTotalCreditSuccess: (state, action: PayloadAction<number>) => {
+    // getTotalCreditSuccess: (state, action: PayloadAction<number>) => {
+    getTotalCreditSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
       state.error = null;
-      state.credit = action.payload;
+      //  state.credit = action.payload;
+      state.credit = extractCreditsValue(action.payload) ?? 0;
     },
     getTotalCreditFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -68,10 +91,15 @@ const creditSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    earnCreditSuccess: (state, action: PayloadAction<number>) => {
+    //  earnCreditSuccess: (state, action: PayloadAction<number>) => {
+    earnCreditSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
       state.error = null;
       state.claimCredits = action.payload;
+      const credits = extractCreditsValue(action.payload);
+      if (credits !== null) {
+        state.credit = credits;
+      }
     },
     earnCreditFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
