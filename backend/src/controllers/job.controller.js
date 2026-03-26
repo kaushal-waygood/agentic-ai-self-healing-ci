@@ -254,10 +254,12 @@ export async function searchJobs(req, res) {
         `${context.query}:${country || ''}:${state || ''}:${city || ''}:${employmentType || ''}`,
       )
       .digest('hex')}`;
+      
 
     // Pages 2+: serve from the cached pool built on page 1
     if (pageNum > 1) {
       try {
+        
         const cached = await redisClient.get(poolCacheKey);
         if (cached) {
           const pool = JSON.parse(cached);

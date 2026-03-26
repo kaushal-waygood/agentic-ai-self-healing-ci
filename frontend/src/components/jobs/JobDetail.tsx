@@ -584,23 +584,25 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   };
 
   return (
-    <div className="min-h-screen space-y-2 transition-all duration-300 animate-in fade-in slide-in-from-left-5 duration-500">
+    <div className="animate-in slide-in-from-left-5 min-h-screen space-y-4 transition-all duration-300 fade-in  ">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-lg border border-white/20 ">
-        <div className="absolute inset-0 bg-header-gradient-primary" />
-        <div className="absolute inset-0  opacity-20" />
-        <div className="relative p-2 md:p-4 text-white">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+      <div className="relative overflow-hidden rounded-[30px] border border-slate-200 ]">
+        <div className="absolute inset-0 " />
+        <div className="relative p-5 text-black md:p-6">
+          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between ">
             <div className="flex-1 space-y-4">
-              <h1 className="text-xl md:text-2xl font-semibold mb-3 leading-tight">
+              <div className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-50">
+                Job Overview
+              </div>
+              <h1 className="mb-3 text-2xl font-semibold leading-tight md:text-3xl">
                 {job.title}
               </h1>
-              <div className="flex flex-wrap items-center gap-4 text-xs text-blue-50">
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-black">
+                <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 backdrop-blur-sm">
                   <Building2 className="w-4 h-4" />
                   <span className="font-semibold">{job.company}</span>
                 </div>
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
+                <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 backdrop-blur-sm">
                   <MapPin className="w-4 h-4" />
                   <span>
                     {(() => {
@@ -625,12 +627,12 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                       if (state && state !== city) parts.push(state);
                       if (country) parts.push(country);
                       if (parts.length > 0) return parts.join(', ');
-                      if ((job as any).remote) return '🌐 Remote';
+                      if ((job as any).remote) return 'Remote';
                       return 'Location not specified';
                     })()}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
+                <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 backdrop-blur-sm">
                   <Briefcase className="w-4 h-4" />
                   <span className="capitalize">
                     {job?.jobTypes?.[0] || 'Not specified'}
@@ -639,13 +641,13 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               </div>
             </div>
 
-            <div className="flex flex-col  justify-center  flex-wrap items-center gap-4">
+            <div className="flex flex-col flex-wrap items-stretch gap-3 sm:flex-row md:w-auto md:flex-col">
               <Button
                 onClick={handleToggleSavedJob}
-                className={`group relative px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 ${
+                className={`group relative rounded-2xl px-6 py-3 font-semibold transition-all duration-300 ${
                   isSaved
-                    ? 'bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-lg shadow-red-500/20 border border-white/30'
-                    : 'bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/30'
+                    ? 'border border-white/30 bg-white/20 text-white shadow-lg shadow-cyan-950/20 hover:bg-white/30'
+                    : 'border border-white/25 bg-white/10 text-white hover:bg-white/20'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -685,7 +687,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     console.error('Error sharing:', err);
                   }
                 }}
-                className="group relative px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/30"
+                className="group relative rounded-2xl border border-white/25 bg-white/10 px-6 py-3 font-semibold text-white transition-all duration-300 hover:bg-white/20"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-sm">Share Job</span>
@@ -698,40 +700,40 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       </div>
 
       {/* Actions */}
-      <div className="rounded-lg border border-white/20 p-1">
+      <div className="rounded-[28px] border border-slate-200 bg-white/90 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur">
         {/* <div className="flex flex-col md:flex-row items-stretch gap-4 px-6"> */}
-        <div className="flex  flex-wrap lg:flex-row items-center gap-4 px-4 sm:px-6">
+        <div className="flex flex-wrap items-center gap-4 px-1 sm:px-2">
           {/* Logo */}
           <div className="flex items-center justify-center md:justify-start">
             {job.logo ? (
-              <div className="w-12 h-12 relative rounded-lg overflow-hidden shadow-lg ring-4 ring-purple-100/50">
+              <div className="relative h-14 w-14 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <Image
                   src={job.logo}
                   alt={job.company || 'Company Logo'}
                   fill
                   sizes="48px"
-                  className="object-contain"
+                  className="object-contain p-2"
                 />
               </div>
             ) : (
               <Image
                 src="/logo.png"
                 alt="Company Logo"
-                width={48}
-                height={48}
-                className="object-contain"
+                width={56}
+                height={56}
+                className="rounded-2xl border border-slate-200 bg-white object-contain p-2 shadow-sm"
               />
             )}
           </div>
 
           {token ? (
             // <div className="flex flex-col flex-wrap justify-end md:flex-row gap-2 items-center flex-1 md:gap-4">
-            <div className="flex flex-col flex-wrap sm:flex-row sm:justify-end items-stretch gap-2 flex-1">
+            <div className="flex flex-1 flex-col flex-wrap items-stretch gap-2 sm:flex-row sm:justify-end">
               {/* Tailor & Apply */}
               {job.applyMethod?.url === 'email' ? (
                 <Button
                   asChild
-                  className="px-6 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
+                  className="rounded-2xl border-0 bg-slate-900 px-6 py-3 font-semibold text-white shadow-sm transition-all duration-300 hover:bg-slate-800"
                 >
                   <Link
                     href={`/dashboard/apply?slug=${encodeURIComponent(
@@ -747,7 +749,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               ) : (
                 <Button
                   asChild
-                  className="px-5 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                  className="rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white shadow-sm transition-all duration-300 hover:bg-slate-800"
                 >
                   <Link
                     href={`/dashboard/apply?slug=${encodeURIComponent(
@@ -770,7 +772,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   onClick={handleApplyOnSite}
                   asChild
                   variant="outline"
-                  className="px-5 py-3 rounded-lg font-semibold border-2 border-primary text-primary bg-white transition-all duration-300"
+                  className="rounded-2xl border-sky-200 bg-sky-50 px-5 py-3 font-semibold text-sky-700 transition-all duration-300 hover:bg-sky-100"
                 >
                   <Link
                     href={job.applyMethod.url}
@@ -786,7 +788,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               ) : isApplying ? (
                 <Button
                   disabled
-                  className="px-5 py-3 rounded-lg font-semibold bg-green-600 text-white flex items-center justify-center cursor-not-allowed opacity-90"
+                  className="flex cursor-not-allowed items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 font-semibold text-white opacity-90"
                 >
                   <div className="relative flex items-center justify-center gap-2">
                     <CheckCircle className="w-5 h-5" />
@@ -797,7 +799,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 <Button
                   onClick={handleApplyNow}
                   asChild
-                  className="px-5 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                  className="rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white shadow-sm transition-all duration-300 hover:bg-slate-800"
                 >
                   <Link
                     href={`/dashboard/jobs/${job._id}/apply`}
@@ -814,7 +816,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               {!atsScore && !isLoadingAtsScore && (
                 <Button
                   onClick={handleGetATSScore}
-                  className="px-5 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                  className="rounded-2xl bg-sky-600 px-5 py-3 font-semibold text-white shadow-sm transition-all duration-300 hover:bg-sky-700"
                 >
                   <div className="flex items-center justify-center gap-2">
                     <Sparkles className="w-5 h-5" />
@@ -824,7 +826,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               )}
 
               {isLoadingAtsScore && (
-                <div className="relative overflow-hidden px-6 py-2 rounded-lg bg-buttonPrimary text-white w-[100px]">
+                <div className="relative w-[110px] overflow-hidden rounded-2xl bg-sky-600 px-6 py-2 text-white">
                   <div
                     className="absolute inset-y-0 left-0 bg-white/30 transition-all duration-300"
                     style={{ width: `${progress}%` }}
@@ -841,7 +843,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               {atsScore && !isLoadingAtsScore && (
                 <button
                   onClick={handleGetATSScore}
-                  className="px-5 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                  className="rounded-2xl bg-sky-600 px-5 py-3 font-semibold text-white shadow-sm transition-all duration-300 hover:bg-sky-700"
                 >
                   <div className="flex items-center justify-center gap-2">
                     <TrendingUp className="w-4 h-4" />
@@ -851,7 +853,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               )}
 
               {isLoadingScore && (
-                <div className="relative overflow-hidden px-6 py-2 rounded-lg bg-buttonPrimary text-white w-[100px]">
+                <div className="relative w-[110px] overflow-hidden rounded-2xl bg-slate-900 px-6 py-2 text-white">
                   <div
                     className="absolute inset-y-0 left-0 bg-white/30 transition-all duration-300"
                     style={{ width: `${progress}%` }}
@@ -869,7 +871,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               {!matchScore && !isLoadingScore && (
                 <Button
                   onClick={handleGetMatchScore}
-                  className="px-5 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                  className="rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white shadow-sm transition-all duration-300 hover:bg-slate-800"
                 >
                   <div className="flex items-center justify-center gap-2">
                     <Sparkles className="w-5 h-5" />
@@ -881,7 +883,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               {matchScore && !isLoadingScore && (
                 <button
                   onClick={handleGetMatchScore}
-                  className="px-5 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                  className="rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white shadow-sm transition-all duration-300 hover:bg-slate-800"
                 >
                   <div className="flex items-center justify-center gap-2">
                     <TrendingUp className="w-4 h-4" />
@@ -892,10 +894,10 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
               {savedCvs.length > 0 && (
                 <Select value={cvForMatch} onValueChange={setCvForMatch}>
-                  <SelectTrigger className="w-[180px] h-10 border border-input bg-background-white text-sm">
+                  <SelectTrigger className="h-11 w-[190px] rounded-2xl border border-slate-200 bg-white text-sm">
                     <SelectValue placeholder="Match against" />
                   </SelectTrigger>
-                  <SelectContent className="  bg-white text-sm">
+                  <SelectContent className="bg-white text-sm">
                     <SelectItem value="profile">My Profile</SelectItem>
                     {savedCvs.map((cv) => (
                       <SelectItem key={cv._id} value={cv._id}>
@@ -917,10 +919,10 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               )} */}
             </div>
           ) : (
-            <div className="flex flex-col justify-end md:flex-row gap-2 items-center flex-1 md:gap-4">
+            <div className="flex flex-1 flex-col items-center justify-end gap-2 md:flex-row md:gap-4">
               <Button
                 onClick={() => router.push('/login')}
-                className="bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-lg px-6 py-3 font-semibold text-sm"
+                className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:bg-slate-800"
               >
                 Sign up
                 <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
@@ -930,18 +932,18 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         </div>
       </div>
 
-      <div className="flex items-center justify-end ">
-        <div className="flex items-center bg-muted rounded-lg border border-border shadow-sm">
+      <div className="flex items-center justify-end">
+        <div className="flex items-center rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
           {atsScore?.atsScore && (
             <button
               onClick={() => {
                 setActiveView('ats');
                 setOpenCard(null);
               }}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 ${
                 activeView === 'ats'
-                  ? 'bg-background text-primary shadow'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  ? 'bg-sky-50 text-sky-700 shadow-sm'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
               }`}
             >
               <Zap className="w-4 h-4" />
@@ -956,10 +958,10 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 setActiveView('match');
                 setOpenCard(null);
               }}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 ${
                 activeView === 'match'
-                  ? 'bg-background text-primary shadow'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
               }`}
             >
               <Star className="w-4 h-4" />
@@ -971,26 +973,26 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       </div>
 
       {activeView === 'match' && matchScore && !isLoadingScore && (
-        <div className="rounded-xl border border-border overflow-hidden bg-card">
+        <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_16px_36px_rgba(15,23,42,0.08)]">
           {/* Header with main score */}
           <button
             onClick={() => setOpenCard(openCard === 'match' ? null : 'match')}
-            className="w-full px-4 py-4 flex items-center justify-between hover:bg-white/60 transition-colors"
+            className="flex w-full items-center justify-between px-5 py-5 text-left transition-colors hover:bg-slate-50"
           >
             <div className="flex items-center gap-4">
-              <div className="relative w-14 h-14 rounded-full bg-buttonPrimary flex items-center justify-center shadow-lg">
+              <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 shadow-lg shadow-slate-900/15">
                 <span className="text-xl font-bold text-white">
                   {matchScore.matchScore}
                 </span>
-                <span className="absolute -bottom-1 -right-1 text-xs font-medium text-primary bg-background px-1.5 py-0.5 rounded">
+                <span className="absolute -bottom-1 -right-1 rounded bg-white px-1.5 py-0.5 text-xs font-medium text-slate-700 shadow-sm">
                   /10
                 </span>
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-800">
+                <p className="text-sm font-semibold text-slate-900">
                   AI Match Score
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-slate-500">
                   {matchScore.matchScore >= 7
                     ? 'Strong match'
                     : matchScore.matchScore >= 4
@@ -1000,24 +1002,24 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               </div>
             </div>
             {openCard === 'match' ? (
-              <ChevronUp className="w-5 h-5 text-primary" />
+              <ChevronUp className="w-5 h-5 text-slate-500" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-primary" />
+              <ChevronDown className="w-5 h-5 text-slate-500" />
             )}
           </button>
 
           {/* Expandable content */}
           {openCard === 'match' && (
-            <div className="px-4 pb-4 space-y-4 border-t border-border">
+            <div className="space-y-4 border-t border-slate-100 px-5 pb-5">
               {/* Fit breakdown - matches job description against CV for any job type */}
               {((matchScore.skillsFitPercent ?? matchScore.techFitPercent) !==
                 undefined ||
                 (matchScore.experienceFitPercent ??
                   matchScore.roleFitPercent) !== undefined ||
                 matchScore.seniorityFitPercent !== undefined) && (
-                <div className="pt-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-primary" />
+                <div className="space-y-3 pt-4">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <BarChart3 className="w-4 h-4 text-sky-600" />
                     Match breakdown
                   </h3>
                 </div>
@@ -1026,31 +1028,31 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               {/* Suggestions */}
 
               {/* Recommendation */}
-              <div className="bg-card rounded-lg p-3 border border-border">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <h3 className="mb-2 text-sm font-semibold text-slate-800">
                   Recommendation
                 </h3>
-                <p className="text-sm text-gray-700 leading-relaxed">
+                <p className="text-sm leading-relaxed text-slate-700">
                   {matchScore.recommendation}
                 </p>
               </div>
 
               {matchScore.improvedSummary && (
                 <details className="group">
-                  <summary className="text-sm font-semibold text-foreground cursor-pointer list-none flex items-center gap-2 hover:text-primary">
+                  <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-slate-800 hover:text-sky-700">
                     <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform" />
                     Improved resume summary
                   </summary>
-                  <p className="mt-2 text-sm text-gray-600 pl-6 leading-relaxed">
+                  <p className="mt-2 pl-6 text-sm leading-relaxed text-slate-600">
                     {matchScore.improvedSummary}
                   </p>
                 </details>
               )}
 
               {/* Generate Tailored Docs */}
-              <div className="pt-4 border-t border-border">
-                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <FilePlus2 className="w-4 h-4 text-primary" />
+              <div className="border-t border-slate-100 pt-4">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800">
+                  <FilePlus2 className="w-4 h-4 text-sky-600" />
                   Generate tailored docs
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -1058,7 +1060,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     asChild
                     size="sm"
                     variant="outline"
-                    className="border-border hover:bg-muted"
+                    className="rounded-xl border-slate-200 hover:bg-slate-50"
                   >
                     <Link
                       href={`/dashboard/cv-generator?slug=${encodeURIComponent(job._id ?? '')}&step=cv&docType=cv`}
@@ -1071,7 +1073,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     asChild
                     size="sm"
                     variant="outline"
-                    className="border-border hover:bg-muted"
+                    className="rounded-xl border-slate-200 hover:bg-slate-50"
                   >
                     <Link
                       href={`/dashboard/cover-letter-generator?slug=${encodeURIComponent(job._id ?? '')}&step=cv&docType=cl`}
@@ -1083,7 +1085,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   <Button
                     asChild
                     size="sm"
-                    className="bg-buttonPrimary hover:bg-blue-700 text-white"
+                    className="rounded-xl bg-slate-900 text-white hover:bg-slate-800"
                   >
                     <Link
                       href={`/dashboard/apply?slug=${encodeURIComponent(job._id ?? '')}&step=cv`}
@@ -1099,8 +1101,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
           {/* Always show recommendation and generate CTA when collapsed */}
           {openCard !== 'match' && (
-            <div className="px-4 pb-4 pt-2 border-t border-border space-y-3">
-              <p className="text-sm text-gray-700 line-clamp-2">
+            <div className="space-y-3 border-t border-slate-100 px-5 pb-5 pt-3">
+              <p className="line-clamp-2 text-sm text-slate-700">
                 {matchScore.recommendation}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -1108,7 +1110,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   asChild
                   size="sm"
                   variant="outline"
-                  className="border-border hover:bg-muted text-xs h-8"
+                  className="h-8 rounded-xl border-slate-200 text-xs hover:bg-slate-50"
                 >
                   <Link
                     href={`/dashboard/cv-generator?slug=${encodeURIComponent(job._id ?? '')}&step=cv&docType=cv`}
@@ -1120,7 +1122,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   asChild
                   size="sm"
                   variant="outline"
-                  className="border-border hover:bg-muted text-xs h-8"
+                  className="h-8 rounded-xl border-slate-200 text-xs hover:bg-slate-50"
                 >
                   <Link
                     href={`/dashboard/cover-letter-generator?slug=${encodeURIComponent(job._id ?? '')}&step=cv&docType=cl`}
@@ -1131,7 +1133,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 <Button
                   asChild
                   size="sm"
-                  className="bg-buttonPrimary hover:bg-blue-700 text-white text-xs h-8"
+                  className="h-8 rounded-xl bg-slate-900 text-xs text-white hover:bg-slate-800"
                 >
                   <Link
                     href={`/dashboard/apply?slug=${encodeURIComponent(job._id ?? '')}&step=cv`}
@@ -1146,18 +1148,18 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       )}
 
       {activeView === 'ats' && atsScore && !isLoadingAtsScore && (
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_16px_36px_rgba(15,23,42,0.08)]">
           <button
             onClick={() => setOpenCard(openCard === 'ats' ? null : 'ats')}
-            className="w-full px-3 py-3 flex items-center justify-between hover:bg-white/50"
+            className="flex w-full items-center justify-between px-5 py-4 hover:bg-slate-50"
           >
             <div className="flex items-center gap-4">
-              <div className="p-2 bg-buttonPrimary rounded-lg">
+              <div className="rounded-xl bg-sky-600 p-2.5">
                 <Zap className="w-4 h-4 text-white" />
               </div>
-              <div className="text-sm text-gray-600 flex gap-2">
+              <div className="flex gap-2 text-sm text-slate-600">
                 <span>ATS Score:</span>
-                <span className="font-semibold text-primary">
+                <span className="font-semibold text-sky-700">
                   {atsScore.atsScore}/100
                 </span>
               </div>
@@ -1179,10 +1181,10 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             </div>
           )} */}
 
-          <div className="px-3 pb-3">
-            <div className="bg-white/80 rounded-xl p-3 border">
+          <div className="px-5 pb-5">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <h2 className="font-semibold mb-1">ATS Suggestions</h2>
-              <p className="text-sm text-gray-700">{atsScore.suggestions}</p>
+              <p className="text-sm text-slate-700">{atsScore.suggestions}</p>
             </div>
           </div>
         </div>
@@ -1191,19 +1193,19 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       {/* Description */}
       <div
         id="jobDescription"
-        className="bg-white/80 rounded-lg  border border-gray-200 p-4"
+        className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_16px_36px_rgba(15,23,42,0.07)]"
       >
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-1.5 h-10 bg-gradient-to-b from-purple-600 via-blue-600 to-cyan-600 rounded-full shadow-lg" />
-          <h2 className="text-lg md:text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="h-10 w-1.5 rounded-full bg-gradient-to-b from-slate-900 via-sky-700 to-cyan-500" />
+          <h2 className="text-lg font-bold text-slate-900 md:text-xl">
             Job Description
           </h2>
         </div>
 
-        <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
+        <div className="prose prose-sm max-w-none text-slate-700 leading-relaxed">
           <details
             open
-            className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+            className="prose prose-sm max-w-none text-slate-700 leading-relaxed"
           >
             <summary className="hidden" />
             <div className="px-1 pb-4">
@@ -1211,11 +1213,11 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               {job.description ? (
                 renderJobDescription(job.description)
               ) : (
-                <div className="flex flex-col items-center justify-center min-h-[280px] py-12 px-6 text-center">
-                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                    <FileText className="w-8 h-8 text-gray-400" />
+                <div className="flex min-h-[280px] flex-col items-center justify-center px-6 py-12 text-center">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+                    <FileText className="h-8 w-8 text-slate-400" />
                   </div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">
+                  <h3 className="mb-2 text-sm font-medium text-slate-700">
                     No job description provided
                   </h3>
                 </div>
@@ -1231,17 +1233,17 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         Object.entries(job.highlights).map(([title, items], index) => (
           <div
             key={title}
-            className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 p-8 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
+            className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_16px_36px_rgba(15,23,42,0.07)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_rgba(15,23,42,0.10)]"
           >
-            <div className="flex items-center gap-3 mb-6">
+            <div className="mb-5 flex items-center gap-3">
               <div
-                className={`w-1.5 h-10 rounded-full shadow-lg ${
+                className={`h-10 w-1.5 rounded-full ${
                   index % 2 === 0
-                    ? 'bg-gradient-to-b from-cyan-600 via-blue-600 to-purple-600'
-                    : 'bg-gradient-to-b from-green-600 via-emerald-600 to-teal-600'
+                    ? 'bg-gradient-to-b from-slate-900 via-sky-700 to-cyan-500'
+                    : 'bg-gradient-to-b from-emerald-700 via-teal-600 to-cyan-500'
                 }`}
               />
-              <h3 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              <h3 className="text-xl font-bold text-slate-900 md:text-2xl">
                 {title}
               </h3>
             </div>
@@ -1250,14 +1252,14 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               {(items as string[]).map((item, idx) => (
                 <div
                   key={`${title}-${idx}`}
-                  className="group flex items-start gap-4 p-5 rounded-2xl bg-gradient-to-r from-gray-50 to-transparent hover:from-purple-50 hover:via-blue-50 hover:to-cyan-50 transition-all duration-300 border border-transparent hover:border-purple-200 hover:shadow-md"
+                  className="group flex items-start gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-5 transition-all duration-300 hover:border-sky-200 hover:bg-sky-50/60"
                 >
                   <div className="mt-0.5 flex-shrink-0">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                      <CheckCircle className="w-6 h-6 text-white" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20 transition-all duration-300 group-hover:scale-105">
+                      <CheckCircle className="h-5 w-5 text-white" />
                     </div>
                   </div>
-                  <span className="text-gray-700 flex-1 leading-relaxed text-base">
+                  <span className="flex-1 text-base leading-relaxed text-slate-700">
                     {item}
                   </span>
                 </div>
