@@ -17,6 +17,7 @@ import {
 jest.mock('../../src/models/students/studentAgent.model.js', () => ({
   StudentAgent: {
     find: jest.fn(),
+    updateOne: jest.fn(),
   },
 }));
 
@@ -71,6 +72,16 @@ jest.mock('../../src/utils/tailored.autopilot.js', () => ({
   processTailoredApplication: jest.fn().mockResolvedValue(true),
 }));
 
+jest.mock('../../src/utils/credits.js', () => ({
+  getAutopilotEntitlements: jest.fn().mockResolvedValue({
+    planType: 'Free',
+    billingPeriod: null,
+    dailyJobLimit: 5,
+    maxAgents: 1,
+    isFree: true,
+  }),
+}));
+
 import { StudentAgent } from '../../src/models/students/studentAgent.model.js';
 import { getStudentProfileSnapshot } from '../../src/services/getStudentProfileSnapshot.js';
 import { User } from '../../src/models/User.model.js';
@@ -88,6 +99,12 @@ describe('Autopilot Worker', () => {
     jest.clearAllMocks();
     process.env.AUTOGEN_TAILORED = 'true';
     process.env.DEBUG_AUTOPILOT = '0';
+    StudentApplication.create.mockResolvedValue({
+      _id: new mongoose.Types.ObjectId(),
+    });
+    AgentFoundJob.create.mockResolvedValue({
+      _id: new mongoose.Types.ObjectId(),
+    });
   });
 
   afterEach(() => {
@@ -200,7 +217,16 @@ describe('Autopilot Worker', () => {
       });
 
       const result = await findAndProcessJobs();
-      expect(result).toEqual({ processed: 0, agentsChecked: 0 });
+      expect(result).toEqual({
+        processed: 0,
+        agentsChecked: 0,
+        alreadySearchedToday: 0,
+        poolAlreadyFull: 0,
+        planAgentCapReached: 0,
+        autopilotDisabled: 0,
+        missingProfile: 0,
+        noJobsFound: 0,
+      });
       expect(getStudentProfileSnapshot).not.toHaveBeenCalled();
     });
 
@@ -221,6 +247,7 @@ describe('Autopilot Worker', () => {
 
       const result = await findAndProcessJobs();
       expect(result.processed).toBe(0);
+      expect(result.missingProfile).toBe(1);
       expect(getRecommendedJobs).not.toHaveBeenCalled();
     });
 
@@ -244,6 +271,7 @@ describe('Autopilot Worker', () => {
 
       const result = await findAndProcessJobs();
       expect(result.processed).toBe(0);
+      expect(result.autopilotDisabled).toBe(1);
       expect(getRecommendedJobs).not.toHaveBeenCalled();
     });
 
@@ -270,7 +298,243 @@ describe('Autopilot Worker', () => {
 
       const result = await findAndProcessJobs();
       expect(result.processed).toBe(0);
+      expect(result.poolAlreadyFull).toBe(1);
       expect(getRecommendedJobs).not.toHaveBeenCalled();
+    });
+
+    it('retries agent on the same day when it is still below the limit', async () => {
+      const agent = {
+        _id: agentId,
+        student: studentId,
+        agentName: 'Test Agent',
+        jobTitle: 'Engineer',
+        agentDailyLimit: 5,
+        lastDiscoveryRunAt: new Date(),
+        lastDiscoveryActiveCount: 0,
+        lastDiscoveryTargetLimit: 5,
+      };
+      StudentAgent.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([agent]),
+        }),
+      });
+      getStudentProfileSnapshot.mockResolvedValue({
+        settings: { autopilotEnabled: true, autopilotLimit: 5 },
+        jobPreferences: {},
+      });
+      AgentFoundJob.countDocuments.mockResolvedValueOnce(0);
+      AppliedJob.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([]),
+        }),
+      });
+      StudentApplication.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([]),
+        }),
+      });
+      AgentFoundJob.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([]),
+        }),
+      });
+      getRecommendedJobs.mockResolvedValueOnce([
+        { _id: new mongoose.Types.ObjectId(), title: 'Same Day Retry Job' },
+      ]);
+
+      const result = await findAndProcessJobs();
+      expect(result.processed).toBe(1);
+      expect(result.alreadySearchedToday).toBe(0);
+      expect(AgentFoundJob.countDocuments).toHaveBeenCalledTimes(1);
+      expect(getRecommendedJobs).toHaveBeenCalled();
+    });
+
+    it('allows same-day refill when plan cap increased above the last run target', async () => {
+      const agent = {
+        _id: agentId,
+        student: studentId,
+        agentName: 'Test Agent',
+        jobTitle: 'Engineer',
+        agentDailyLimit: 5,
+        lastDiscoveryRunAt: new Date(),
+        lastDiscoveryActiveCount: 5,
+        lastDiscoveryTargetLimit: 5,
+      };
+      StudentAgent.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([agent]),
+        }),
+      });
+      getStudentProfileSnapshot.mockResolvedValue({
+        settings: { autopilotEnabled: true, autopilotLimit: 12 },
+        jobPreferences: {},
+      });
+      AgentFoundJob.countDocuments.mockResolvedValue(5);
+      AppliedJob.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([]),
+        }),
+      });
+      StudentApplication.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([]),
+        }),
+      });
+      AgentFoundJob.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([]),
+        }),
+      });
+      getRecommendedJobs.mockResolvedValue([
+        { _id: new mongoose.Types.ObjectId(), title: 'Job 1' },
+      ]);
+
+      const { getAutopilotEntitlements } = await import(
+        '../../src/utils/credits.js'
+      );
+      getAutopilotEntitlements.mockResolvedValueOnce({
+        planType: 'Monthly',
+        billingPeriod: 'Monthly',
+        dailyJobLimit: 12,
+        maxAgents: Infinity,
+        isFree: false,
+      });
+
+      const result = await findAndProcessJobs();
+
+      expect(getRecommendedJobs).toHaveBeenCalled();
+      expect(result.processed).toBe(1);
+      expect(result.alreadySearchedToday).toBe(0);
+      expect(StudentAgent.updateOne).toHaveBeenCalledWith(
+        { _id: agentId },
+        {
+          $set: {
+            lastDiscoveryRunAt: expect.any(Date),
+            lastDiscoveryActiveCount: 6,
+            lastDiscoveryTargetLimit: 12,
+          },
+        },
+      );
+    });
+
+    it('allows same-day refill when active jobs dropped below the last run pool size', async () => {
+      const agent = {
+        _id: agentId,
+        student: studentId,
+        agentName: 'Test Agent',
+        jobTitle: 'Engineer',
+        agentDailyLimit: 5,
+        lastDiscoveryRunAt: new Date(),
+        lastDiscoveryActiveCount: 5,
+        lastDiscoveryTargetLimit: 5,
+      };
+      StudentAgent.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([agent]),
+        }),
+      });
+      getStudentProfileSnapshot.mockResolvedValue({
+        settings: { autopilotEnabled: true, autopilotLimit: 5 },
+        jobPreferences: {},
+      });
+      AgentFoundJob.countDocuments.mockResolvedValue(4);
+      AppliedJob.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([]),
+        }),
+      });
+      StudentApplication.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([]),
+        }),
+      });
+      AgentFoundJob.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([]),
+        }),
+      });
+      getRecommendedJobs.mockResolvedValue([
+        { _id: new mongoose.Types.ObjectId(), title: 'Replacement Job' },
+      ]);
+
+      const result = await findAndProcessJobs();
+
+      expect(getRecommendedJobs).toHaveBeenCalled();
+      expect(result.processed).toBe(1);
+      expect(result.alreadySearchedToday).toBe(0);
+      expect(StudentAgent.updateOne).toHaveBeenCalledWith(
+        { _id: agentId },
+        {
+          $set: {
+            lastDiscoveryRunAt: expect.any(Date),
+            lastDiscoveryActiveCount: 5,
+            lastDiscoveryTargetLimit: 5,
+          },
+        },
+      );
+    });
+
+    it('keeps broadening discovery until the target pool is filled', async () => {
+      const agent = {
+        _id: agentId,
+        student: studentId,
+        agentName: 'Test Agent',
+        jobTitle: 'MERN Developer',
+        agentDailyLimit: 5,
+      };
+      StudentAgent.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([agent]),
+        }),
+      });
+      getStudentProfileSnapshot.mockResolvedValue({
+        settings: { autopilotEnabled: true, autopilotLimit: 5 },
+        jobPreferences: {},
+      });
+      AgentFoundJob.countDocuments.mockResolvedValue(0);
+      AppliedJob.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([]),
+        }),
+      });
+      StudentApplication.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([]),
+        }),
+      });
+      AgentFoundJob.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue([]),
+        }),
+      });
+      getRecommendedJobs
+        .mockResolvedValueOnce([
+          { _id: new mongoose.Types.ObjectId(), title: 'Local Job 1' },
+          { _id: new mongoose.Types.ObjectId(), title: 'Local Job 2' },
+        ])
+        .mockResolvedValueOnce([
+          { _id: new mongoose.Types.ObjectId(), title: 'External Job 3' },
+          { _id: new mongoose.Types.ObjectId(), title: 'External Job 4' },
+        ])
+        .mockResolvedValueOnce([
+          { _id: new mongoose.Types.ObjectId(), title: 'External Job 5' },
+        ]);
+
+      const result = await findAndProcessJobs();
+
+      expect(getRecommendedJobs).toHaveBeenCalledTimes(3);
+      expect(AgentFoundJob.create).toHaveBeenCalledTimes(5);
+      expect(result.processed).toBe(5);
+      expect(StudentAgent.updateOne).toHaveBeenCalledWith(
+        { _id: agentId },
+        {
+          $set: {
+            lastDiscoveryRunAt: expect.any(Date),
+            lastDiscoveryActiveCount: 5,
+            lastDiscoveryTargetLimit: 5,
+          },
+        },
+      );
     });
 
     it('fetches recommended jobs and stores them', async () => {
@@ -317,7 +581,18 @@ describe('Autopilot Worker', () => {
 
       expect(getRecommendedJobs).toHaveBeenCalled();
       expect(AgentFoundJob.create).toHaveBeenCalledTimes(1);
+      expect(StudentAgent.updateOne).toHaveBeenCalledWith(
+        { _id: agentId },
+        {
+          $set: {
+            lastDiscoveryRunAt: expect.any(Date),
+            lastDiscoveryActiveCount: 1,
+            lastDiscoveryTargetLimit: 5,
+          },
+        },
+      );
       expect(result.processed).toBe(1);
+      expect(result.noJobsFound).toBe(0);
     });
 
     it('excludes applied and pending jobs from recommendations', async () => {
@@ -359,14 +634,25 @@ describe('Autopilot Worker', () => {
       });
       
       getRecommendedJobs.mockResolvedValue([]);
-
-      await findAndProcessJobs();
+      
+      const result = await findAndProcessJobs();
 
       expect(getRecommendedJobs).toHaveBeenCalledWith(
         expect.objectContaining({
           appliedJobIds: expect.arrayContaining([String(existingJobId)])
         }),
       );
+      expect(StudentAgent.updateOne).toHaveBeenCalledWith(
+        { _id: agentId },
+        {
+          $set: {
+            lastDiscoveryRunAt: expect.any(Date),
+            lastDiscoveryActiveCount: 0,
+            lastDiscoveryTargetLimit: 5,
+          },
+        },
+      );
+      expect(result.noJobsFound).toBe(1);
     });
   });
 });

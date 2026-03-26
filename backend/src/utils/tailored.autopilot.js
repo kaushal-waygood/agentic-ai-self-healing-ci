@@ -1,5 +1,3 @@
-// src/utils/tailored.autopilot.js
-
 import { genAIRequest as genAI } from '../config/gemini.js';
 import {
   generateCVPrompts,
@@ -13,16 +11,12 @@ import {
 import { StudentApplication } from '../models/students/studentApplication.model.js';
 import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
 
-// ── Cleanup helpers ──────────────────────────────────────────
-
 const processCVResponse = (response) =>
   response.replace(/```json|```/g, '').trim();
 const processCoverLetterResponse = (response) =>
   response.replace(/```html|```/g, '').trim();
 const processEmailResponse = (response) =>
   response.replace(/```html|```/g, '').trim();
-
-// ── Retry wrapper ────────────────────────────────────────────
 
 const genAIWithRetry = async (
   prompt,

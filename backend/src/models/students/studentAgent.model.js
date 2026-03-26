@@ -49,6 +49,9 @@ const autopilotAgentSchema = new Schema(
     city: String,
     jobDescription: String,
     isAgentActive: { type: Boolean, default: true },
+    lastDiscoveryRunAt: Date,
+    lastDiscoveryActiveCount: Number,
+    lastDiscoveryTargetLimit: Number,
 
     status: {
       type: String,
