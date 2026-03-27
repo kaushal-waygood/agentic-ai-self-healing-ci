@@ -125,7 +125,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
-    return `<html><body><pre style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;white-space:pre-wrap;padding:40px;">${escaped}</pre></body></html>`;
+    return `<html><body><pre style="font-family:'Plus Jakarta Sans',ui-sans-serif,system-ui,sans-serif;font-size:14px;line-height:1.6;white-space:pre-wrap;padding:40px;">${escaped}</pre></body></html>`;
   };
 
   const handleCopy = async () => {
@@ -142,9 +142,17 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       return typeof content === 'string' ? content : '';
     }
 
-    const rawStyle = template?.style?.replace(/<\/?style>/g, '') || '';
+    const templateStyle = typeof template?.style === 'string' ? template.style : '';
+    const rawStyle = templateStyle
+      .replace('<style>', '')
+      .replace('</style>', '')
+      .trim();
 
-    if (!rawStyle && typeof content === 'string' && /<html[\s>]/i.test(content)) {
+    if (
+      !rawStyle &&
+      typeof content === 'string' &&
+      content.toLowerCase().includes('<html')
+    ) {
       return content;
     }
 
@@ -501,7 +509,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       <main className="flex-grow overflow-y-auto p-4 md:p-8 bg-gray-200/50 custom-scrollbar">
         <style
           dangerouslySetInnerHTML={{
-            __html: `.resume-editor-canvas { font-family: Arial, Helvetica, "Segoe UI", sans-serif; }`,
+            __html: `.resume-editor-canvas { font-family: var(--font-sans); }`,
           }}
         />
         {template?.style && (

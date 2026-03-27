@@ -1,5 +1,5 @@
 import './globals.css';
-import { poppins, pt_sans } from './fonts';
+import { plusJakartaSans } from './fonts';
 import 'driver.js/dist/driver.css';
 import './driver-custom.css';
 
@@ -129,7 +129,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${poppins.variable} ${pt_sans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
+        className={`${plusJakartaSans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >
         <NextTopLoader
           color="#2563eb" // Change this to your preferred color

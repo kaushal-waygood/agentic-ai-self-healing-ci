@@ -191,6 +191,10 @@ export default {
     // },
 
     extend: {
+      fontFamily: {
+        sans: ['var(--font-plus-jakarta)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-plus-jakarta)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
       colors: {
         border: 'var(--border)',
         input: 'var(--input)',
