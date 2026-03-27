@@ -253,7 +253,7 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.10),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(34,197,94,0.08),_transparent_28%),linear-gradient(180deg,_#f8fbff_0%,_#f8fafc_45%,_#f1f5f9_100%)] pt-2">
+    <div className="min-h-screen pt-4">
       <div className="mx-auto max-w-[1500px] px-2 lg:px-4">
         {showFeedback && (
           <OnboardingExperienceFeedback
@@ -272,7 +272,7 @@ export default function JobsPage() {
           <div>
             <div
               ref={jobListRef}
-              className="no-scrollbar h-[calc(100vh-180px)] space-y-3 overflow-y-auto rounded-[28px] border border-white/70 bg-white/70 px-4 py-4 shadow-[0_20px_50px_rgba(15,23,42,0.08)] backdrop-blur"
+              className="no-scrollbar h-[calc(100vh-180px)] space-y-3 overflow-y-auto "
             >
               {/* Notification state */}
               {notification && !loading && (
@@ -306,14 +306,6 @@ export default function JobsPage() {
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                         <span>Searching 100+ job boards...</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-purple-400" />
-                        <span>Preparing to generate your 1-click CV & CL</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-400" />
-                        <span>Drafting personalized application emails</span>
                       </div>
                     </div>
                   </div>
@@ -391,13 +383,9 @@ export default function JobsPage() {
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {isJobLoading ? (
                 <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                  <div className="w-12 h-12 border-4 border-slate-200 border-t-purple-500 rounded-full animate-spin mb-4" />
+                  <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4" />
                   <p className="text-slate-700 font-semibold">
-                    Analyzing Job Requirements
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Our AI is preparing your tailored CV and Cover Letter
-                    draft...
+                    Loading job details
                   </p>
                 </div>
               ) : selectedJob ? (
