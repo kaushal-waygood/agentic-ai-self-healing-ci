@@ -253,13 +253,8 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="min-h-screen pt-4">
-      <div className="mx-auto max-w-[1500px] px-2 lg:px-4">
-        {showFeedback && (
-          <OnboardingExperienceFeedback
-            onClose={() => setShowFeedback(false)}
-          />
-        )}
+    <div className="min-h-screen  pt-4">
+      <div className="border-b border-slate-200 mb-4">
         <SearchFilters
           initialFilters={filters}
           onSearchChange={handleFilterChange}
@@ -267,12 +262,20 @@ export default function JobsPage() {
         />
 
         <FilterPills filters={filters} onRemove={removeFilter} />
+      </div>
+
+      <div className="mx-auto max-w-[1500px] px-2 lg:px-4">
+        {showFeedback && (
+          <OnboardingExperienceFeedback
+            onClose={() => setShowFeedback(false)}
+          />
+        )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[390px_minmax(0,1fr)]">
           <div>
             <div
               ref={jobListRef}
-              className="no-scrollbar h-[calc(100vh-180px)] space-y-3 overflow-y-auto "
+              className="no-scrollbar h-[calc(100vh-180px)] space-y-3 overflow-y-auto"
             >
               {/* Notification state */}
               {notification && !loading && (
@@ -382,11 +385,61 @@ export default function JobsPage() {
           <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {isJobLoading ? (
-                <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                  <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4" />
-                  <p className="text-slate-700 font-semibold">
-                    Loading job details
-                  </p>
+                <div className="p-6 md:p-8 w-full animate-pulse">
+                  {/* Header Section Skeleton */}
+                  <div className="flex flex-col md:flex-row gap-6 mb-8 items-start">
+                    {/* Company Logo Placeholder */}
+                    <div className="w-16 h-16 bg-slate-200 rounded-lg flex-shrink-0" />
+
+                    {/* Title and Metadata Placeholders */}
+                    <div className="flex-1 w-full space-y-4">
+                      {/* Job Title */}
+                      <div className="h-8 bg-slate-200 rounded-md w-3/4 md:w-1/2" />
+
+                      {/* Company & Location Info */}
+                      <div className="flex items-center gap-4">
+                        <div className="h-4 bg-slate-200 rounded w-32" />
+                        <div className="h-4 bg-slate-200 rounded w-24" />
+                        <div className="h-4 bg-slate-200 rounded w-24" />
+                      </div>
+
+                      {/* Action Buttons Placeholders */}
+                      <div className="flex flex-wrap items-center gap-3 pt-2">
+                        <div className="h-10 bg-slate-200 rounded-md w-36" />
+                        <div className="h-10 bg-slate-200 rounded-md w-32" />
+                        <div className="h-10 bg-slate-200 rounded-md w-28" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="h-px bg-slate-100 w-full mb-8" />
+
+                  {/* Description Section Skeleton */}
+                  <div className="space-y-6">
+                    {/* Section Heading ("Job Description") */}
+                    <div className="h-6 bg-slate-200 rounded w-40 mb-6" />
+
+                    {/* Paragraph Lines */}
+                    <div className="space-y-3">
+                      <div className="h-4 bg-slate-200 rounded w-full" />
+                      <div className="h-4 bg-slate-200 rounded w-full" />
+                      <div className="h-4 bg-slate-200 rounded w-5/6" />
+                    </div>
+
+                    {/* Sub-heading ("Key Responsibilities:") */}
+                    <div className="h-5 bg-slate-200 rounded w-48 mt-8 mb-4" />
+
+                    {/* Bullet Points */}
+                    <div className="space-y-4">
+                      {[1, 2, 3, 4, 5].map((item) => (
+                        <div key={item} className="flex gap-3 items-start">
+                          <div className="w-2 h-2 mt-1 bg-slate-200 rounded-full flex-shrink-0" />
+                          <div className="h-4 bg-slate-200 rounded w-3/4" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               ) : selectedJob ? (
                 <JobDetail job={selectedJob} />

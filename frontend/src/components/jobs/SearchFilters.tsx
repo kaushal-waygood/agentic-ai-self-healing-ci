@@ -362,7 +362,7 @@ export const SearchFilters = ({
   return (
     // <div className="flex w-full flex-col md:flex-row shrink-0 items-center gap-3 mb-5 transition-all duration-300 animate-in fade-in slide-in-from-top-5">
 
-    <div className="mx-auto mb-8 flex w-full max-w-[900px] flex-col shrink-0 items-center gap-3 transition-all duration-300 animate-in fade-in slide-in-from-top-5 md:flex-row">
+    <div className="mx-auto mb-4 flex w-full max-w-[900px] flex-col shrink-0 items-center gap-3 transition-all duration-300 animate-in fade-in slide-in-from-top-5 md:flex-row">
       {/* Search Inputs Container */}
       <div className="flex flex-col md:flex-row h-auto md:h-[52px] flex-1 w-full items-center rounded-2xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-50 hover:border-slate-300">
         {/* Job Title Input */}
