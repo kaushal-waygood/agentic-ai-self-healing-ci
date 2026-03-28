@@ -2935,7 +2935,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 {/* Recommendation */}
                 <div>
                   <h4 className="mb-3 text-[14.5px] font-extrabold text-slate-900 flex items-center gap-2">
-                    <TargetIcon className="w-4 h-4 text-teal-500" /> Recommendation
+                    <TargetIcon className="w-4 h-4 text-teal-500" />{' '}
+                    Recommendation
                   </h4>
                   <div className="rounded-xl bg-slate-50 border border-slate-100 p-5">
                     <p className="text-[13.5px] text-slate-700 leading-relaxed m-0">
@@ -3015,7 +3016,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
         {/* Render Cleaned JD */}
         {job.description ? (
-          <div className="mb-8">{renderJobDescription(job.description)}</div>
+          <div className="mb-8 ">{renderJobDescription(job.description)}</div>
         ) : (
           <p className="italic text-slate-500 mb-8">
             No job description provided.

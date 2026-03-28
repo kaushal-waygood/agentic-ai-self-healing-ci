@@ -218,32 +218,38 @@ export const TotalCredit = () => {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
-
   return (
     <div className="relative" ref={dropdownRef}>
-      <div className="flex items-center  bg-gradient-to-r from-yellow-100 to-purple-100 rounded-lg border border-gray-200">
-        {/* Fire */}
+      {/* Unified wrapper: 
+        Matches the h-10 height of the other header buttons. 
+        Uses the exact soft gradient from the screenshot.
+      */}
+      <div className="flex h-10 items-center overflow-hidden rounded-xl border border-slate-200/80 bg-gradient-to-r from-amber-100/60 via-yellow-50/50 to-purple-100/60 shadow-sm">
+        {/* Streak (Fire) */}
         <Tooltip label={'Streak'}>
           <button
             onClick={() => setOpen(!open)}
-            className="flex items-center gap-1 hover:bg-gray-50 px-2 py-1 rounded-lg  "
+            className="flex h-full items-center gap-1.5 px-3 transition-colors hover:bg-white/40"
           >
-            <Flame className="w-6 h-6 text-pink-500" />
-            <span className="text-sm font-medium text-pink-500">
+            <Flame className="h-4 w-4 text-pink-500" strokeWidth={2.5} />
+            <span className="text-[14px] font-extrabold text-pink-600">
               {streak.current || 0}
             </span>
           </button>
         </Tooltip>
-        {/* Gold */}
+
+        {/* Subtle Divider (Optional, helps visual separation) */}
+        <div className="h-4 w-px bg-slate-200/50"></div>
+
+        {/* Credits (Gold) */}
         <Tooltip label={'Credits'}>
           <Link
             href="/dashboard/credits"
             prefetch={false}
-            className="flex items-center gap-1  hover:bg-gray-50 px-2 py-1  rounded-lg"
+            className="flex h-full items-center gap-1.5 px-3 transition-colors hover:bg-white/40"
           >
-            <Coins className="w-6 h-6 text-yellow-500" />
-            <span className="text-sm font-medium text-gray-700">
-              {/* {credit?.credits || 0} */}
+            <Coins className="h-4 w-4 text-amber-500" strokeWidth={2.5} />
+            <span className="text-[14px] font-extrabold text-slate-700">
               {totalCredits}
             </span>
           </Link>
@@ -263,6 +269,50 @@ export const TotalCredit = () => {
       )}
     </div>
   );
+  // return (
+  //   <div className="relative" ref={dropdownRef}>
+  //     <div className="flex items-center  bg-gradient-to-r from-yellow-100 to-purple-100 rounded-lg border border-gray-200">
+  //       {/* Fire */}
+  //       <Tooltip label={'Streak'}>
+  //         <button
+  //           onClick={() => setOpen(!open)}
+  //           className="flex items-center gap-1 hover:bg-gray-50 px-2 py-1 rounded-lg  "
+  //         >
+  //           <Flame className="w-6 h-6 text-pink-500" />
+  //           <span className="text-sm font-medium text-pink-500">
+  //             {streak.current || 0}
+  //           </span>
+  //         </button>
+  //       </Tooltip>
+  //       {/* Gold */}
+  //       <Tooltip label={'Credits'}>
+  //         <Link
+  //           href="/dashboard/credits"
+  //           prefetch={false}
+  //           className="flex items-center gap-1  hover:bg-gray-50 px-2 py-1  rounded-lg"
+  //         >
+  //           <Coins className="w-6 h-6 text-yellow-500" />
+  //           <span className="text-sm font-medium text-gray-700">
+  //             {/* {credit?.credits || 0} */}
+  //             {totalCredits}
+  //           </span>
+  //         </Link>
+  //       </Tooltip>
+  //     </div>
+
+  //     {/* Dropdown */}
+  //     {open && (
+  //       <StreakDropdown
+  //         streak={streak.current}
+  //         longest={streak.longest}
+  //         activeDays={streak.activeDays}
+  //         canClaimToday={streak.canClaimToday}
+  //         isClaiming={claiming}
+  //         onCheckIn={claim}
+  //       />
+  //     )}
+  //   </div>
+  // );
 };
 
 interface AppHeaderProps {
@@ -410,21 +460,6 @@ const AppHeader = ({
 
   const isMobile = useIsMobile();
 
-  // const handleMenuToggle = (menu) => {
-  //   // 1. Check if the action is for notifications AND if user is on mobile
-  //   if (menu === 'notification' && isMobile) {
-  //     router.push('/dashboard/notifications'); // Redirect immediately
-  //     return; // Stop function execution here
-  //   }
-
-  //   // 2. Default behavior for Desktop (or other menus)
-  //   setIsPlanOpen(menu === 'plan' ? !isPlanOpen : false);
-  //   setIsNotificationOpen(
-  //     menu === 'notification' ? !isNotificationOpen : false,
-  //   );
-  //   setIsUserMenuOpen(menu === 'user' ? !isUserMenuOpen : false);
-  // };
-
   const handleMenuToggle = (menu) => {
     if (menu === 'notification') {
       if (isMobile) {
@@ -515,227 +550,423 @@ const AppHeader = ({
       </header>
     );
   }
+  // return (
+  //   <>
+  //     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md ">
+  //       <div className="flex items-center justify-between px-4 lg:px-6 py-2">
+  //         {/* LEFT SIDE */}
+  //         <div className="flex items-center space-x-3">
+  //           <button
+  //             onClick={onMenuClick}
+  //             className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition"
+  //             aria-label="Toggle menu"
+  //           >
+  //             <span className="relative block w-6 h-6">
+  //               <Menu
+  //                 className={`absolute inset-0 transition-all duration-200 ${
+  //                   isSidebarOpen
+  //                     ? 'opacity-0 rotate-90 scale-75'
+  //                     : 'opacity-100'
+  //                 }`}
+  //               />
+  //               <X
+  //                 className={`absolute inset-0 transition-all duration-200 ${
+  //                   isSidebarOpen
+  //                     ? 'opacity-100'
+  //                     : 'opacity-0 rotate-90 scale-75'
+  //                 }`}
+  //               />
+  //             </span>
+  //           </button>
+  //         </div>
+
+  //         {/* RIGHT SIDE (UNCHANGED) */}
+  //         <div className="flex items-center space-x-4">
+  //           <TotalCredit />
+  //           <div id="current-plan-driver" ref={planRef}>
+  //             <PlanDropdown
+  //               planType={planType}
+  //               isOpen={isPlanOpen}
+  //               onToggle={() => handleMenuToggle('plan')}
+  //               usageData={usageData}
+  //               planLimits={effectivePlanLimits}
+  //             />
+  //           </div>
+
+  //           <div id="bell-driver" className="relative" ref={notificationRef}>
+  //             <button
+  //               onClick={() => handleMenuToggle('notification')}
+  //               className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200 border border-transparent hover:border-slate-300"
+  //             >
+  //               <Bell className="w-5 h-5 text-slate-600" />
+  //               {unreadCount > 0 && (
+  //                 <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+  //                   {unreadCount}
+  //                 </div>
+  //               )}
+  //             </button>
+
+  //             {isNotificationOpen && (
+  //               <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+  //                 {/* <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+  //                   <h3 className="font-semibold text-slate-900">
+  //                     Notifications
+  //                   </h3>
+  //                 </div> */}
+  //                 <div className=" overflow-y-auto">
+  //                   {/* <NotificationBell /> */}
+  //                   <NotificationBell
+  //                     notifications={notifications}
+  //                     unreadCount={unreadCount}
+  //                     isLoading={isLoading}
+  //                     markAsRead={markAsRead}
+  //                     fetchNotifications={fetchNotifications}
+  //                     // connectionStatus={connectionStatus}
+  //                     onClose={() => setIsNotificationOpen(false)}
+  //                   />
+  //                 </div>
+  //               </div>
+  //             )}
+  //           </div>
+
+  //           <div id="user-driver" className="relative" ref={userRef}>
+  //             <button
+  //               onClick={() => handleMenuToggle('user')}
+  //               className="flex items-center space-x-2 rounded-xl hover:bg-slate-100 transition-colors duration-200 border border-transparent hover:border-slate-300"
+  //             >
+  //               {preview ? (
+  //                 <Image
+  //                   width={48}
+  //                   height={48}
+  //                   src={preview}
+  //                   alt=""
+  //                   className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 border border-slate-200 rounded-full flex items-center justify-center text-white text-2xl uppercase"
+  //                 />
+  //               ) : (
+  //                 <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl uppercase">
+  //                   {(studentWrapper?.student.fullName || ' ').charAt(0)}
+  //                 </div>
+  //               )}
+  //             </button>
+
+  //             {isUserMenuOpen && (
+  //               <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+  //                 <div className="p-4 border-b border-slate-100">
+  //                   <div className="flex items-center space-x-3">
+  //                     {preview ? (
+  //                       <Image width={48} height={48} src={preview} alt="" />
+  //                     ) : (
+  //                       <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-4xl uppercase">
+  //                         {(studentWrapper?.student.fullName || ' ').charAt(0)}
+  //                       </div>
+  //                     )}
+
+  //                     <div className="flex-1 min-w-0">
+  //                       <p className="font-semibold text-slate-900 truncate">
+  //                         {/* {user?.fullName || 'Guest'} */}
+  //                         {studentWrapper?.student.fullName || 'Guest'}
+  //                       </p>
+  //                       <p className="text-sm text-slate-500 truncate">
+  //                         {user?.email || ''}
+  //                       </p>
+  //                     </div>
+  //                   </div>
+  //                 </div>
+  //                 <div className="py-2">
+  //                   {user?.scheduledPlanChange && (
+  //                     <button className="w-full px-4 py-3 text-left hover:bg-yellow-50 transition-colors duration-200 flex items-center space-x-3">
+  //                       <AlertTriangle className="w-4 h-4 text-yellow-600" />
+  //                       <span className="text-yellow-700 font-medium">
+  //                         Plan change scheduled
+  //                       </span>
+  //                     </button>
+  //                   )}
+  //                   <Link
+  //                     href="/dashboard/profile"
+  //                     prefetch={false}
+  //                     className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
+  //                   >
+  //                     <UserCircle className="w-4 h-4 text-slate-600" />{' '}
+  //                     <span className="text-slate-700">Profile</span>
+  //                   </Link>
+  //                   <Link
+  //                     href="/dashboard/settings"
+  //                     prefetch={false}
+  //                     className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
+  //                   >
+  //                     <Settings className="w-4 h-4 text-slate-600" />{' '}
+  //                     <span className="text-slate-700">Settings</span>
+  //                   </Link>
+  //                   <Link
+  //                     href="/dashboard/billing"
+  //                     prefetch={false}
+  //                     className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
+  //                   >
+  //                     <CreditCard className="w-4 h-4 text-slate-600" />{' '}
+  //                     <span className="text-slate-700">Billing</span>
+  //                   </Link>
+  //                   <Link
+  //                     href="/dashboard/support"
+  //                     prefetch={false}
+  //                     className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
+  //                   >
+  //                     <HelpCircle className="w-4 h-4 text-slate-600" />{' '}
+  //                     <span className="text-slate-700">Help</span>
+  //                   </Link>
+  //                 </div>
+  //                 <div className="border-t border-slate-100 p-2">
+  //                   {/* dark and light theme toggle */}
+  //                   {/* <ThemeToggle /> */}
+  //                   <button
+  //                     className="w-full px-4 py-3 text-left hover:bg-red-50 transition-colors duration-200 flex items-center space-x-3 text-red-600"
+  //                     onClick={handleLogout}
+  //                   >
+  //                     <LogOut className="w-4 h-4" />
+  //                     <span>Log out</span>
+  //                   </button>
+  //                 </div>
+  //               </div>
+  //             )}
+  //           </div>
+  //         </div>
+  //       </div>
+
+  //       {(isNotificationOpen || isUserMenuOpen || isPlanOpen) && (
+  //         <div className="fixed inset-0 z-30" onClick={closeAllMenus} />
+  //       )}
+
+  //       <style jsx>{`
+  //         @keyframes slideIn {
+  //           from {
+  //             opacity: 0;
+  //             transform: translateX(20px);
+  //           }
+  //           to {
+  //             opacity: 1;
+  //             transform: translateX(0);
+  //           }
+  //         }
+  //         @keyframes fadeIn {
+  //           from {
+  //             opacity: 0;
+  //           }
+  //           to {
+  //             opacity: 1;
+  //           }
+  //         }
+  //         @keyframes slideDown {
+  //           from {
+  //             opacity: 0;
+  //             transform: translateY(-10px);
+  //           }
+  //           to {
+  //             opacity: 1;
+  //             transform: translateY(0);
+  //           }
+  //         }
+  //         .animate-fadeIn {
+  //           animation: fadeIn 0.3s ease-out;
+  //         }
+  //         .animate-slideDown {
+  //           animation: slideDown 0.3s ease-out;
+  //         }
+  //       `}</style>
+  //     </header>
+  //   </>
+  // );
+
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md ">
-        <div className="flex items-center justify-between px-4 lg:px-6 py-2">
-          {/* LEFT SIDE */}
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={onMenuClick}
-              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition"
-              aria-label="Toggle menu"
-            >
-              <span className="relative block w-6 h-6">
-                <Menu
-                  className={`absolute inset-0 transition-all duration-200 ${
-                    isSidebarOpen
-                      ? 'opacity-0 rotate-90 scale-75'
-                      : 'opacity-100'
-                  }`}
-                />
-                <X
-                  className={`absolute inset-0 transition-all duration-200 ${
-                    isSidebarOpen
-                      ? 'opacity-100'
-                      : 'opacity-0 rotate-90 scale-75'
-                  }`}
-                />
-              </span>
-            </button>
+      <header className="sticky top-0 z-40 flex h-[70px] w-full shrink-0 items-center justify-between  bg-white/95 px-4 lg:px-6 ">
+        {/* LEFT SIDE */}
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={onMenuClick}
+            className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-all hover:border-blue-300 hover:text-blue-600 lg:hidden"
+            aria-label="Toggle menu"
+          >
+            <span className="relative block h-5 w-5">
+              <Menu
+                className={`absolute inset-0 transition-all duration-200 ${
+                  isSidebarOpen ? 'scale-75 rotate-90 opacity-0' : 'opacity-100'
+                }`}
+              />
+              <X
+                className={`absolute inset-0 transition-all duration-200 ${
+                  isSidebarOpen ? 'opacity-100' : 'scale-75 rotate-90 opacity-0'
+                }`}
+              />
+            </span>
+          </button>
+
+          {/* Optional Title matching reference (hidden on mobile, visible on desktop) */}
+          {/* <div className="hidden lg:block">
+            <h1 className="text-[19px] font-extrabold leading-none tracking-tight text-slate-900">
+              Dashboard
+            </h1>
+          </div> */}
+        </div>
+
+        {/* RIGHT SIDE */}
+        <div className="flex shrink-0 items-center gap-3 md:gap-4">
+          <TotalCredit />
+
+          <div id="current-plan-driver" ref={planRef}>
+            <PlanDropdown
+              planType={planType}
+              isOpen={isPlanOpen}
+              onToggle={() => handleMenuToggle('plan')}
+              usageData={usageData}
+              planLimits={effectivePlanLimits}
+            />
           </div>
 
-          {/* RIGHT SIDE (UNCHANGED) */}
-          <div className="flex items-center space-x-4">
-            <TotalCredit />
-            <div id="current-plan-driver" ref={planRef}>
-              <PlanDropdown
-                planType={planType}
-                isOpen={isPlanOpen}
-                onToggle={() => handleMenuToggle('plan')}
-                usageData={usageData}
-                planLimits={effectivePlanLimits}
-              />
-            </div>
+          <div id="bell-driver" className="relative" ref={notificationRef}>
+            {/* Notification Button styled like reference */}
+            <button
+              onClick={() => handleMenuToggle('notification')}
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-all hover:border-blue-300 hover:text-blue-600"
+            >
+              {unreadCount > 0 && (
+                <span className="absolute right-[9px] top-[9px] h-[9px] w-[9px] rounded-full border-2 border-white bg-red-500 animate-pulse"></span>
+              )}
+              <Bell className="h-5 w-5" strokeWidth={1.8} />
+            </button>
 
-            <div id="bell-driver" className="relative" ref={notificationRef}>
-              <button
-                onClick={() => handleMenuToggle('notification')}
-                className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200 border border-transparent hover:border-slate-300"
-              >
-                <Bell className="w-5 h-5 text-slate-600" />
-                {unreadCount > 0 && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                    {unreadCount}
-                  </div>
-                )}
-              </button>
+            {isNotificationOpen && (
+              <div className="absolute right-0 mt-3 w-96 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl z-50">
+                <div className="overflow-y-auto">
+                  <NotificationBell
+                    notifications={notifications}
+                    unreadCount={unreadCount}
+                    isLoading={isLoading}
+                    markAsRead={markAsRead}
+                    fetchNotifications={fetchNotifications}
+                    onClose={() => setIsNotificationOpen(false)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
-              {isNotificationOpen && (
-                <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
-                  {/* <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-                    <h3 className="font-semibold text-slate-900">
-                      Notifications
-                    </h3>
-                  </div> */}
-                  <div className=" overflow-y-auto">
-                    {/* <NotificationBell /> */}
-                    <NotificationBell
-                      notifications={notifications}
-                      unreadCount={unreadCount}
-                      isLoading={isLoading}
-                      markAsRead={markAsRead}
-                      fetchNotifications={fetchNotifications}
-                      // connectionStatus={connectionStatus}
-                      onClose={() => setIsNotificationOpen(false)}
-                    />
-                  </div>
+          <div id="user-driver" className="relative" ref={userRef}>
+            {/* User Avatar styled like reference */}
+            <button
+              onClick={() => handleMenuToggle('user')}
+              className="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-white bg-blue-100 p-0 shadow-sm ring-2 ring-slate-100 transition-all hover:ring-blue-200"
+            >
+              {preview ? (
+                <Image
+                  width={40}
+                  height={40}
+                  src={preview}
+                  alt="User"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-600 to-blue-700 text-[15px] font-bold uppercase text-white">
+                  {(studentWrapper?.student.fullName || ' ').charAt(0)}
                 </div>
               )}
-            </div>
+            </button>
 
-            <div id="user-driver" className="relative" ref={userRef}>
-              <button
-                onClick={() => handleMenuToggle('user')}
-                className="flex items-center space-x-2 rounded-xl hover:bg-slate-100 transition-colors duration-200 border border-transparent hover:border-slate-300"
-              >
-                {preview ? (
-                  <Image
-                    width={48}
-                    height={48}
-                    src={preview}
-                    alt=""
-                    className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 border border-slate-200 rounded-full flex items-center justify-center text-white text-2xl uppercase"
-                  />
-                ) : (
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl uppercase">
-                    {(studentWrapper?.student.fullName || ' ').charAt(0)}
-                  </div>
-                )}
-              </button>
-
-              {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
-                  <div className="p-4 border-b border-slate-100">
-                    <div className="flex items-center space-x-3">
-                      {preview ? (
-                        <Image width={48} height={48} src={preview} alt="" />
-                      ) : (
-                        <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-4xl uppercase">
-                          {(studentWrapper?.student.fullName || ' ').charAt(0)}
-                        </div>
-                      )}
-
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-slate-900 truncate">
-                          {/* {user?.fullName || 'Guest'} */}
-                          {studentWrapper?.student.fullName || 'Guest'}
-                        </p>
-                        <p className="text-sm text-slate-500 truncate">
-                          {user?.email || ''}
-                        </p>
+            {isUserMenuOpen && (
+              <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl z-50">
+                <div className="border-b border-slate-100 p-4">
+                  <div className="flex items-center space-x-3">
+                    {preview ? (
+                      <Image
+                        width={48}
+                        height={48}
+                        src={preview}
+                        alt=""
+                        className="rounded-full"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-2xl font-semibold uppercase text-white">
+                        {(studentWrapper?.student.fullName || ' ').charAt(0)}
                       </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate font-bold text-slate-900">
+                        {studentWrapper?.student.fullName || 'Guest'}
+                      </p>
+                      <p className="truncate text-[13px] text-slate-500 font-medium">
+                        {user?.email || ''}
+                      </p>
                     </div>
                   </div>
-                  <div className="py-2">
-                    {user?.scheduledPlanChange && (
-                      <button className="w-full px-4 py-3 text-left hover:bg-yellow-50 transition-colors duration-200 flex items-center space-x-3">
-                        <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                        <span className="text-yellow-700 font-medium">
-                          Plan change scheduled
-                        </span>
-                      </button>
-                    )}
-                    <Link
-                      href="/dashboard/profile"
-                      prefetch={false}
-                      className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
-                    >
-                      <UserCircle className="w-4 h-4 text-slate-600" />{' '}
-                      <span className="text-slate-700">Profile</span>
-                    </Link>
-                    <Link
-                      href="/dashboard/settings"
-                      prefetch={false}
-                      className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
-                    >
-                      <Settings className="w-4 h-4 text-slate-600" />{' '}
-                      <span className="text-slate-700">Settings</span>
-                    </Link>
-                    <Link
-                      href="/dashboard/billing"
-                      prefetch={false}
-                      className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
-                    >
-                      <CreditCard className="w-4 h-4 text-slate-600" />{' '}
-                      <span className="text-slate-700">Billing</span>
-                    </Link>
-                    <Link
-                      href="/dashboard/support"
-                      prefetch={false}
-                      className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
-                    >
-                      <HelpCircle className="w-4 h-4 text-slate-600" />{' '}
-                      <span className="text-slate-700">Help</span>
-                    </Link>
-                  </div>
-                  <div className="border-t border-slate-100 p-2">
-                    {/* dark and light theme toggle */}
-                    {/* <ThemeToggle /> */}
-                    <button
-                      className="w-full px-4 py-3 text-left hover:bg-red-50 transition-colors duration-200 flex items-center space-x-3 text-red-600"
-                      onClick={handleLogout}
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Log out</span>
-                    </button>
-                  </div>
                 </div>
-              )}
-            </div>
+
+                <div className="py-2">
+                  {user?.scheduledPlanChange && (
+                    <button className="flex w-full items-center space-x-3 px-4 py-3 text-left transition-colors duration-200 hover:bg-yellow-50">
+                      <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                      <span className="font-medium text-yellow-700">
+                        Plan change scheduled
+                      </span>
+                    </button>
+                  )}
+                  <Link
+                    href="/dashboard/profile"
+                    prefetch={false}
+                    className="flex w-full items-center space-x-3 px-4 py-3 text-left transition-colors duration-200 hover:bg-slate-50"
+                  >
+                    <UserCircle className="h-4 w-4 text-slate-600" />
+                    <span className="font-semibold text-slate-700 text-[14px]">
+                      Profile
+                    </span>
+                  </Link>
+                  <Link
+                    href="/dashboard/settings"
+                    prefetch={false}
+                    className="flex w-full items-center space-x-3 px-4 py-3 text-left transition-colors duration-200 hover:bg-slate-50"
+                  >
+                    <Settings className="h-4 w-4 text-slate-600" />
+                    <span className="font-semibold text-slate-700 text-[14px]">
+                      Settings
+                    </span>
+                  </Link>
+                  <Link
+                    href="/dashboard/billing"
+                    prefetch={false}
+                    className="flex w-full items-center space-x-3 px-4 py-3 text-left transition-colors duration-200 hover:bg-slate-50"
+                  >
+                    <CreditCard className="h-4 w-4 text-slate-600" />
+                    <span className="font-semibold text-slate-700 text-[14px]">
+                      Billing
+                    </span>
+                  </Link>
+                  <Link
+                    href="/dashboard/support"
+                    prefetch={false}
+                    className="flex w-full items-center space-x-3 px-4 py-3 text-left transition-colors duration-200 hover:bg-slate-50"
+                  >
+                    <HelpCircle className="h-4 w-4 text-slate-600" />
+                    <span className="font-semibold text-slate-700 text-[14px]">
+                      Help
+                    </span>
+                  </Link>
+                </div>
+
+                <div className="border-t border-slate-100 p-2">
+                  <button
+                    className="flex w-full items-center space-x-3 rounded-xl px-4 py-2.5 text-left text-red-600 transition-colors duration-200 hover:bg-red-50"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="font-bold text-[14px]">Log out</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {(isNotificationOpen || isUserMenuOpen || isPlanOpen) && (
           <div className="fixed inset-0 z-30" onClick={closeAllMenus} />
         )}
-
-        <style jsx>{`
-          @keyframes slideIn {
-            from {
-              opacity: 0;
-              transform: translateX(20px);
-            }
-            to {
-              opacity: 1;
-              transform: translateX(0);
-            }
-          }
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-            }
-            to {
-              opacity: 1;
-            }
-          }
-          @keyframes slideDown {
-            from {
-              opacity: 0;
-              transform: translateY(-10px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-          .animate-fadeIn {
-            animation: fadeIn 0.3s ease-out;
-          }
-          .animate-slideDown {
-            animation: slideDown 0.3s ease-out;
-          }
-        `}</style>
       </header>
     </>
   );
