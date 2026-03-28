@@ -538,7 +538,7 @@ const AppHeader = ({
 
   if (!user) {
     return (
-      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm">
+      <header className="sticky h-[70px] top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm">
         <div className="flex h-16 items-center justify-between px-6 animate-pulse">
           <div className="h-8 w-24 bg-slate-200 rounded-md"></div>
           <div className="flex items-center space-x-3">

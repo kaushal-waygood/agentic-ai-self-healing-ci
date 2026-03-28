@@ -1279,869 +1279,9 @@
 //   );
 // }
 
-// 'use client';
-
-// import React, { useCallback, useEffect, useMemo, useState } from 'react';
-// import Link from 'next/link';
-// import Image from 'next/image';
-// import { useRouter } from 'next/navigation';
-// import { useDispatch } from 'react-redux';
-
-// import { Button } from '@/components/ui/button';
-// import { useToast } from '@/hooks/use-toast';
-// import apiInstance from '@/services/api';
-// import { MatchScoreModal } from './MatchScoreModal';
-
-// import {
-//   savedStudentJobsRequest,
-//   visitedJobsRequest,
-// } from '@/redux/reducers/jobReducer';
-// import { useProfile } from '@/hooks/useProfile';
-
-// import {
-//   FilePlus2,
-//   CheckCircle,
-//   Heart,
-//   ExternalLink,
-//   Sparkles,
-//   Loader2,
-//   HeartOff,
-//   MapPin,
-//   Briefcase,
-//   Building2,
-//   TrendingUp,
-//   Star,
-//   Zap,
-//   Share2,
-//   ChevronDown,
-//   ChevronUp,
-//   Briefcase as BriefcaseIcon,
-//   BarChart3,
-//   Lightbulb,
-//   Target,
-//   FileText,
-//   FileSignature,
-// } from 'lucide-react';
-
-// import { JobListing } from '@/lib/data/jobs';
-// import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
-
-// import { getToken } from '@/hooks/useToken';
-// import { Progress } from '@/components/ui/progress';
-// import { Badge } from '@/components/ui/badge';
-// import {
-//   Select,
-//   SelectContent,
-//   SelectItem,
-//   SelectTrigger,
-//   SelectValue,
-// } from '@/components/ui/select';
-
-// interface JobDetailClientProps {
-//   job: JobListing;
-// }
-
-// interface MatchScore {
-//   matchScore: number;
-//   skillsFitPercent?: number;
-//   experienceFitPercent?: number;
-//   seniorityFitPercent?: number;
-//   techFitPercent?: number;
-//   roleFitPercent?: number;
-//   breakdown?: { skills: string; experience: string; seniority: string };
-//   skillsMatched?: { skill: string }[];
-//   skillsMissing?: string[];
-//   suggestions?: string[];
-//   recommendation: string;
-//   improvedSummary?: string;
-// }
-
-// interface AtsScore {
-//   atsScore: number;
-//   suggestions: string;
-//   improvedResumeSummary: string;
-// }
-
-// function getCookie(name: string): string | undefined {
-//   if (typeof document === 'undefined') return undefined;
-//   const value = `; ${document.cookie}`;
-//   const parts = value.split(`; ${name}=`);
-//   if (parts.length === 2) return parts.pop()?.split(';').shift();
-//   return undefined;
-// }
-
-// export default function JobDetail({ job }: JobDetailClientProps) {
-//   const { toast } = useToast();
-//   const router = useRouter();
-//   const dispatch = useDispatch();
-//   const { profile } = useProfile();
-
-//   const [matchScore, setMatchScore] = useState<MatchScore | null>(null);
-//   const [atsScore, setAtsScore] = useState<AtsScore | null>(null);
-//   const [isLoadingScore, setIsLoadingScore] = useState(false);
-//   const [isLoadingAtsScore, setIsLoadingAtsScore] = useState(false);
-//   const [progress, setProgress] = useState(0);
-//   const [isSaved, setIsSaved] = useState(false);
-//   const [isModalOpen, setIsModalOpen] = useState(false);
-//   const [scoreError, setScoreError] = useState<string | null>(null);
-//   const [activeView, setActiveView] = useState<'match' | 'ats'>('match');
-//   const [isApplying, setIsApplying] = useState(false);
-//   const [openCard, setOpenCard] = useState<'match' | 'ats' | null>('match');
-//   const [token, setToken] = useState<string | undefined>(undefined);
-//   const [savedCvs, setSavedCvs] = useState<
-//     { _id: string; htmlCVTitle?: string }[]
-//   >([]);
-//   const [cvForMatch, setCvForMatch] = useState<string>('profile');
-
-//   const MATCH_SCORE_KEY = (jobId?: string) =>
-//     jobId ? `matchScore_${jobId}` : '';
-
-//   const ATS_SCORE_KEY = (jobId?: string) => (jobId ? `atsScore_${jobId}` : '');
-
-//   useEffect(() => {
-//     try {
-//       const accessToken = getToken();
-//       setToken(accessToken || undefined);
-//     } catch {
-//       setToken(undefined);
-//     }
-//   }, []);
-
-//   useEffect(() => {
-//     if (!token) return;
-//     const fetchCvs = async () => {
-//       try {
-//         const res = await apiInstance.get('/students/resume/saved');
-//         const list = res.data?.html || res.data || [];
-//         setSavedCvs(Array.isArray(list) ? list : []);
-//       } catch {
-//         setSavedCvs([]);
-//       }
-//     };
-//     fetchCvs();
-//   }, [token]);
-
-//   useEffect(() => {
-//     if (!job?._id) return;
-
-//     const controller = new AbortController();
-//     const matchCacheKey =
-//       cvForMatch && cvForMatch !== 'profile'
-//         ? `matchScore_${job._id}_${cvForMatch}`
-//         : MATCH_SCORE_KEY(job._id);
-
-//     try {
-//       const rawMatch = localStorage.getItem(matchCacheKey);
-//       const parsedMatch = rawMatch ? JSON.parse(rawMatch) : null;
-
-//       if (parsedMatch && typeof parsedMatch.matchScore === 'number') {
-//         setMatchScore(parsedMatch);
-//       } else {
-//         setMatchScore(null);
-//         localStorage.removeItem(matchCacheKey);
-//       }
-//     } catch {
-//       setMatchScore(null);
-//       localStorage.removeItem(matchCacheKey);
-//     }
-
-//     setIsLoadingScore(false);
-//     setProgress(0);
-
-//     // ----- ATS SCORE -----
-//     try {
-//       const rawAts = localStorage.getItem(ATS_SCORE_KEY(job._id));
-//       const parsedAts = rawAts ? JSON.parse(rawAts) : null;
-
-//       if (parsedAts && typeof parsedAts.atsScore === 'number') {
-//         setAtsScore(parsedAts);
-//       } else {
-//         setAtsScore(null);
-//         localStorage.removeItem(ATS_SCORE_KEY(job._id));
-//       }
-//     } catch {
-//       setAtsScore(null);
-//       localStorage.removeItem(ATS_SCORE_KEY(job._id));
-//     }
-
-//     setIsLoadingScore(false);
-//     setIsLoadingAtsScore(false);
-//     setProgress(0);
-
-//     return () => controller.abort();
-//   }, [job?._id, cvForMatch]);
-
-//   useEffect(() => {
-//     if (!job?._id) return;
-
-//     const controller = new AbortController();
-//     const { signal } = controller;
-
-//     const cacheKey =
-//       cvForMatch && cvForMatch !== 'profile'
-//         ? `matchScore_${job._id}_${cvForMatch}`
-//         : `matchScore_${job._id}`;
-//     const savedScore = localStorage.getItem(cacheKey);
-//     setMatchScore(savedScore ? (JSON.parse(savedScore) as MatchScore) : null);
-//     setIsLoadingScore(false);
-//     setProgress(0);
-
-//     const checkJobStatus = async () => {
-//       try {
-//         const savedRes = await apiInstance.get(
-//           '/students/jobs/intraction-status',
-//           { params: { jobId: job._id }, signal },
-//         );
-
-//         if (signal.aborted) return;
-//         setIsSaved(Boolean(savedRes?.data?.saved));
-//         setIsApplying(Boolean(savedRes?.data?.applied));
-//       } catch (error) {
-//         if (!signal.aborted) {
-//           console.error('Failed to check job status:', error);
-//         }
-//       }
-//     };
-
-//     checkJobStatus();
-//     return () => controller.abort();
-//   }, [job?._id, cvForMatch]);
-
-//   const handleToggleSavedJob = useCallback(async () => {
-//     try {
-//       await dispatch(savedStudentJobsRequest(job._id) as any);
-//       setIsSaved((prev) => !prev);
-//       toast({
-//         title: isSaved ? 'Job Unsaved' : 'Job Saved!',
-//         description: isSaved
-//           ? 'You have removed this job from your saved list.'
-//           : 'You have successfully saved this job.',
-//       });
-//     } catch {
-//       toast({
-//         variant: 'destructive',
-//         title: 'Error',
-//         description: 'Something went wrong. Please try again.',
-//       });
-//     }
-//   }, [dispatch, job._id, isSaved, toast]);
-
-//   const handleGetMatchScore = useCallback(async () => {
-//     if (!job?.description) return;
-//     setIsLoadingScore(true);
-//     setMatchScore(null);
-//     setScoreError(null);
-//     setProgress(0);
-
-//     const controller = new AbortController();
-//     const { signal } = controller;
-
-//     let interval: number | undefined;
-//     interval = window.setInterval(() => {
-//       setProgress((prev) => (prev < 90 ? prev + 5 : prev));
-//     }, 1000);
-
-//     const payload: Record<string, string> = {
-//       jobDescription: job.description,
-//       jobTitle: job.title || '',
-//     };
-//     if (cvForMatch && cvForMatch !== 'profile') {
-//       payload.savedCVId = cvForMatch;
-//     }
-
-//     try {
-//       const response = await apiInstance.post(
-//         '/students/calculate-match',
-//         payload,
-//         { signal },
-//       );
-
-//       if (signal.aborted) return;
-//       setProgress(100);
-//       const data = response.data as MatchScore;
-//       setMatchScore(data);
-//       if (job._id) {
-//         const cacheKey =
-//           cvForMatch && cvForMatch !== 'profile'
-//             ? `matchScore_${job._id}_${cvForMatch}`
-//             : `matchScore_${job._id}`;
-//         localStorage.setItem(cacheKey, JSON.stringify(data));
-//       }
-
-//       if (!response.success) {
-//         toast({
-//           title: 'Success',
-//           description: 'Successfully calculated the AI match score.',
-//         });
-//       }
-
-//       if (response.status === 429) {
-//         toast({
-//           title: 'Rate limit exceeded',
-//           description: 'Please Upgrade your plan to use AI Match Score.',
-//         });
-//       }
-//     } catch (error: any) {
-//       toast({
-//         title: 'Could not calculate the AI score.',
-//         description: error.response?.data?.message || 'Something went wrong',
-//       });
-//       setProgress(0);
-//       setScoreError('Could not calculate the AI match score.');
-//     } finally {
-//       if (interval) window.clearInterval(interval);
-//       setIsLoadingScore(false);
-//     }
-//   }, [job?._id, job?.description, cvForMatch]);
-
-//   const handleApplyOnSite = useCallback(async () => {
-//     try {
-//       dispatch(
-//         postStudentEventsRequest({ jobId: job._id || job.slug, type: 'VISIT' }),
-//       );
-//     } catch {
-//       toast({
-//         variant: 'destructive',
-//         title: 'Error',
-//         description: 'Failed to apply for the job',
-//       });
-//     }
-//   }, [dispatch, job._id, toast]);
-
-//   const handleGetATSScore = useCallback(async () => {
-//     if (!job?.description) return;
-
-//     setIsLoadingAtsScore(true);
-//     setAtsScore(null);
-//     setScoreError(null);
-//     setProgress(0);
-
-//     const controller = new AbortController();
-//     const { signal } = controller;
-
-//     let interval = window.setInterval(() => {
-//       setProgress((prev) => (prev < 90 ? prev + 5 : prev));
-//     }, 1000);
-
-//     try {
-//       const response = await apiInstance.post(
-//         '/students/ats-score',
-//         { jobDescription: job.description },
-//         { signal },
-//       );
-
-//       if (signal.aborted) return;
-
-//       setProgress(100);
-//       setAtsScore(response.data);
-//       if (job._id) {
-//         localStorage.setItem(
-//           `atsScore_${job._id}`,
-//           JSON.stringify(response.data),
-//         );
-//       }
-//       if (!response.success) {
-//         toast({
-//           title: 'Success',
-//           description: 'ATS score calculated successfully',
-//         });
-//       }
-
-//       if (response.status === 429) {
-//         toast({
-//           title: 'Rate limit exceeded',
-//           description: 'Please Upgrade your plan to use AI Match Score.',
-//         });
-//       }
-//     } catch (error: any) {
-//       if (!signal.aborted) {
-//         toast({
-//           title: 'Could not calculate the AI score.',
-//           description: error.response?.data?.message || 'Something went wrong',
-//         });
-//         console.error('ATS score error:', error);
-//         setProgress(0);
-//         setScoreError('Failed to calculate ATS Score');
-//       }
-//     } finally {
-//       clearInterval(interval);
-//       setIsLoadingAtsScore(false);
-//     }
-//   }, [job?._id, job?.description]);
-
-//   const handleApplyNow = () => {
-//     router.replace(`/dashboard/jobs/${job._id}/apply`);
-//   };
-
-//   const renderJobDescription = (text: string) => {
-//     const lines = text.split('\n');
-//     const isHtml = /<[a-z][\s\S]*>/i.test(text);
-//     if (isHtml) {
-//       return (
-//         <div
-//           className="prose prose-sm max-w-none text-slate-600 leading-relaxed"
-//           dangerouslySetInnerHTML={{ __html: text }}
-//         />
-//       );
-//     }
-//     return lines.map((line, index) => {
-//       const trimmed = line.trim();
-//       if (!trimmed) {
-//         return <div key={index} className="h-2" />;
-//       }
-//       if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
-//         return (
-//           <div
-//             key={index}
-//             className="ml-4 flex items-start gap-2 text-sm text-slate-600"
-//           >
-//             <span className="mt-1.5 w-1.5 h-1.5 bg-blue-600 rounded-full flex-shrink-0" />
-//             <span>{trimmed.replace(/^[-•]/, '').trim()}</span>
-//           </div>
-//         );
-//       }
-//       return (
-//         <p key={index} className="text-sm text-slate-600 leading-relaxed mb-4">
-//           {trimmed}
-//         </p>
-//       );
-//     });
-//   };
-
-//   if (!job) {
-//     return (
-//       <div className="flex items-center justify-center h-full text-muted-foreground">
-//         <p>Select a job to see the details</p>
-//       </div>
-//     );
-//   }
-
-//   const locationString = (() => {
-//     const NOISE = [
-//       'anywhere',
-//       'remote',
-//       'worldwide',
-//       'global',
-//       'online',
-//       'virtual',
-//     ];
-//     const rawCity = job.location?.city?.trim() ?? '';
-//     const city = NOISE.includes(rawCity.toLowerCase()) ? '' : rawCity;
-//     const state = (job.location as any)?.state?.trim?.() ?? '';
-//     const country = (job.country as string | undefined)?.trim() ?? '';
-//     const parts: string[] = [];
-//     if (city) parts.push(city);
-//     if (state && state !== city) parts.push(state);
-//     if (country) parts.push(country);
-//     if (parts.length > 0) return parts.join(', ');
-//     if ((job as any).remote) return 'Remote';
-//     return 'Location not specified';
-//   })();
-
-//   return (
-//     <section className="custom-scrollbar relative flex flex-1 flex-col overflow-y-auto rounded-[24px] border border-slate-200 bg-white shadow-sm h-full">
-//       {/* Top Header Section */}
-//       <div className="shrink-0 bg-white px-8 pt-8 pb-6">
-//         <div className="flex items-start justify-between gap-6">
-//           <div className="flex items-start gap-5">
-//             <div className="mt-1 flex h-16 w-16 shrink-0 items-center justify-center rounded-[18px] border border-slate-200 bg-white p-2 shadow-sm overflow-hidden relative">
-//               {job.logo ? (
-//                 <Image
-//                   src={job.logo}
-//                   alt={job.company || 'Company Logo'}
-//                   fill
-//                   sizes="64px"
-//                   className="object-contain p-2"
-//                 />
-//               ) : (
-//                 <span className="text-xs font-black text-slate-800 text-center uppercase">
-//                   {job.company?.substring(0, 4) || 'JOB'}
-//                 </span>
-//               )}
-//             </div>
-//             <div>
-//               <h1 className="mb-3 text-[26px] leading-tight font-black tracking-tight text-slate-900">
-//                 {job.title}
-//               </h1>
-//               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13.5px]">
-//                 <span className="flex items-center gap-1.5 font-bold text-slate-700">
-//                   <svg
-//                     className="h-[18px] w-[18px] text-blue-500"
-//                     fill="none"
-//                     stroke="currentColor"
-//                     strokeWidth="2"
-//                     viewBox="0 0 24 24"
-//                   >
-//                     <path
-//                       strokeLinecap="round"
-//                       strokeLinejoin="round"
-//                       d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-//                     />
-//                   </svg>
-//                   {job.company}
-//                 </span>
-//                 <span className="flex items-center gap-1.5 font-medium text-slate-500">
-//                   <svg
-//                     className="h-[18px] w-[18px] text-slate-400"
-//                     fill="none"
-//                     stroke="currentColor"
-//                     strokeWidth="2"
-//                     viewBox="0 0 24 24"
-//                   >
-//                     <path
-//                       strokeLinecap="round"
-//                       strokeLinejoin="round"
-//                       d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"
-//                     />
-//                     <path
-//                       strokeLinecap="round"
-//                       strokeLinejoin="round"
-//                       d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-//                     />
-//                   </svg>
-//                   {locationString}
-//                 </span>
-//                 {job.salary && (
-//                   <span className="flex items-center gap-1.5 font-medium text-slate-500">
-//                     <svg
-//                       className="h-[18px] w-[18px] text-slate-400"
-//                       fill="none"
-//                       stroke="currentColor"
-//                       strokeWidth="2"
-//                       viewBox="0 0 24 24"
-//                     >
-//                       <path
-//                         strokeLinecap="round"
-//                         strokeLinejoin="round"
-//                         d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-//                       />
-//                     </svg>
-//                     {job.salary}
-//                   </span>
-//                 )}
-//               </div>
-//             </div>
-//           </div>
-//           <div className="flex shrink-0 gap-2.5">
-//             <button
-//               onClick={handleToggleSavedJob}
-//               title={isSaved ? 'Unsave Job' : 'Save Job'}
-//               className={`group flex h-11 w-11 items-center justify-center rounded-xl border transition-all shadow-sm ${
-//                 isSaved
-//                   ? 'border-red-200 bg-red-50 text-red-500 hover:border-red-300 hover:bg-red-100'
-//                   : 'border-slate-200 bg-white text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-500'
-//               }`}
-//             >
-//               <svg
-//                 className={`h-[20px] w-[20px] ${isSaved ? 'fill-red-500' : 'group-hover:fill-red-500'}`}
-//                 fill="none"
-//                 stroke="currentColor"
-//                 strokeWidth="2"
-//                 viewBox="0 0 24 24"
-//               >
-//                 <path
-//                   strokeLinecap="round"
-//                   strokeLinejoin="round"
-//                   d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-//                 />
-//               </svg>
-//             </button>
-//             <button
-//               onClick={async () => {
-//                 const shareData = {
-//                   title: job.title,
-//                   text: `Check out this job: ${job.title}`,
-//                   url: `https://zobsai.com/jobs/${job.slug}`,
-//                 };
-//                 try {
-//                   if (navigator.share) {
-//                     await navigator.share(shareData);
-//                   } else {
-//                     await navigator.clipboard.writeText(shareData.url);
-//                     toast({
-//                       variant: 'default',
-//                       title: 'Link copied to clipboard',
-//                       description: 'Share it anywhere!',
-//                     });
-//                   }
-//                 } catch (err) {
-//                   console.error('Error sharing:', err);
-//                 }
-//               }}
-//               title="Share Job"
-//               className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 shadow-sm transition-all hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
-//             >
-//               <svg
-//                 className="h-[20px] w-[20px]"
-//                 fill="none"
-//                 stroke="currentColor"
-//                 strokeWidth="2"
-//                 viewBox="0 0 24 24"
-//               >
-//                 <path
-//                   strokeLinecap="round"
-//                   strokeLinejoin="round"
-//                   d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-//                 />
-//               </svg>
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Sticky Action Bar */}
-//       <div className="sticky top-0 z-20 flex shrink-0 flex-wrap items-center gap-3 border-y border-slate-200 bg-white/90 px-8 py-4 shadow-sm backdrop-blur-xl">
-//         {job.origin === 'EXTERNAL' &&
-//         job.applyMethod?.url &&
-//         job.applyMethod.url !== 'email' ? (
-//           <button
-//             onClick={handleApplyOnSite}
-//             className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-[13.5px] font-bold text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700"
-//           >
-//             <svg
-//               className="h-4 w-4"
-//               fill="none"
-//               stroke="currentColor"
-//               strokeWidth="2.5"
-//               viewBox="0 0 24 24"
-//             >
-//               <path
-//                 strokeLinecap="round"
-//                 strokeLinejoin="round"
-//                 d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-//               />
-//             </svg>
-//             Apply on Company Site
-//           </button>
-//         ) : isApplying ? (
-//           <button
-//             disabled
-//             className="flex cursor-not-allowed items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-[13.5px] font-bold text-white opacity-90"
-//           >
-//             <CheckCircle className="h-4 w-4" />
-//             Applied
-//           </button>
-//         ) : (
-//           <Link href={`/dashboard/jobs/${job._id}/apply`}>
-//             <button className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-[13.5px] font-bold text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700">
-//               <svg
-//                 className="h-4 w-4"
-//                 fill="none"
-//                 stroke="currentColor"
-//                 strokeWidth="2.5"
-//                 viewBox="0 0 24 24"
-//               >
-//                 <path
-//                   strokeLinecap="round"
-//                   strokeLinejoin="round"
-//                   d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-//                 />
-//               </svg>
-//               Apply Now
-//             </button>
-//           </Link>
-//         )}
-
-//         <Link
-//           href={`/dashboard/apply?slug=${encodeURIComponent(job._id ?? '')}&step=cv`}
-//         >
-//           <button className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-[13.5px] font-bold text-slate-700 shadow-sm transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600">
-//             <svg
-//               className="h-4 w-4 text-blue-500"
-//               fill="none"
-//               stroke="currentColor"
-//               strokeWidth="2.5"
-//               viewBox="0 0 24 24"
-//             >
-//               <path
-//                 strokeLinecap="round"
-//                 strokeLinejoin="round"
-//                 d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-//               />
-//             </svg>
-//             Tailor My Docs
-//           </button>
-//         </Link>
-
-//         {/* Scores Section */}
-//         <div className="ml-auto flex items-center gap-3">
-//           {/* ATS Score Logic */}
-//           {!atsScore ? (
-//             <button
-//               onClick={handleGetATSScore}
-//               disabled={isLoadingAtsScore}
-//               className="flex items-center gap-2 rounded-[10px] border border-slate-200 bg-slate-50 px-3.5 py-2 transition-all hover:bg-slate-100 disabled:opacity-50"
-//             >
-//               {isLoadingAtsScore ? (
-//                 <Loader2 className="h-4 w-4 text-indigo-500 animate-spin" />
-//               ) : (
-//                 <svg
-//                   className="h-4 w-4 text-indigo-500"
-//                   fill="none"
-//                   stroke="currentColor"
-//                   strokeWidth="2.5"
-//                   viewBox="0 0 24 24"
-//                 >
-//                   <path
-//                     strokeLinecap="round"
-//                     strokeLinejoin="round"
-//                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-//                   />
-//                 </svg>
-//               )}
-//               <span className="text-[12px] font-semibold text-slate-600">
-//                 {isLoadingAtsScore
-//                   ? 'Calculating ATS...'
-//                   : 'Calculate ATS Score'}
-//               </span>
-//             </button>
-//           ) : (
-//             <div
-//               className="flex items-center gap-2 rounded-[10px] border border-slate-200 bg-slate-50 px-3.5 py-2 cursor-pointer group hover:bg-slate-100"
-//               onClick={handleGetATSScore}
-//             >
-//               <svg
-//                 className="h-4 w-4 text-indigo-500"
-//                 fill="none"
-//                 stroke="currentColor"
-//                 strokeWidth="2.5"
-//                 viewBox="0 0 24 24"
-//               >
-//                 <path
-//                   strokeLinecap="round"
-//                   strokeLinejoin="round"
-//                   d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-//                 />
-//               </svg>
-//               <span className="text-[12px] font-semibold text-slate-600">
-//                 AI ATS Score:{' '}
-//                 <span className="font-extrabold text-slate-900">
-//                   {atsScore.atsScore}/100
-//                 </span>
-//               </span>
-//             </div>
-//           )}
-
-//           {/* Match Score Logic */}
-//           {!matchScore ? (
-//             <button
-//               onClick={handleGetMatchScore}
-//               disabled={isLoadingScore}
-//               className="flex items-center gap-2 rounded-[10px] border border-slate-200 bg-slate-50 px-3.5 py-2 transition-all hover:bg-slate-100 disabled:opacity-50"
-//             >
-//               {isLoadingScore ? (
-//                 <Loader2 className="h-4 w-4 text-teal-500 animate-spin" />
-//               ) : (
-//                 <svg
-//                   className="h-4 w-4 text-teal-500"
-//                   fill="none"
-//                   stroke="currentColor"
-//                   strokeWidth="2.5"
-//                   viewBox="0 0 24 24"
-//                 >
-//                   <path
-//                     strokeLinecap="round"
-//                     strokeLinejoin="round"
-//                     d="M13 10V3L4 14h7v7l9-11h-7z"
-//                   />
-//                 </svg>
-//               )}
-//               <span className="text-[12px] font-semibold text-slate-600">
-//                 {isLoadingScore
-//                   ? 'Calculating Match...'
-//                   : 'Calculate Match Score'}
-//               </span>
-//             </button>
-//           ) : (
-//             <div
-//               className="flex items-center gap-2 rounded-[10px] border border-slate-200 bg-slate-50 px-3.5 py-2 cursor-pointer group hover:bg-slate-100"
-//               onClick={handleGetMatchScore}
-//             >
-//               <svg
-//                 className="h-4 w-4 text-teal-500"
-//                 fill="none"
-//                 stroke="currentColor"
-//                 strokeWidth="2.5"
-//                 viewBox="0 0 24 24"
-//               >
-//                 <path
-//                   strokeLinecap="round"
-//                   strokeLinejoin="round"
-//                   d="M13 10V3L4 14h7v7l9-11h-7z"
-//                 />
-//               </svg>
-//               <span className="text-[12px] font-semibold text-slate-600">
-//                 Match Score:{' '}
-//                 <span className="font-extrabold text-slate-900">
-//                   {matchScore.matchScore}/10
-//                 </span>
-//               </span>
-//             </div>
-//           )}
-//         </div>
-//       </div>
-
-//       {/* Job Description Area */}
-//       <div className="jd-prose p-8 pb-20 text-[14px] leading-relaxed text-slate-600 flex-1">
-//         <h3 className="mb-5 flex items-center gap-2.5 text-[17px] font-extrabold text-slate-900">
-//           <div className="h-5 w-1.5 rounded-full bg-blue-600"></div>
-//           Job Description
-//         </h3>
-
-//         {job.description ? (
-//           renderJobDescription(job.description)
-//         ) : (
-//           <p className="italic text-slate-500">No job description provided.</p>
-//         )}
-
-//         {/* Bottom CTA Card */}
-//         <div className="mt-12 flex flex-col items-center justify-between gap-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-[#F8FAFC] p-6 shadow-sm sm:flex-row mb-6">
-//           <div>
-//             <p className="mb-1 text-[15px] font-extrabold text-slate-900">
-//               Increase your chances of getting hired.
-//             </p>
-//             <p className="text-[13px] font-medium text-slate-500">
-//               Use ZobsAI to tailor your resume specifically to this job
-//               description.
-//             </p>
-//           </div>
-//           <Link
-//             href={`/dashboard/cv-generator?slug=${encodeURIComponent(job._id ?? '')}&step=cv&docType=cv`}
-//           >
-//             <button className="flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-2.5 text-[13px] font-bold whitespace-nowrap text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-black">
-//               <svg
-//                 className="h-4 w-4"
-//                 fill="none"
-//                 stroke="currentColor"
-//                 strokeWidth="2.5"
-//                 viewBox="0 0 24 24"
-//               >
-//                 <path
-//                   strokeLinecap="round"
-//                   strokeLinejoin="round"
-//                   d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-//                 />
-//               </svg>
-//               Tailor My CV
-//             </button>
-//           </Link>
-//         </div>
-//       </div>
-
-//       <MatchScoreModal
-//         isOpen={isModalOpen}
-//         onClose={() => setIsModalOpen(false)}
-//         isLoading={isLoadingScore}
-//         scoreData={matchScore}
-//         error={scoreError}
-//       />
-//     </section>
-//   );
-// }
-
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -2152,10 +1292,7 @@ import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
 import { MatchScoreModal } from './MatchScoreModal';
 
-import {
-  savedStudentJobsRequest,
-  visitedJobsRequest,
-} from '@/redux/reducers/jobReducer';
+import { savedStudentJobsRequest } from '@/redux/reducers/jobReducer';
 import { useProfile } from '@/hooks/useProfile';
 
 import {
@@ -2163,22 +1300,17 @@ import {
   CheckCircle,
   Heart,
   ExternalLink,
-  Sparkles,
   Loader2,
-  HeartOff,
   MapPin,
   Briefcase,
   Building2,
-  TrendingUp,
   Star,
   Zap,
   Share2,
   ChevronDown,
   ChevronUp,
-  BarChart3,
   FileText,
   FileSignature,
-  Target,
   Lightbulb,
   TargetIcon,
 } from 'lucide-react';
@@ -2425,7 +1557,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         });
       }
 
-      // Show match panel automatically upon calculation
       setActiveView('match');
       setOpenCard('match');
 
@@ -2501,7 +1632,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         });
       }
 
-      // Show ATS panel automatically upon calculation
       setActiveView('ats');
       setOpenCard('ats');
 
@@ -2621,41 +1751,50 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   return (
     <section className="custom-scrollbar relative flex flex-1 flex-col overflow-y-auto rounded-[24px] border border-slate-200 bg-white shadow-sm h-full animate-in fade-in duration-500">
       {/* Top Header Section */}
-      <div className="shrink-0 bg-white px-8 pt-8 pb-6">
-        <div className="flex items-start justify-between gap-6">
-          <div className="flex items-start gap-5">
-            <div className="mt-1 flex h-16 w-16 shrink-0 items-center justify-center rounded-[18px] border border-slate-200 bg-white p-2 shadow-sm overflow-hidden relative">
+      {/* FIX: Reduced mobile padding (px-4, pt-6) */}
+      <div className="shrink-0 bg-white px-4 sm:px-8 pt-6 sm:pt-8 pb-4 sm:pb-6">
+        {/* FIX: Set w-full to ensure layout constraints are respected */}
+        <div className="flex flex-row items-start justify-between gap-3 sm:gap-6 w-full">
+          {/* FIX: flex-1 and min-w-0 added to allow text wrapping */}
+          <div className="flex flex-row items-start gap-3 sm:gap-5 flex-1 min-w-0">
+            <div className="mt-1 flex h-12 w-12 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-[14px] sm:rounded-[18px] border border-slate-200 bg-white p-2 shadow-sm overflow-hidden relative">
               {job.logo ? (
                 <Image
                   src={job.logo}
                   alt={job.company || 'Company Logo'}
                   fill
-                  sizes="64px"
-                  className="object-contain p-2"
+                  sizes="(max-width: 640px) 48px, 64px"
+                  className="object-contain p-1.5 sm:p-2"
                 />
               ) : (
-                <span className="text-xs font-black text-slate-800 text-center uppercase tracking-widest">
+                <span className="text-[10px] sm:text-xs font-black text-slate-800 text-center uppercase tracking-widest">
                   {job.company?.substring(0, 4) || 'JOB'}
                 </span>
               )}
             </div>
-            <div>
-              <h1 className="mb-3 text-[26px] leading-tight font-black tracking-tight text-slate-900">
+
+            <div className="flex-1 min-w-0">
+              {/* FIX: text sizes optimized for mobile & break-words added */}
+              <h1 className="mb-2 sm:mb-3 text-lg sm:text-[26px] leading-tight font-black tracking-tight text-slate-900 break-words">
                 {job.title}
               </h1>
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13.5px]">
+              <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-5 gap-y-1.5 text-xs sm:text-[13.5px]">
                 <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                  <Building2 className="h-[18px] w-[18px] text-blue-500" />
-                  {job.company}
+                  <Building2 className="h-4 w-4 sm:h-[18px] sm:w-[18px] text-blue-500" />
+                  <span className="truncate max-w-[120px] sm:max-w-none">
+                    {job.company}
+                  </span>
                 </span>
                 <span className="flex items-center gap-1.5 font-medium text-slate-500">
-                  <MapPin className="h-[18px] w-[18px] text-slate-400" />
-                  {locationString}
+                  <MapPin className="h-4 w-4 sm:h-[18px] sm:w-[18px] text-slate-400" />
+                  <span className="truncate max-w-[150px] sm:max-w-none">
+                    {locationString}
+                  </span>
                 </span>
                 {job.salary && (
                   <span className="flex items-center gap-1.5 font-medium text-slate-500">
                     <svg
-                      className="h-[18px] w-[18px] text-slate-400"
+                      className="h-4 w-4 sm:h-[18px] sm:w-[18px] text-slate-400"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2"
@@ -2671,60 +1810,102 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   </span>
                 )}
                 <span className="flex items-center gap-1.5 font-medium text-slate-500 capitalize">
-                  <Briefcase className="h-[18px] w-[18px] text-slate-400" />
+                  <Briefcase className="h-4 w-4 sm:h-[18px] sm:w-[18px] text-slate-400" />
                   {job?.jobTypes?.[0] || 'Not specified'}
                 </span>
               </div>
             </div>
           </div>
-          <div className="flex shrink-0 gap-2.5">
+
+          {/* FIX: shrink-0 keeps these buttons from being squeezed */}
+          <div className="flex shrink-0 gap-2 sm:gap-2.5">
             <button
               onClick={handleToggleSavedJob}
               title={isSaved ? 'Unsave Job' : 'Save Job'}
-              className="group flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 shadow-sm transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+              className="group flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-lg sm:rounded-xl border border-slate-200 bg-white text-slate-400 shadow-sm transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-500"
             >
               <Heart
-                className={`h-[20px] w-[20px] ${isSaved ? 'fill-red-500 text-red-500' : 'group-hover:fill-red-500'}`}
+                className={`h-4 w-4 sm:h-[20px] sm:w-[20px] ${isSaved ? 'fill-red-500 text-red-500' : 'group-hover:fill-red-500'}`}
               />
             </button>
             <button
               onClick={handleShare}
               title="Share Job"
-              className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 shadow-sm transition-all hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+              className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-lg sm:rounded-xl border border-slate-200 bg-white text-slate-400 shadow-sm transition-all hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
             >
-              <Share2 className="h-[20px] w-[20px]" />
+              <Share2 className="h-4 w-4 sm:h-[20px] sm:w-[20px]" />
             </button>
           </div>
         </div>
       </div>
 
       {/* Sticky Action Bar */}
-      <div className="sticky top-0 z-20 flex shrink-0 flex-wrap items-center gap-3 border-y border-slate-200 bg-white/90 px-8 py-4 shadow-sm backdrop-blur-xl">
+      {/* FIX: Made padding px-4 for mobile. Layout uses a main flex column for mobile wrapping */}
+      {/* Sticky Action Bar */}
+      <div className="sticky top-0 z-20 flex shrink-0 flex-col xl:flex-row flex-wrap items-start xl:items-center justify-between gap-3 sm:gap-4 border-y border-slate-200 bg-white/95 px-4 sm:px-8 py-3 sm:py-4 shadow-sm backdrop-blur-xl">
         {token ? (
           <>
-            {job.origin === 'EXTERNAL' &&
-            job.applyMethod?.url &&
-            job.applyMethod.url !== 'email' ? (
-              <button
-                onClick={handleApplyOnSite}
-                className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-[13.5px] font-bold text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700"
+            {/* Left Side Actions & Dropdown */}
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 w-full xl:w-auto">
+              {job.origin === 'EXTERNAL' &&
+              job.applyMethod?.url &&
+              job.applyMethod.url !== 'email' ? (
+                <button
+                  onClick={handleApplyOnSite}
+                  className="w-full sm:w-auto flex justify-center items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 sm:px-6 text-[13.5px] font-bold text-white whitespace-nowrap shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700"
+                >
+                  <Link
+                    href={job.applyMethod.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <ExternalLink className="w-5 h-5 shrink-0" />
+                      <span>Apply on Company Site</span>
+                    </div>
+                  </Link>
+                  {/* <ExternalLink className="h-4 w-4 shrink-0" />
+                  Apply on Company Site */}
+                </button>
+              ) : isApplying ? (
+                <button
+                  disabled
+                  className="w-full sm:w-auto flex justify-center cursor-not-allowed items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 sm:px-6 text-[13.5px] font-bold text-white whitespace-nowrap opacity-90"
+                >
+                  <CheckCircle className="h-4 w-4 shrink-0" />
+                  Applied
+                </button>
+              ) : (
+                <Link
+                  href={`/dashboard/jobs/${job._id}/apply`}
+                  className="w-full sm:w-auto"
+                >
+                  <button className="w-full sm:w-auto flex justify-center items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 sm:px-6 text-[13.5px] font-bold text-white whitespace-nowrap shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700">
+                    <svg
+                      className="h-4 w-4 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                    Apply Now
+                  </button>
+                </Link>
+              )}
+
+              <Link
+                href={`/dashboard/apply?slug=${encodeURIComponent(job._id ?? '')}&step=cv`}
+                className="w-full sm:w-auto"
               >
-                <ExternalLink className="h-4 w-4" />
-                Apply on Company Site
-              </button>
-            ) : isApplying ? (
-              <button
-                disabled
-                className="flex cursor-not-allowed items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-[13.5px] font-bold text-white opacity-90"
-              >
-                <CheckCircle className="h-4 w-4" />
-                Applied
-              </button>
-            ) : (
-              <Link href={`/dashboard/jobs/${job._id}/apply`}>
-                <button className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-[13.5px] font-bold text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700">
+                <button className="w-full sm:w-auto flex justify-center items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 sm:px-6 text-[13.5px] font-bold text-slate-700 whitespace-nowrap shadow-sm transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600">
                   <svg
-                    className="h-4 w-4"
+                    className="h-4 w-4 text-blue-500 shrink-0"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2.5"
@@ -2733,66 +1914,48 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
                     />
                   </svg>
-                  Apply Now
+                  Tailor My Docs
                 </button>
               </Link>
-            )}
 
-            <Link
-              href={`/dashboard/apply?slug=${encodeURIComponent(job._id ?? '')}&step=cv`}
-            >
-              <button className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-[13.5px] font-bold text-slate-700 shadow-sm transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600">
-                <svg
-                  className="h-4 w-4 text-blue-500"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-                  />
-                </svg>
-                Tailor My Docs
-              </button>
-            </Link>
+              {/* Resume Selection Dropdown */}
+              {savedCvs.length > 0 && (
+                <div className="w-full sm:w-auto mt-1 sm:mt-0">
+                  <Select value={cvForMatch} onValueChange={setCvForMatch}>
+                    <SelectTrigger className="h-[42px] w-full sm:w-[190px] rounded-xl border border-slate-200 bg-white text-[13.5px] font-medium text-slate-700 focus:ring-0">
+                      <SelectValue placeholder="Match against" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white text-sm w-full">
+                      <SelectItem value="profile">My Profile</SelectItem>
+                      {savedCvs.map((cv) => (
+                        <SelectItem key={cv._id} value={cv._id}>
+                          {cv.htmlCVTitle || 'Untitled CV'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
 
-            {savedCvs.length > 0 && (
-              <Select value={cvForMatch} onValueChange={setCvForMatch}>
-                <SelectTrigger className="h-[42px] w-[190px] rounded-xl border border-slate-200 bg-white text-[13.5px] font-medium text-slate-700 focus:ring-0">
-                  <SelectValue placeholder="Match against" />
-                </SelectTrigger>
-                <SelectContent className="bg-white text-sm">
-                  <SelectItem value="profile">My Profile</SelectItem>
-                  {savedCvs.map((cv) => (
-                    <SelectItem key={cv._id} value={cv._id}>
-                      {cv.htmlCVTitle || 'Untitled CV'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            {/* Scores Badges */}
-            <div className="ml-auto flex items-center gap-3">
+            {/* Right Side Scores Badges */}
+            <div className="flex w-full xl:w-auto items-center gap-2 sm:gap-3 mt-1 xl:mt-0">
               {/* ATS Score */}
               {!atsScore ? (
                 <button
                   onClick={handleGetATSScore}
                   disabled={isLoadingAtsScore}
-                  className="flex items-center gap-2 rounded-[10px] border border-slate-200 bg-slate-50 px-3.5 py-2 transition-all hover:bg-slate-100 disabled:opacity-50"
+                  className="flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 transition-all hover:bg-slate-100 disabled:opacity-50"
                 >
                   {isLoadingAtsScore ? (
-                    <Loader2 className="h-4 w-4 text-indigo-500 animate-spin" />
+                    <Loader2 className="h-4 w-4 text-indigo-500 animate-spin shrink-0" />
                   ) : (
-                    <Zap className="h-4 w-4 text-indigo-500" />
+                    <Zap className="h-4 w-4 text-indigo-500 shrink-0" />
                   )}
-                  <span className="text-[12px] font-semibold text-slate-600">
+                  <span className="text-[12px] font-semibold text-slate-600 whitespace-nowrap">
                     {isLoadingAtsScore ? `${progress}%` : 'Calculate ATS'}
                   </span>
                 </button>
@@ -2802,11 +1965,11 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     setActiveView('ats');
                     setOpenCard('ats');
                   }}
-                  className={`flex items-center gap-2 rounded-[10px] border px-3.5 py-2 transition-all ${activeView === 'ats' ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}
+                  className={`flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-[10px] border px-3 py-2 transition-all ${activeView === 'ats' ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}
                 >
-                  <Zap className="h-4 w-4 text-indigo-500" />
-                  <span className="text-[12px] font-semibold text-slate-600">
-                    ATS Score:{' '}
+                  <Zap className="h-4 w-4 text-indigo-500 shrink-0" />
+                  <span className="text-[12px] font-semibold text-slate-600 whitespace-nowrap">
+                    ATS:{' '}
                     <span className="font-extrabold text-slate-900">
                       {atsScore.atsScore}/100
                     </span>
@@ -2819,14 +1982,14 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 <button
                   onClick={handleGetMatchScore}
                   disabled={isLoadingScore}
-                  className="flex items-center gap-2 rounded-[10px] border border-slate-200 bg-slate-50 px-3.5 py-2 transition-all hover:bg-slate-100 disabled:opacity-50"
+                  className="flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 transition-all hover:bg-slate-100 disabled:opacity-50"
                 >
                   {isLoadingScore ? (
-                    <Loader2 className="h-4 w-4 text-teal-500 animate-spin" />
+                    <Loader2 className="h-4 w-4 text-teal-500 animate-spin shrink-0" />
                   ) : (
-                    <Star className="h-4 w-4 text-teal-500" />
+                    <Star className="h-4 w-4 text-teal-500 shrink-0" />
                   )}
-                  <span className="text-[12px] font-semibold text-slate-600">
+                  <span className="text-[12px] font-semibold text-slate-600 whitespace-nowrap">
                     {isLoadingScore ? `${progress}%` : 'Calculate Match'}
                   </span>
                 </button>
@@ -2836,11 +1999,11 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     setActiveView('match');
                     setOpenCard('match');
                   }}
-                  className={`flex items-center gap-2 rounded-[10px] border px-3.5 py-2 transition-all ${activeView === 'match' ? 'border-teal-200 bg-teal-50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}
+                  className={`flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-[10px] border px-3 py-2 transition-all ${activeView === 'match' ? 'border-teal-200 bg-teal-50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}
                 >
-                  <Star className="h-4 w-4 text-teal-500" />
-                  <span className="text-[12px] font-semibold text-slate-600">
-                    Match Score:{' '}
+                  <Star className="h-4 w-4 text-teal-500 shrink-0" />
+                  <span className="text-[12px] font-semibold text-slate-600 whitespace-nowrap">
+                    Match:{' '}
                     <span className="font-extrabold text-slate-900">
                       {matchScore.matchScore}/10
                     </span>
@@ -2850,53 +2013,53 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             </div>
           </>
         ) : (
-          <div className="ml-auto">
+          <div className="w-full xl:ml-auto">
             <Button
               onClick={() => router.push('/login')}
-              className="rounded-xl bg-blue-600 px-6 py-2.5 text-[13.5px] font-bold text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700"
+              className="w-full sm:w-auto rounded-xl bg-blue-600 px-6 py-2.5 text-[13.5px] font-bold text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700"
             >
               Sign up to Apply
             </Button>
           </div>
         )}
       </div>
-
       {/* Main Content Area */}
-      <div className="jd-prose p-8 pb-20 text-[14px] leading-relaxed text-slate-600 flex-1">
+      {/* FIX: Fluid padding (p-4 sm:p-8) for mobile view */}
+      <div className="jd-prose p-4 sm:p-8 pb-20 text-[14px] leading-relaxed text-slate-600 flex-1">
         {/* Expanded ATS Score Details */}
         {activeView === 'ats' &&
           atsScore &&
           openCard === 'ats' &&
           !isLoadingAtsScore && (
-            <div className="mb-8 overflow-hidden rounded-[24px] border border-indigo-100 bg-white shadow-sm">
-              <div className="flex w-full items-center justify-between bg-indigo-50/50 px-6 py-5 border-b border-indigo-50">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500 text-white font-black text-xl shadow-md">
+            <div className="mb-6 sm:mb-8 overflow-hidden rounded-2xl sm:rounded-[24px] border border-indigo-100 bg-white shadow-sm">
+              <div className="flex w-full items-center justify-between bg-indigo-50/50 px-4 sm:px-6 py-4 sm:py-5 border-b border-indigo-50">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-[14px] sm:rounded-2xl bg-indigo-500 text-white font-black text-lg sm:text-xl shadow-md">
                     {atsScore.atsScore}
                   </div>
                   <div>
-                    <h3 className="text-[16px] font-extrabold text-slate-900 m-0 leading-tight">
+                    <h3 className="text-[15px] sm:text-[16px] font-extrabold text-slate-900 m-0 leading-tight">
                       ATS Score Analysis
                     </h3>
-                    <p className="text-[13px] font-medium text-slate-500 m-0 mt-1">
+                    <p className="text-[12px] sm:text-[13px] font-medium text-slate-500 m-0 mt-0.5 sm:mt-1">
                       Scan complete. Out of 100.
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setOpenCard(null)}
-                  className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-indigo-100/50 transition-colors"
+                  className="text-slate-400 hover:text-slate-600 p-1.5 sm:p-2 rounded-full hover:bg-indigo-100/50 transition-colors"
                 >
                   <ChevronUp className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-6">
-                <h4 className="mb-3 text-[14.5px] font-extrabold text-slate-900 flex items-center gap-2">
+              <div className="p-4 sm:p-6">
+                <h4 className="mb-3 text-[14px] sm:text-[14.5px] font-extrabold text-slate-900 flex items-center gap-2">
                   <Lightbulb className="w-4 h-4 text-indigo-500" /> ATS
                   Suggestions
                 </h4>
-                <div className="rounded-xl bg-slate-50 border border-slate-100 p-5">
-                  <p className="text-[13.5px] text-slate-700 leading-relaxed m-0 whitespace-pre-wrap">
+                <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 sm:p-5 overflow-x-auto">
+                  <p className="text-[13px] sm:text-[13.5px] text-slate-700 leading-relaxed m-0 whitespace-pre-wrap">
                     {atsScore.suggestions}
                   </p>
                 </div>
@@ -2909,51 +2072,49 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           matchScore &&
           openCard === 'match' &&
           !isLoadingScore && (
-            <div className="mb-8 overflow-hidden rounded-[24px] border border-teal-100 bg-white shadow-sm">
-              <div className="flex w-full items-center justify-between bg-teal-50/50 px-6 py-5 border-b border-teal-50">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-500 text-white font-black text-xl shadow-md">
+            <div className="mb-6 sm:mb-8 overflow-hidden rounded-2xl sm:rounded-[24px] border border-teal-100 bg-white shadow-sm">
+              <div className="flex w-full items-center justify-between bg-teal-50/50 px-4 sm:px-6 py-4 sm:py-5 border-b border-teal-50">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-[14px] sm:rounded-2xl bg-teal-500 text-white font-black text-lg sm:text-xl shadow-md">
                     {matchScore.matchScore}
                   </div>
                   <div>
-                    <h3 className="text-[16px] font-extrabold text-slate-900 m-0 leading-tight">
+                    <h3 className="text-[15px] sm:text-[16px] font-extrabold text-slate-900 m-0 leading-tight">
                       AI Match Analysis
                     </h3>
-                    <p className="text-[13px] font-medium text-slate-500 m-0 mt-1">
+                    <p className="text-[12px] sm:text-[13px] font-medium text-slate-500 m-0 mt-0.5 sm:mt-1">
                       Based on your selected profile/CV.
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setOpenCard(null)}
-                  className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-teal-100/50 transition-colors"
+                  className="text-slate-400 hover:text-slate-600 p-1.5 sm:p-2 rounded-full hover:bg-teal-100/50 transition-colors"
                 >
                   <ChevronUp className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-6 space-y-6">
-                {/* Recommendation */}
+              <div className="p-4 sm:p-6 space-y-5 sm:space-y-6">
                 <div>
-                  <h4 className="mb-3 text-[14.5px] font-extrabold text-slate-900 flex items-center gap-2">
+                  <h4 className="mb-3 text-[14px] sm:text-[14.5px] font-extrabold text-slate-900 flex items-center gap-2">
                     <TargetIcon className="w-4 h-4 text-teal-500" />{' '}
                     Recommendation
                   </h4>
-                  <div className="rounded-xl bg-slate-50 border border-slate-100 p-5">
-                    <p className="text-[13.5px] text-slate-700 leading-relaxed m-0">
+                  <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 sm:p-5">
+                    <p className="text-[13px] sm:text-[13.5px] text-slate-700 leading-relaxed m-0">
                       {matchScore.recommendation}
                     </p>
                   </div>
                 </div>
 
-                {/* Improved Summary */}
                 {matchScore.improvedSummary && (
                   <details className="group">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 text-[14.5px] font-extrabold text-slate-900 hover:text-teal-700 transition-colors">
+                    <summary className="flex cursor-pointer list-none items-center gap-2 text-[14px] sm:text-[14.5px] font-extrabold text-slate-900 hover:text-teal-700 transition-colors">
                       <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform" />
                       View Improved Resume Summary
                     </summary>
-                    <div className="mt-3 rounded-xl bg-slate-50 border border-slate-100 p-5">
-                      <p className="text-[13.5px] text-slate-700 leading-relaxed m-0">
+                    <div className="mt-3 rounded-xl bg-slate-50 border border-slate-100 p-4 sm:p-5">
+                      <p className="text-[13px] sm:text-[13.5px] text-slate-700 leading-relaxed m-0">
                         {matchScore.improvedSummary}
                       </p>
                     </div>
@@ -2961,17 +2122,18 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 )}
 
                 {/* Generate Docs Section */}
-                <div className="border-t border-slate-100 pt-6">
-                  <h4 className="mb-4 text-[14.5px] font-extrabold text-slate-900 flex items-center gap-2">
+                <div className="border-t border-slate-100 pt-5 sm:pt-6">
+                  <h4 className="mb-3 sm:mb-4 text-[14px] sm:text-[14.5px] font-extrabold text-slate-900 flex items-center gap-2">
                     <FilePlus2 className="w-4 h-4 text-blue-600" /> Generate
                     Tailored Docs
                   </h4>
-                  <div className="flex flex-wrap gap-3">
+                  {/* FIX: Buttons span full width and stack on mobile */}
+                  <div className="flex flex-col sm:flex-row flex-wrap gap-2.5 sm:gap-3">
                     <Button
                       asChild
                       size="sm"
                       variant="outline"
-                      className="h-10 rounded-xl border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold px-5"
+                      className="h-10 w-full sm:w-auto flex-1 rounded-xl border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold px-5"
                     >
                       <Link
                         href={`/dashboard/cv-generator?slug=${encodeURIComponent(job._id ?? '')}&step=cv&docType=cv`}
@@ -2983,7 +2145,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                       asChild
                       size="sm"
                       variant="outline"
-                      className="h-10 rounded-xl border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold px-5"
+                      className="h-10 w-full sm:w-auto flex-1 rounded-xl border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold px-5"
                     >
                       <Link
                         href={`/dashboard/cover-letter-generator?slug=${encodeURIComponent(job._id ?? '')}&step=cv&docType=cl`}
@@ -2995,12 +2157,13 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     <Button
                       asChild
                       size="sm"
-                      className="h-10 rounded-xl bg-slate-900 text-white hover:bg-slate-800 font-bold px-5"
+                      className="h-10 w-full sm:w-auto flex-1 rounded-xl bg-slate-900 text-white hover:bg-slate-800 font-bold px-5"
                     >
                       <Link
                         href={`/dashboard/apply?slug=${encodeURIComponent(job._id ?? '')}&step=cv`}
                       >
-                        <FilePlus2 className="w-4 h-4 mr-2 text-white" /> Both
+                        <FilePlus2 className="w-4 h-4 mr-2 text-white" /> Tailor
+                        Docs
                       </Link>
                     </Button>
                   </div>
@@ -3009,14 +2172,16 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             </div>
           )}
 
-        <h3 className="mb-5 flex items-center gap-2.5 text-[17px] font-extrabold text-slate-900">
-          <div className="h-5 w-1.5 rounded-full bg-blue-600"></div>
+        <h3 className="mb-4 sm:mb-5 flex items-center gap-2.5 text-[16px] sm:text-[17px] font-extrabold text-slate-900">
+          <div className="h-4 sm:h-5 w-1.5 rounded-full bg-blue-600"></div>
           Job Description
         </h3>
 
         {/* Render Cleaned JD */}
         {job.description ? (
-          <div className="mb-8 ">{renderJobDescription(job.description)}</div>
+          <div className="mb-8 break-words overflow-hidden">
+            {renderJobDescription(job.description)}
+          </div>
         ) : (
           <p className="italic text-slate-500 mb-8">
             No job description provided.
@@ -3025,17 +2190,17 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
         {/* Highlights Section */}
         {job.highlights && Object.keys(job.highlights).length > 0 && (
-          <div className="mt-10 space-y-8">
+          <div className="mt-8 sm:mt-10 space-y-6 sm:space-y-8">
             {Object.entries(job.highlights).map(([title, items], index) => (
               <div
                 key={title}
-                className="rounded-[24px] border border-slate-200 bg-white p-6 md:p-8 shadow-sm transition-all duration-300 hover:shadow-md hover:border-blue-200"
+                className="rounded-2xl sm:rounded-[24px] border border-slate-200 bg-white p-5 sm:p-6 md:p-8 shadow-sm transition-all duration-300 hover:shadow-md hover:border-blue-200"
               >
-                <div className="mb-6 flex items-center gap-3">
+                <div className="mb-5 sm:mb-6 flex items-center gap-3">
                   <div
-                    className={`h-8 w-1.5 rounded-full ${index % 2 === 0 ? 'bg-blue-500' : 'bg-teal-500'}`}
+                    className={`h-6 sm:h-8 w-1.5 rounded-full ${index % 2 === 0 ? 'bg-blue-500' : 'bg-teal-500'}`}
                   />
-                  <h3 className="text-lg font-extrabold text-slate-900">
+                  <h3 className="text-[16px] sm:text-lg font-extrabold text-slate-900">
                     {title}
                   </h3>
                 </div>
@@ -3043,16 +2208,16 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   {(items as string[]).map((item, idx) => (
                     <div
                       key={`${title}-${idx}`}
-                      className="group flex items-start gap-3.5 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all duration-300 hover:border-blue-100 hover:bg-blue-50/50"
+                      className="group flex items-start gap-3 sm:gap-3.5 rounded-xl sm:rounded-2xl border border-slate-100 bg-slate-50 p-3 sm:p-4 transition-all duration-300 hover:border-blue-100 hover:bg-blue-50/50"
                     >
                       <div className="mt-0.5 flex-shrink-0">
                         <div
-                          className={`flex h-6 w-6 items-center justify-center rounded-full ${index % 2 === 0 ? 'bg-blue-100 text-blue-600 group-hover:bg-blue-500 group-hover:text-white' : 'bg-teal-100 text-teal-600 group-hover:bg-teal-500 group-hover:text-white'} transition-colors duration-300`}
+                          className={`flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full ${index % 2 === 0 ? 'bg-blue-100 text-blue-600 group-hover:bg-blue-500 group-hover:text-white' : 'bg-teal-100 text-teal-600 group-hover:bg-teal-500 group-hover:text-white'} transition-colors duration-300`}
                         >
-                          <CheckCircle className="h-3.5 w-3.5" />
+                          <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                         </div>
                       </div>
-                      <span className="flex-1 text-[13.5px] leading-relaxed text-slate-700">
+                      <span className="flex-1 text-[13px] sm:text-[13.5px] leading-relaxed text-slate-700">
                         {item}
                       </span>
                     </div>
@@ -3064,20 +2229,22 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         )}
 
         {/* Bottom CTA Card */}
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 rounded-[24px] border border-blue-100 bg-gradient-to-r from-blue-50 to-[#F8FAFC] p-6 sm:p-8 shadow-sm sm:flex-row">
+        {/* FIX: Optimized flex directions and button width for mobile */}
+        <div className="mt-8 sm:mt-12 flex flex-col sm:flex-row items-center justify-between gap-5 sm:gap-4 rounded-2xl sm:rounded-[24px] border border-blue-100 bg-gradient-to-r from-blue-50 to-[#F8FAFC] p-5 sm:p-6 md:p-8 shadow-sm text-center sm:text-left">
           <div>
-            <p className="mb-1 text-[16px] font-extrabold text-slate-900">
+            <p className="mb-1 text-[15px] sm:text-[16px] font-extrabold text-slate-900">
               Increase your chances of getting hired.
             </p>
-            <p className="text-[13.5px] font-medium text-slate-500">
+            <p className="text-[13px] sm:text-[13.5px] font-medium text-slate-500">
               Use ZobsAI to tailor your resume specifically to this job
               description.
             </p>
           </div>
           <Link
             href={`/dashboard/cv-generator?slug=${encodeURIComponent(job._id ?? '')}&step=cv&docType=cv`}
+            className="w-full sm:w-auto"
           >
-            <button className="flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-3.5 text-[14px] font-bold whitespace-nowrap text-white shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-0.5 hover:bg-black">
+            <button className="flex w-full justify-center items-center gap-2 rounded-xl bg-slate-900 px-6 sm:px-8 py-3.5 text-[14px] font-bold whitespace-nowrap text-white shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-0.5 hover:bg-black">
               <svg
                 className="h-4 w-4"
                 fill="none"

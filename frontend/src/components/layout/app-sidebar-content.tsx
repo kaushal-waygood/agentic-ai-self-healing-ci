@@ -273,23 +273,23 @@
 //               </div>
 //             )}
 //           </Link>
-//           {!isCollapsed && (
-//             <button
-//               onClick={() => setPinned(!isPinned)}
-//               className={`p-2 rounded-lg transition-all duration-200 ${
-//                 isPinned
-//                   ? 'text-purple-600 hover:bg-purpl e-200'
-//                   : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
-//               }`}
-//               title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
-//             >
-//               {isPinned ? (
-//                 <PinOff className="hidden sm:block w-4 h-4" />
-//               ) : (
-//                 <Pin className=" hidden sm:block w-4 h-4" />
-//               )}
-//             </button>
-//           )}
+// {!isCollapsed && (
+//   <button
+//     onClick={() => setPinned(!isPinned)}
+//     className={`p-2 rounded-lg transition-all duration-200 ${
+//       isPinned
+//         ? 'text-purple-600 hover:bg-purpl e-200'
+//         : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+//     }`}
+//     title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
+//   >
+//     {isPinned ? (
+//       <PinOff className="hidden sm:block w-4 h-4" />
+//     ) : (
+//       <Pin className=" hidden sm:block w-4 h-4" />
+//     )}
+//   </button>
+// )}
 //         </div>
 //       </div>
 
@@ -694,9 +694,32 @@ export const AppSidebarContent = ({
             className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-50 hover:text-blue-600"
             title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
           >
-            <LinkIcon className="h-4 w-4" strokeWidth={2.5} />
+            {/* <Pin className="h-4 w-4" strokeWidth={2.5} /> */}
+            {isPinned ? (
+              <PinOff className="hidden sm:block w-4 h-4" strokeWidth={2.5} />
+            ) : (
+              <Pin className=" hidden sm:block w-4 h-4" strokeWidth={2.5} />
+            )}
           </button>
         )}
+
+        {/* {!isCollapsed && (
+          <button
+            onClick={() => setPinned(!isPinned)}
+            className={`p-2 rounded-lg transition-all duration-200 ${
+              isPinned
+                ? 'text-purple-600 hover:bg-purpl e-200'
+                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+            }`}
+            title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
+          >
+            {isPinned ? (
+              <PinOff className="hidden sm:block w-4 h-4" />
+            ) : (
+              <Pin className=" hidden sm:block w-4 h-4" />
+            )}
+          </button>
+        )} */}
       </div>
 
       {/* Navigation */}
@@ -724,36 +747,39 @@ export const AppSidebarContent = ({
               )}
 
               {/* Nav Item (Restored bg-tabPrimary) */}
-              <Link
-                href={item.comingSoon ? '#' : item.href}
-                onClick={
-                  item.comingSoon ? (e) => e.preventDefault() : undefined
-                }
-                prefetch={false}
-                className={`group flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${
-                  isActive
-                    ? 'bg-tabPrimary text-white shadow-md'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                } ${isCollapsed ? 'justify-center px-0' : ''}`}
-                title={isCollapsed ? item.title : ''}
-              >
-                <Icon
-                  className={`h-[18px] w-[18px] shrink-0 transition-colors ${
+
+              <div id={`sidebar-link-${index}`} className="relative">
+                <Link
+                  href={item.comingSoon ? '#' : item.href}
+                  onClick={
+                    item.comingSoon ? (e) => e.preventDefault() : undefined
+                  }
+                  prefetch={false}
+                  className={`group flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${
                     isActive
-                      ? 'text-white'
-                      : 'text-slate-400 group-hover:text-blue-600'
-                  }`}
-                  strokeWidth={isActive ? 2.5 : 2}
-                />
-                {!isCollapsed && (
-                  <span className="truncate flex-1">{item.title} </span>
-                )}
-                {!isCollapsed && item.comingSoon && (
-                  <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-[10px] font-semibold text-white shrink-0">
-                    Soon
-                  </span>
-                )}
-              </Link>
+                      ? 'bg-tabPrimary text-white shadow-md'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                  } ${isCollapsed ? 'justify-center px-0' : ''}`}
+                  title={isCollapsed ? item.title : ''}
+                >
+                  <Icon
+                    className={`h-[18px] w-[18px] shrink-0 transition-colors ${
+                      isActive
+                        ? 'text-white'
+                        : 'text-slate-400 group-hover:text-blue-600'
+                    }`}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                  {!isCollapsed && (
+                    <span className="truncate flex-1">{item.title} </span>
+                  )}
+                  {!isCollapsed && item.comingSoon && (
+                    <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-[10px] font-semibold text-white shrink-0">
+                      Soon
+                    </span>
+                  )}
+                </Link>
+              </div>
             </React.Fragment>
           );
         })}
