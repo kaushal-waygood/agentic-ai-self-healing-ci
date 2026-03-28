@@ -33,12 +33,13 @@ import {
   changePasswordRequest,
   clearAuthMessages,
   getProfileRequest,
+  logoutRequest,
 } from '@/redux/reducers/authReducer';
 import { RootState } from '@/redux/rootReducer';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { deleteAccount } from '@/services/api/auth';
-import apiInstance from '@/services/api';
+// import apiInstance from '@/services/api';
 
 /* ===========================
    SECURITY SETTINGS (self-contained)
@@ -553,16 +554,42 @@ export const AppearanceSettings = () => {
    =========================== */
 
 export const DangerSettings = () => {
+  const dispatch = useDispatch();
   const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteAccount = async () => {
-    const response = await await apiInstance.delete('/user/me');
-    console.log(response.data);
+    // const response = await await apiInstance.delete('/user/me');
+    // console.log(response.data);
+    if (isDeleting) return;
 
-    toast({
-      title: 'Feature In Development',
-      description: 'Account deletion is not yet implemented.',
-    });
+    try {
+      setIsDeleting(true);
+      const response = await deleteAccount();
+
+      // toast({
+      //   title: 'Feature In Development',
+      //   description: 'Account deletion is not yet implemented.',
+      // });
+
+      toast({
+        title: 'Account Deleted',
+        description:
+          response.data?.message ||
+          'Your account has been successfully deleted.',
+        variant: 'success',
+      });
+
+      dispatch(logoutRequest());
+    } catch (error: any) {
+      setIsDeleting(false);
+      toast({
+        title: 'Delete Failed',
+        description:
+          error?.response?.data?.message || 'Failed to delete account.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -588,9 +615,10 @@ export const DangerSettings = () => {
         <AlertDialogTrigger asChild>
           <Button
             variant="destructive"
+            disabled={isDeleting}
             className="mt-2 hover:scale-[1.01] transition-transform"
           >
-            Delete Account
+            {isDeleting ? 'Deleting...' : 'Delete Account'}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent className="max-w-md">
@@ -606,14 +634,25 @@ export const DangerSettings = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-red-500 hover:bg-red-500">
+            <AlertDialogCancel
+              disabled={isDeleting}
+              className="border-red-500 hover:bg-red-500"
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
+              disabled={isDeleting}
               className="bg-red-500 hover:bg-destructive/90"
               onClick={handleDeleteAccount}
             >
-              Yes, delete my account
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Yes, delete my account'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
