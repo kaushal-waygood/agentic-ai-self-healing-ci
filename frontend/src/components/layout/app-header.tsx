@@ -218,32 +218,38 @@ export const TotalCredit = () => {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
-
   return (
     <div className="relative" ref={dropdownRef}>
-      <div className="flex items-center  bg-gradient-to-r from-yellow-100 to-purple-100 rounded-lg border border-gray-200">
-        {/* Fire */}
+      {/* Unified wrapper: 
+        Matches the h-10 height of the other header buttons. 
+        Uses the exact soft gradient from the screenshot.
+      */}
+      <div className="flex h-10 items-center overflow-hidden rounded-xl border border-slate-200/80 bg-gradient-to-r from-amber-100/60 via-yellow-50/50 to-purple-100/60 shadow-sm">
+        {/* Streak (Fire) */}
         <Tooltip label={'Streak'}>
           <button
             onClick={() => setOpen(!open)}
-            className="flex items-center gap-1 hover:bg-gray-50 px-2 py-1 rounded-lg  "
+            className="flex h-full items-center gap-1.5 px-3 transition-colors hover:bg-white/40"
           >
-            <Flame className="w-6 h-6 text-pink-500" />
-            <span className="text-sm font-medium text-pink-500">
+            <Flame className="h-4 w-4 text-pink-500" strokeWidth={2.5} />
+            <span className="text-[14px] font-extrabold text-pink-600">
               {streak.current || 0}
             </span>
           </button>
         </Tooltip>
-        {/* Gold */}
+
+        {/* Subtle Divider (Optional, helps visual separation) */}
+        <div className="h-4 w-px bg-slate-200/50"></div>
+
+        {/* Credits (Gold) */}
         <Tooltip label={'Credits'}>
           <Link
             href="/dashboard/credits"
             prefetch={false}
-            className="flex items-center gap-1  hover:bg-gray-50 px-2 py-1  rounded-lg"
+            className="flex h-full items-center gap-1.5 px-3 transition-colors hover:bg-white/40"
           >
-            <Coins className="w-6 h-6 text-yellow-500" />
-            <span className="text-sm font-medium text-gray-700">
-              {/* {credit?.credits || 0} */}
+            <Coins className="h-4 w-4 text-amber-500" strokeWidth={2.5} />
+            <span className="text-[14px] font-extrabold text-slate-700">
               {totalCredits}
             </span>
           </Link>
@@ -263,6 +269,50 @@ export const TotalCredit = () => {
       )}
     </div>
   );
+  // return (
+  //   <div className="relative" ref={dropdownRef}>
+  //     <div className="flex items-center  bg-gradient-to-r from-yellow-100 to-purple-100 rounded-lg border border-gray-200">
+  //       {/* Fire */}
+  //       <Tooltip label={'Streak'}>
+  //         <button
+  //           onClick={() => setOpen(!open)}
+  //           className="flex items-center gap-1 hover:bg-gray-50 px-2 py-1 rounded-lg  "
+  //         >
+  //           <Flame className="w-6 h-6 text-pink-500" />
+  //           <span className="text-sm font-medium text-pink-500">
+  //             {streak.current || 0}
+  //           </span>
+  //         </button>
+  //       </Tooltip>
+  //       {/* Gold */}
+  //       <Tooltip label={'Credits'}>
+  //         <Link
+  //           href="/dashboard/credits"
+  //           prefetch={false}
+  //           className="flex items-center gap-1  hover:bg-gray-50 px-2 py-1  rounded-lg"
+  //         >
+  //           <Coins className="w-6 h-6 text-yellow-500" />
+  //           <span className="text-sm font-medium text-gray-700">
+  //             {/* {credit?.credits || 0} */}
+  //             {totalCredits}
+  //           </span>
+  //         </Link>
+  //       </Tooltip>
+  //     </div>
+
+  //     {/* Dropdown */}
+  //     {open && (
+  //       <StreakDropdown
+  //         streak={streak.current}
+  //         longest={streak.longest}
+  //         activeDays={streak.activeDays}
+  //         canClaimToday={streak.canClaimToday}
+  //         isClaiming={claiming}
+  //         onCheckIn={claim}
+  //       />
+  //     )}
+  //   </div>
+  // );
 };
 
 interface AppHeaderProps {
