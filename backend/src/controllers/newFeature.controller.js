@@ -46,6 +46,47 @@ export const requestNewFeature = async (req, res) => {
   }
 };
 
+export const reportAutofillIssue = async (req, res) => {
+  const { pageUrl, fieldName, issueType, additionalNotes } = req.body;
+
+  if (!pageUrl || !fieldName || !issueType) {
+    return res.status(400).json({
+      message: 'pageUrl, fieldName, and issueType are required',
+    });
+  }
+
+  try {
+    const autofillIssue = new NewFeature({
+      title: `Autofill issue: ${fieldName}`,
+      message:
+        additionalNotes?.trim() ||
+        `Autofill issue reported for ${fieldName} (${issueType})`,
+      pageUrl,
+      fieldName,
+      issueType,
+      additionalNotes,
+      source: 'autofill-issue',
+    });
+
+    await autofillIssue.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('autofill-issue-report', {
+        pageUrl,
+        fieldName,
+        issueType,
+        additionalNotes,
+      });
+    }
+
+    res.status(200).json({ message: 'Autofill issue reported successfully' });
+  } catch (error) {
+    console.error('Error reporting autofill issue:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export const getNewFeatures = async (req, res) => {
   try {
     const newFeatures = await NewFeature.find();
