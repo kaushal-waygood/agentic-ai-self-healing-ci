@@ -3,59 +3,59 @@ import { Crown, Zap, ChevronDown, Calendar } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { UsageTracker } from '@/components/dashboard/UtilsComp'; // adjust path if necessary
 
-// const planConfig = {
-//   Free: {
-//     Icon: Zap,
-//     title: 'Free Plan',
-//     buttonClasses:
-//       'flex items-center space-x-2 px-3 py-2 rounded-lg bg-gradient-to-r from-blue-100 to-gray-200 text-blue-800 hover:from-blue-200 hover:to-blue-300 transition-all duration-200 border border-blue-300',
-//     headerClasses:
-//       'p-4 bg-gradient-to-r from-blue-400 to-blue-600 rounded-t-lg',
-//   },
-//   Weekly: {
-//     Icon: Zap,
-//     title: 'Weekly Plan',
-//     buttonClasses:
-//       'flex items-center space-x-2 px-3 py-2 rounded-lg bg-gradient-to-r from-green-100 to-green-200 text-green-800 hover:from-green-200 hover:to-green-300 transition-all duration-200 border border-green-300',
-//     headerClasses:
-//       'p-4 bg-gradient-to-r from-green-400 to-green-600 rounded-t-lg',
-//   },
-//   Monthly: {
-//     Icon: Zap,
-//     title: 'Monthly Plan',
-//     buttonClasses:
-//       'flex items-center space-x-2 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 hover:from-purple-200 hover:to-purple-300 transition-all duration-200 border border-purple-300',
-//     headerClasses:
-//       'p-4 bg-gradient-to-r from-purple-400 to-purple-600 rounded-t-lg',
-//   },
-// };
-
 const planConfig = {
   Free: {
     Icon: Zap,
     title: 'Free Plan',
     buttonClasses:
-      'flex h-10 items-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3.5 text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50',
+      'flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-100 to-gray-200 text-blue-800 hover:from-blue-200 hover:to-blue-300 transition-all duration-200 border border-slate-200/80',
     headerClasses:
-      'px-4 py-4 bg-gradient-to-br from-slate-700 to-slate-800 rounded-t-2xl',
+      'p-4 bg-gradient-to-r from-blue-400 to-blue-600 rounded-t-lg',
   },
   Weekly: {
-    Icon: Calendar,
+    Icon: Zap,
     title: 'Weekly Plan',
     buttonClasses:
-      'flex h-10 items-center gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/30 px-3.5 text-emerald-800 shadow-sm transition-all hover:border-emerald-300 hover:bg-emerald-50',
+      'flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-green-100 to-green-200 text-green-800 hover:from-green-200 hover:to-green-300 transition-all duration-200 border border-emerald-200/80',
     headerClasses:
-      'px-4 py-4 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-t-2xl',
+      'p-4 bg-gradient-to-r from-green-400 to-green-600 rounded-t-lg',
   },
   Monthly: {
-    Icon: Crown,
+    Icon: Zap,
     title: 'Monthly Plan',
     buttonClasses:
-      'flex h-10 items-center gap-2 rounded-xl border border-purple-200/80 bg-purple-50/30 px-3.5 text-purple-800 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50',
+      'flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 hover:from-purple-200 hover:to-purple-300 transition-all duration-200 border border-purple-200/80',
     headerClasses:
-      'px-4 py-4 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-t-2xl',
+      'p-4 bg-gradient-to-r from-purple-400 to-purple-600 rounded-t-lg',
   },
 };
+
+// const planConfig = {
+//   Free: {
+//     Icon: Zap,
+//     title: 'Free Plan',
+//     buttonClasses:
+//       'flex h-10 items-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3.5 text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50',
+//     headerClasses:
+//       'px-4 py-4 bg-gradient-to-br from-slate-700 to-slate-800 rounded-t-2xl',
+//   },
+//   Weekly: {
+//     Icon: Calendar,
+//     title: 'Weekly Plan',
+//     buttonClasses:
+//       'flex h-10 items-center gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/30 px-3.5 text-emerald-800 shadow-sm transition-all hover:border-emerald-300 hover:bg-emerald-50',
+//     headerClasses:
+//       'px-4 py-4 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-t-2xl',
+//   },
+//   Monthly: {
+//     Icon: Crown,
+//     title: 'Monthly Plan',
+//     buttonClasses:
+//       'flex h-10 items-center gap-2 rounded-xl border border-purple-200/80 bg-purple-50/30 px-3.5 text-purple-800 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50',
+//     headerClasses:
+//       'px-4 py-4 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-t-2xl',
+//   },
+// };
 
 const safeNum = (v: any, fallback = 0) => {
   if (v === -1) return -1;
