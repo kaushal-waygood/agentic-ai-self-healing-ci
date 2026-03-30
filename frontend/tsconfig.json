@@ -31,6 +31,6 @@
     "src/components/home/Solutions.tsx",
     ".next/types/app/(app)/dashboard/my-docs/cv/[id]/page.tsx",
     ".next/types/app/(app)/dashboard/my-docs/[type]/[id]/page.tsx"
-  ],
+, "src/components/mutiform/Step0_Intro.jsx"  ],
   "exclude": ["node_modules"]
 }

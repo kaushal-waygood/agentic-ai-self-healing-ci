@@ -22,24 +22,6 @@ const RequestNewFeature = () => {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-
-  //   try {
-  //     const response = await apiInstance.post('/new-feature', {
-  //       title: featureName,
-  //       description: description,
-  //     });
-
-  //     if (response.status === 200) {
-  //       setSubmitted(true);
-  //       setFeatureName('');
-  //       setDescription('');
-  //     }
-  //   } catch (error) {
-  //     console.error(error);
-  //   }
-  // };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;

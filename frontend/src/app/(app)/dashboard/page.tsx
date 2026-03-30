@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import DashboardPage from './components/dashboardPage';
 import { dashboardMetadata } from '@/metadata/metadata';
+import { Loader } from '@/components/Loader';
 
 export const metadata = {
   title: dashboardMetadata.title,
@@ -10,7 +11,7 @@ export const metadata = {
 
 const page = () => {
   return (
-    <Suspense fallback={<div>Loading Dashboard...</div>}>
+    <Suspense fallback={<Loader />}>
       <DashboardPage />
     </Suspense>
   );

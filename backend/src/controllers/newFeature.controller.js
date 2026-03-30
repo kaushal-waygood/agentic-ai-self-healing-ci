@@ -46,6 +46,16 @@ export const requestNewFeature = async (req, res) => {
   }
 };
 
+export const getNewFeaturesRequests = async (req, res) => {
+  try {
+    const newFeatures = await NewFeature.find({ source: 'feature-request' });
+    res.status(200).json(newFeatures);
+  } catch (error) {
+    console.error('Error fetching new features:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export const reportAutofillIssue = async (req, res) => {
   const { pageUrl, fieldName, issueType, additionalNotes } = req.body;
 
