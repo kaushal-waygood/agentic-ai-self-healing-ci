@@ -32,3 +32,16 @@ export const startAgentJobTailoredGeneration = async (
   );
   return response;
 };
+
+export const replaceAgentJob = async (
+  agentId: string,
+  jobId: string,
+  limit = 30,
+) => {
+  const response = await apiInstance.post(
+    `/pilotagent/get/${agentId}/jobs/${jobId}/find-other`,
+    {},
+    { params: { limit } },
+  );
+  return response;
+};

@@ -1,4 +1,3 @@
-// src/worker/emailBackfillWorker.js
 
 import { Job } from '../models/jobs.model.js';
 import { runEmailScrape } from '../config/geminiCron.js';

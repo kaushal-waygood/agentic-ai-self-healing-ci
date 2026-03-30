@@ -33,6 +33,7 @@ export interface SendEmailOptions {
   subject: string;
   bodyHtml: string;
   coverLetterHtml?: string; // plain-text cover letter converted to HTML by this component
+  resumeHtml?: string;
 }
 
 interface EditableMaterialProps {
@@ -124,13 +125,50 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
-    return `<html><body><pre style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;white-space:pre-wrap;padding:40px;">${escaped}</pre></body></html>`;
+    return `<html><body><pre style="font-family:'Plus Jakarta Sans',ui-sans-serif,system-ui,sans-serif;font-size:14px;line-height:1.6;white-space:pre-wrap;padding:40px;">${escaped}</pre></body></html>`;
   };
 
   const handleCopy = async () => {
     const text = editorRef.current?.innerText || '';
     await navigator.clipboard.writeText(text);
     toast({ title: 'Copied plain text' });
+  };
+
+  const buildResumeAttachmentHtml = () => {
+    const editorHtml = (editorRef.current?.innerHTML || state.localContent || '')
+      .trim();
+
+    if (!editorHtml) {
+      return typeof content === 'string' ? content : '';
+    }
+
+    const templateStyle = typeof template?.style === 'string' ? template.style : '';
+    const rawStyle = templateStyle
+      .replace('<style>', '')
+      .replace('</style>', '')
+      .trim();
+
+    if (
+      !rawStyle &&
+      typeof content === 'string' &&
+      content.toLowerCase().includes('<html')
+    ) {
+      return content;
+    }
+
+    return `<!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${title}</title>
+          ${rawStyle ? `<style>${rawStyle}</style>` : ''}
+          ${!state.showImages ? '<style>.profile-image{display:none !important;}</style>' : ''}
+        </head>
+        <body>
+          <div class="resume-isolation-container">${editorHtml}</div>
+        </body>
+      </html>`;
   };
 
   const handleSendEmailClick = () => {
@@ -297,10 +335,16 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       ? coverLetterToHtml(coverLetterText)
       : undefined;
 
+    const payload: SendEmailOptions = { subject, bodyHtml, coverLetterHtml };
+
+    if (template?.style) {
+      payload.resumeHtml = buildResumeAttachmentHtml();
+    }
+
     if (!onSendEmail) return;
     setIsSendingEmail(true);
     try {
-      await onSendEmail(email, { subject, bodyHtml, coverLetterHtml });
+      await onSendEmail(email, payload);
       toast({ title: 'Email sent successfully' });
       setIsSendEmailDialogOpen(false);
     } catch {
@@ -465,7 +509,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       <main className="flex-grow overflow-y-auto p-4 md:p-8 bg-gray-200/50 custom-scrollbar">
         <style
           dangerouslySetInnerHTML={{
-            __html: `.resume-editor-canvas { font-family: Arial, Helvetica, "Segoe UI", sans-serif; }`,
+            __html: `.resume-editor-canvas { font-family: var(--font-sans); }`,
           }}
         />
         {template?.style && (

@@ -279,6 +279,9 @@ export const useApplicationWizard = () => {
   // Rate limit / plan check state
   const [rateLimited, setRateLimited] = useState(false);
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
+  const [incompleteProfile, setIncompleteProfile] = useState<string | null>(
+    null,
+  );
 
   //--- External Data & Forms ---
   const { jobs, loading: jobsLoading, selectedJob } = useJobs({ searchParams });
@@ -291,6 +294,17 @@ export const useApplicationWizard = () => {
     pastedCl: string;
     savedClId: string;
   }>({ defaultValues: { clSource: 'skip', pastedCl: '', savedClId: '' } });
+
+  const rewriteHistoryForResult = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const homeUrl = `${pathname}?step=job`;
+    const historyState = window.history.state;
+
+    // Keep a single in-flow back target before showing the terminal result UI.
+    window.history.replaceState(historyState, '', homeUrl);
+    window.history.pushState(historyState, '', pathname);
+  }, [pathname]);
 
   // changes 1
   // const navigateToStep = useCallback(
@@ -337,7 +351,8 @@ export const useApplicationWizard = () => {
       // 1. Check if we are moving to the final step
       if (step === 'result') {
         setWizardStep('result'); // Update UI manually
-        router.push(pathname, { scroll: false }); // Clean the URL
+        // router.push(pathname, { scroll: false }); // Clean the URL
+        rewriteHistoryForResult();
         return;
       }
 
@@ -360,11 +375,12 @@ export const useApplicationWizard = () => {
         params.delete('slug');
       }
 
-      router.push(`${pathname}?${params.toString()}`, {
+      // router.push(`${pathname}?${params.toString()}`, {
+      router.replace(`${pathname}?${params.toString()}`, {
         scroll: false,
       });
     },
-    [pathname, router, searchParams],
+    [pathname, rewriteHistoryForResult, router, searchParams],
   );
   useEffect(() => {
     dispatch(getStudentDetailsRequest());
@@ -400,9 +416,15 @@ export const useApplicationWizard = () => {
   useEffect(() => {
     const stepFromUrl = searchParams.get('step') as WizardStep;
 
-    // 1. If we are on 'result', ignore the URL entirely.
-    // This stops the URL-sync logic from resetting the UI on the first click.
-    if (wizardStep === 'result') return;
+    if (wizardStep === 'result') {
+      if (stepFromUrl === 'job') {
+        setRateLimited(false);
+        setRateLimitMessage(null);
+        setIncompleteProfile(null);
+        setWizardStep('job');
+      }
+      return;
+    }
 
     if (jobsLoading) {
       setWizardStep('loading');
@@ -624,13 +646,16 @@ export const useApplicationWizard = () => {
     if (!slug) return;
     fetchJob();
   }, [searchParams]);
-  const [incompleteProfile, setIncompleteProfile] = useState<string | null>(
-    null,
-  );
+  // const [incompleteProfile, setIncompleteProfile] = useState<string | null>(
+  //   null,
+  // );
 
   const handleGenerate = useCallback(async () => {
     // 🔒 HARD GUARD (this is the fix)
     setIsLoading(true);
+    setRateLimited(false);
+    setRateLimitMessage(null);
+    setIncompleteProfile(null);
 
     if (!jobContext || !cvContext) {
       toast({
@@ -714,7 +739,7 @@ export const useApplicationWizard = () => {
       toast({
         title: 'Success!',
         description: appId
-          ? 'Your application is being generated. We\'ll notify you when it\'s ready.'
+          ? "Your application is being generated. We'll notify you when it's ready."
           : 'Your tailored documents are ready.',
       });
 
@@ -743,16 +768,12 @@ export const useApplicationWizard = () => {
       // }
       if (status === 429) {
         const errorMessage = error?.response?.data?.message || 'Limit reached';
-        console.log('hello');
-
+        // console.log('hello');
         setRateLimited(true);
         setRateLimitMessage(errorMessage);
-        setWizardStep('result');
-
-        // 2. Explicitly navigate with the result step
-        // Using a clean path as we discussed to handle the refresh issue
-        router.replace(pathname, { scroll: false });
-
+        //  setWizardStep('result');
+        navigateToStep('result');
+        // router.replace(pathname, { scroll: false });
         return;
       }
 
@@ -835,7 +856,10 @@ export const useApplicationWizard = () => {
         let htmlResume = '';
         let htmlCoverLetter = '';
 
-        let fetchedApp: { savedCVId?: string; savedCoverLetterId?: string } | null = null;
+        let fetchedApp: {
+          savedCVId?: string;
+          savedCoverLetterId?: string;
+        } | null = null;
         if (documentId) {
           const { data } = await apiInstance.get(
             `/students/tailored-application/${documentId}`,
@@ -918,7 +942,9 @@ export const useApplicationWizard = () => {
         });
       } catch (error: any) {
         const msg =
-          error?.response?.data?.message || error?.message || 'Failed to send email';
+          error?.response?.data?.message ||
+          error?.message ||
+          'Failed to send email';
         toast({
           variant: 'destructive',
           title: 'Send Failed',

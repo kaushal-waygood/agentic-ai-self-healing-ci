@@ -144,6 +144,64 @@ export async function spendCredits(userOrId, cost, kind = 'spend', meta = {}) {
   return addCredits(userOrId, -costNum, kind, meta);
 }
 
+export async function getAutopilotEntitlements(userOrId) {
+  const userId =
+    typeof userOrId === 'string' || userOrId instanceof mongoose.Types.ObjectId
+      ? userOrId
+      : userOrId?._id;
+
+  if (!userId) {
+    throw new Error('userOrId required');
+  }
+
+  const user = await User.findById(userId)
+    .select('usageLimits currentPurchase')
+    .populate({
+      path: 'currentPurchase',
+      select: 'billingVariant isActive endDate plan',
+      populate: { path: 'plan', select: 'planType' },
+    })
+    .lean();
+
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 404;
+    throw err;
+  }
+
+  const purchase = user.currentPurchase;
+  const now = new Date();
+  const hasActivePlan =
+    purchase &&
+    purchase.plan &&
+    (purchase.isActive === true || purchase.isActive === 'true') &&
+    new Date(purchase.endDate) > now;
+
+  const planType = hasActivePlan ? purchase.plan.planType : 'Free';
+  const billingPeriod = hasActivePlan
+    ? purchase.billingVariant?.period || null
+    : null;
+
+  const dailyJobLimit =
+    hasActivePlan && billingPeriod && billingPeriod !== 'Weekly' ? 12 : 5;
+
+  const configuredAgentLimit = Number(user.usageLimits?.aiAutoApply);
+  const maxAgents =
+    !hasActivePlan || planType === 'Free'
+      ? 1
+      : Number.isFinite(configuredAgentLimit) && configuredAgentLimit > 0
+        ? configuredAgentLimit
+        : Number.POSITIVE_INFINITY;
+
+  return {
+    planType,
+    billingPeriod,
+    dailyJobLimit,
+    maxAgents,
+    isFree: !hasActivePlan || planType === 'Free',
+  };
+}
+
 // ---------- transaction queries ----------
 function isSameCalendarDay(date1, date2, tz = CREDIT_TZ) {
   const d1 = dayjs(date1).tz(tz);

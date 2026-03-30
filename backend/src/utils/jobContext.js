@@ -1,4 +1,3 @@
-// src/utils/jobContext.js
 export const buildJobContextString = (job) => {
   if (!job) return '';
 
@@ -66,4 +65,3 @@ export const buildJobContextString = (job) => {
 
   return lines.join('\n');
 };
-  

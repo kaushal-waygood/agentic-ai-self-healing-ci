@@ -253,13 +253,8 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
-      <div className="xl:container mx-auto px-1">
-        {showFeedback && (
-          <OnboardingExperienceFeedback
-            onClose={() => setShowFeedback(false)}
-          />
-        )}
+    <div className="min-h-screen  pt-4">
+      <div className="border-b border-slate-200 mb-4">
         <SearchFilters
           initialFilters={filters}
           onSearchChange={handleFilterChange}
@@ -267,16 +262,24 @@ export default function JobsPage() {
         />
 
         <FilterPills filters={filters} onRemove={removeFilter} />
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6">
+      <div className="mx-auto max-w-[1500px] px-2 lg:px-4">
+        {showFeedback && (
+          <OnboardingExperienceFeedback
+            onClose={() => setShowFeedback(false)}
+          />
+        )}
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[390px_minmax(0,1fr)]">
           <div>
             <div
               ref={jobListRef}
-              className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto px-4 py-2 no-scrollbar"
+              className="no-scrollbar h-[calc(100vh-180px)] space-y-3 overflow-y-auto"
             >
               {/* Notification state */}
               {notification && !loading && (
-                <div className="flex flex-col items-center justify-center h-full p-6 bg-white rounded-lg border">
+                <div className="flex h-full flex-col items-center justify-center rounded-[24px] border border-slate-200 bg-white p-6">
                   <Frown className="w-12 h-12 text-gray-400 mb-4" />
                   <p className="text-gray-600 font-semibold">{notification}</p>
                 </div>
@@ -284,7 +287,7 @@ export default function JobsPage() {
 
               {/* 🚀 Active AI Processing State */}
               {loading && jobs.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-[calc(100vh-250px)] px-6 text-center animate-in fade-in zoom-in duration-500">
+                <div className="flex h-[calc(100vh-250px)] flex-col items-center justify-center px-6 text-center animate-in fade-in zoom-in duration-500">
                   <div className="relative mb-8">
                     {/* Outer spinning ring */}
                     <div className="w-20 h-20 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
@@ -302,18 +305,10 @@ export default function JobsPage() {
                       perfect match.
                     </p>
 
-                    <div className="flex flex-col gap-2 text-sm text-slate-500 bg-white/50 p-4 rounded-xl border border-purple-100">
+                    <div className="flex flex-col gap-2 rounded-2xl border border-sky-100 bg-white/80 p-4 text-sm text-slate-500">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                         <span>Searching 100+ job boards...</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-purple-400" />
-                        <span>Preparing to generate your 1-click CV & CL</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-400" />
-                        <span>Drafting personalized application emails</span>
                       </div>
                     </div>
                   </div>
@@ -322,7 +317,7 @@ export default function JobsPage() {
 
               {/* ❌ Left Side Search Prompt / No Results UI */}
               {!loading && !notification && jobs.length === 0 && (
-                <div className="flex flex-col items-center justify-center text-center p-10 bg-white rounded-xl border border-gray-100 shadow-sm animate-in fade-in duration-500">
+                <div className="animate-in fade-in flex flex-col items-center justify-center rounded-[24px] border border-slate-200 bg-white p-10 text-center shadow-sm duration-500">
                   {/* Visual Icon */}
                   <div className="relative mb-6">
                     <div className="absolute inset-0 bg-blue-100 rounded-full blur-xl opacity-50 scale-150"></div>
@@ -390,25 +385,71 @@ export default function JobsPage() {
           <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {isJobLoading ? (
-                <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                  <div className="w-12 h-12 border-4 border-slate-200 border-t-purple-500 rounded-full animate-spin mb-4" />
-                  <p className="text-slate-700 font-semibold">
-                    Analyzing Job Requirements
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Our AI is preparing your tailored CV and Cover Letter
-                    draft...
-                  </p>
+                <div className="p-6 md:p-8 w-full animate-pulse">
+                  {/* Header Section Skeleton */}
+                  <div className="flex flex-col md:flex-row gap-6 mb-8 items-start">
+                    {/* Company Logo Placeholder */}
+                    <div className="w-16 h-16 bg-slate-200 rounded-lg flex-shrink-0" />
+
+                    {/* Title and Metadata Placeholders */}
+                    <div className="flex-1 w-full space-y-4">
+                      {/* Job Title */}
+                      <div className="h-8 bg-slate-200 rounded-md w-3/4 md:w-1/2" />
+
+                      {/* Company & Location Info */}
+                      <div className="flex items-center gap-4">
+                        <div className="h-4 bg-slate-200 rounded w-32" />
+                        <div className="h-4 bg-slate-200 rounded w-24" />
+                        <div className="h-4 bg-slate-200 rounded w-24" />
+                      </div>
+
+                      {/* Action Buttons Placeholders */}
+                      <div className="flex flex-wrap items-center gap-3 pt-2">
+                        <div className="h-10 bg-slate-200 rounded-md w-36" />
+                        <div className="h-10 bg-slate-200 rounded-md w-32" />
+                        <div className="h-10 bg-slate-200 rounded-md w-28" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="h-px bg-slate-100 w-full mb-8" />
+
+                  {/* Description Section Skeleton */}
+                  <div className="space-y-6">
+                    {/* Section Heading ("Job Description") */}
+                    <div className="h-6 bg-slate-200 rounded w-40 mb-6" />
+
+                    {/* Paragraph Lines */}
+                    <div className="space-y-3">
+                      <div className="h-4 bg-slate-200 rounded w-full" />
+                      <div className="h-4 bg-slate-200 rounded w-full" />
+                      <div className="h-4 bg-slate-200 rounded w-5/6" />
+                    </div>
+
+                    {/* Sub-heading ("Key Responsibilities:") */}
+                    <div className="h-5 bg-slate-200 rounded w-48 mt-8 mb-4" />
+
+                    {/* Bullet Points */}
+                    <div className="space-y-4">
+                      {[1, 2, 3, 4, 5].map((item) => (
+                        <div key={item} className="flex gap-3 items-start">
+                          <div className="w-2 h-2 mt-1 bg-slate-200 rounded-full flex-shrink-0" />
+                          <div className="h-4 bg-slate-200 rounded w-3/4" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               ) : selectedJob ? (
                 <JobDetail job={selectedJob} />
               ) : (
                 /* --- NEW EMPTY STATE UI --- */
-                <div className="flex flex-col items-center justify-center h-full p-10 bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-2xl text-center relative overflow-hidden">
+                <div className="relative flex h-full flex-col items-center justify-center overflow-hidden rounded-[28px] border border-dashed border-slate-300 bg-white/70 p-10 text-center shadow-[0_20px_50px_rgba(15,23,42,0.07)] backdrop-blur">
                   {/* Floating Icon Composition */}
                   <div className="relative mb-8">
-                    <div className="w-24 h-24 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center relative z-10">
-                      <Briefcase className="w-10 h-10 text-blue-400" />
+                    <div className="relative z-10 flex h-24 w-24 items-center justify-center rounded-full border border-sky-100 bg-gradient-to-br from-white to-sky-50 shadow-sm">
+                      <Briefcase className="h-10 w-10 text-sky-500" />
                     </div>
                   </div>
 
@@ -425,17 +466,17 @@ export default function JobsPage() {
                   </p>
 
                   {/* App Feature Highlights (Fills empty space and builds excitement) */}
-                  <div className="flex flex-wrap justify-center gap-3 w-full max-w-md relative z-10">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full text-sm font-medium text-slate-600 border border-slate-200 shadow-sm hover:border-purple-200 transition-colors">
-                      <Sparkles className="w-4 h-4 text-amber-500" />
+                  <div className="relative z-10 flex w-full max-w-md flex-wrap justify-center gap-3">
+                    <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:border-sky-200">
+                      <Sparkles className="h-4 w-4 text-amber-500" />
                       AI Cover Letters
                     </div>
-                    <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full text-sm font-medium text-slate-600 border border-slate-200 shadow-sm hover:border-purple-200 transition-colors">
-                      <FileText className="w-4 h-4 text-blue-500" />
+                    <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:border-sky-200">
+                      <FileText className="h-4 w-4 text-sky-500" />
                       Tailored CVs
                     </div>
-                    <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full text-sm font-medium text-slate-600 border border-slate-200 shadow-sm hover:border-purple-200 transition-colors">
-                      <Target className="w-4 h-4 text-emerald-500" />
+                    <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:border-sky-200">
+                      <Target className="h-4 w-4 text-emerald-500" />
                       Smart Matching
                     </div>
                   </div>

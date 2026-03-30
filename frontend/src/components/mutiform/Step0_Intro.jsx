@@ -27,6 +27,7 @@ import {
 import apiInstance from '@/services/api';
 import {
   getAgentJobs,
+  replaceAgentJob,
   startAgentJobTailoredGeneration,
 } from '@/services/api/autopilot';
 import { toast } from '@/hooks/use-toast';
@@ -354,6 +355,47 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
     setIsActive(agent.isAgentActive);
   }, [agent.isAgentActive]);
 
+  const emptyJobsByDate = {
+    today: [],
+    yesterday: [],
+    lastWeek: [],
+    older: [],
+  };
+
+  const normalizeJobsPayload = (data = {}) => {
+    const list = data.jobs ?? [];
+    let byDate = data.byDate ?? emptyJobsByDate;
+    if (
+      list.length > 0 &&
+      !byDate.today?.length &&
+      !byDate.yesterday?.length &&
+      !byDate.lastWeek?.length &&
+      !byDate.older?.length
+    ) {
+      byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
+    }
+    return { list, byDate };
+  };
+
+  const updateJobCollections = (jobId, updater) => {
+    setJobs((prev) =>
+      prev.map((job) => {
+        const currentJobId = job._id || job.id;
+        return currentJobId === jobId ? updater(job) : job;
+      }),
+    );
+    setJobsByDate((prev) => {
+      const next = {};
+      for (const [key, list] of Object.entries(prev)) {
+        next[key] = list.map((job) => {
+          const currentJobId = job._id || job.id;
+          return currentJobId === jobId ? updater(job) : job;
+        });
+      }
+      return next;
+    });
+  };
+
   const handleToggleActive = async (e) => {
     e.stopPropagation();
     if (togglingActive) return;
@@ -386,62 +428,35 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
     setJobsError(null);
     getAgentJobs(id, 30, userFeedback)
       .then((res) => {
-        const data = res?.data?.data ?? {};
-        const list = data.jobs ?? [];
-        let byDate = data.byDate ?? {
-          today: [],
-          yesterday: [],
-          lastWeek: [],
-          older: [],
-        };
-        if (
-          list.length > 0 &&
-          !byDate.today?.length &&
-          !byDate.yesterday?.length &&
-          !byDate.lastWeek?.length &&
-          !byDate.older?.length
-        ) {
-          byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
-        }
+        const { list, byDate } = normalizeJobsPayload(res?.data?.data ?? {});
         setJobs(list);
         setJobsByDate(byDate);
       })
       .catch((err) => {
         setJobsError(err?.response?.data?.message || 'Failed to load jobs');
         setJobs([]);
-        setJobsByDate({ today: [], yesterday: [], lastWeek: [], older: [] });
+        setJobsByDate(emptyJobsByDate);
       })
       .finally(() => setJobsLoading(false));
   };
 
-  const handleFindAnotherJob = () => {
+  const handleFindAnotherJob = (jobId) => {
+    if (!id || !jobId) return;
     setFindingJobs(true);
-    toast({ title: 'Refreshing jobs…' });
-    getAgentJobs(id, 30)
+    toast({ title: 'Finding a better match…' });
+    replaceAgentJob(id, jobId, 30)
       .then((res) => {
         const data = res?.data?.data ?? {};
-        const list = data.jobs ?? [];
-        let byDate = data.byDate ?? {
-          today: [],
-          yesterday: [],
-          lastWeek: [],
-          older: [],
-        };
-        if (
-          list.length > 0 &&
-          !byDate.today?.length &&
-          !byDate.yesterday?.length &&
-          !byDate.lastWeek?.length &&
-          !byDate.older?.length
-        ) {
-          byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
-        }
+        const { list, byDate } = normalizeJobsPayload(data);
         setJobs(list);
         setJobsByDate(byDate);
+        toast({
+          title: data.replacementFound ? 'Replacement found' : 'Job removed',
+        });
       })
       .catch((err) => {
         setJobsError(err?.response?.data?.message || 'Failed to load jobs');
-        toast({ variant: 'destructive', title: 'Failed to find jobs' });
+        toast({ variant: 'destructive', title: 'Failed to replace job' });
       })
       .finally(() => setFindingJobs(false));
   };
@@ -451,23 +466,52 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
     fetchJobs();
   }, [expanded, id]);
 
+  useEffect(() => {
+    if (!expanded) return;
+    const hasPendingTailored = jobs.some((job) => job.tailoredStatus === 'pending');
+    if (!hasPendingTailored) return;
+    const timer = setInterval(() => {
+      fetchJobs();
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [expanded, jobs, id]);
+
   const handleGenerateDocs = async (jobId) => {
     if (!id || !jobId) return;
     setGeneratingJobIds((prev) => new Set(prev).add(jobId));
     try {
-      await startAgentJobTailoredGeneration(id, jobId);
+      const response = await startAgentJobTailoredGeneration(id, jobId);
+      const data = response?.data?.data ?? {};
+      updateJobCollections(jobId, (job) => ({
+        ...job,
+        tailoredStatus: data.tailoredStatus || 'pending',
+        tailoredGenerated: !!data.tailoredGenerated,
+        tailoredApplicationId: data.applicationId || job.tailoredApplicationId,
+        tailoredViewUrl: data.tailoredViewUrl || job.tailoredViewUrl,
+      }));
       toast({
-        title: 'Tailored docs generation started',
-        description: 'You will be notified when ready.',
+        title: data.tailoredGenerated
+          ? 'Tailored docs ready'
+          : 'Tailored docs generation started',
+        description: data.tailoredGenerated
+          ? 'Opening your generated documents.'
+          : 'You will be notified when ready.',
         action: (
           <ToastAction
             altText="View in My Docs"
-            onClick={() => router.push('/dashboard/my-docs?tab=applications')}
+            onClick={() =>
+              router.push(
+                data.tailoredViewUrl || '/dashboard/my-docs?tab=applications',
+              )
+            }
           >
-            View in My Docs
+            View docs
           </ToastAction>
         ),
       });
+      if (data.tailoredGenerated && data.tailoredViewUrl) {
+        router.push(data.tailoredViewUrl);
+      }
     } catch (err) {
       const msg = err?.response?.data?.message || 'Failed to start generation';
       toast({ variant: 'destructive', title: 'Error', description: msg });
@@ -491,6 +535,36 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
     if (parts.length > 0) return parts.join(', ');
     if (job?.remote) return 'Remote';
     return 'Location N/A';
+  };
+
+  const formatPostedDate = (job) => {
+    if (job?.jobPosted) return job.jobPosted;
+
+    if (job?.jobPostedAt) {
+      const postedAt = new Date(job.jobPostedAt);
+      if (!Number.isNaN(postedAt.getTime())) {
+        return postedAt.toLocaleDateString('en-US', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        });
+      }
+    }
+
+    return 'Date not available';
+  };
+
+  const formatFoundDate = (job) => {
+    if (!job?.foundAt) return 'Found date not available';
+
+    const foundAt = new Date(job.foundAt);
+    if (Number.isNaN(foundAt.getTime())) return 'Found date not available';
+
+    return foundAt.toLocaleDateString('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
   };
 
   const parsedKeywords = (() => {
@@ -758,6 +832,10 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
                       {list.map((job) => {
                         const jobId = job._id || job.id;
                         const isGenerating = generatingJobIds.has(jobId);
+                        const isTailoredReady = !!job.tailoredGenerated;
+                        const isTailoring =
+                          !isTailoredReady &&
+                          (job.tailoredStatus === 'pending' || isGenerating);
                         return (
                           <li
                             key={jobId}
@@ -774,7 +852,7 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
                               <p className="font-semibold text-sm text-gray-800 truncate group-hover/job:text-purple-700 transition-colors">
                                 {job.title}
                               </p>
-                              <div className="flex items-center gap-3 mt-0.5">
+                              <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                                 <span className="flex items-center gap-1 text-xs text-gray-400">
                                   <Building2 className="w-3 h-3" />
                                   <span className="truncate max-w-[120px]">
@@ -784,6 +862,17 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
                                 <span className="flex items-center gap-1 text-xs text-gray-400">
                                   <MapPin className="w-3 h-3" />
                                   {formatLocation(job)}
+                                </span>
+                                <span className="flex items-center gap-1 text-xs text-gray-400">
+                                  <Clock className="w-3 h-3" />
+                                  {formatPostedDate(job)}
+                                </span>
+                                <span className="text-xs text-gray-300">|</span>
+                                <span className="flex items-center gap-1 text-xs text-gray-400">
+                                  <span className="font-medium text-gray-500">
+                                    Found:
+                                  </span>
+                                  {formatFoundDate(job)}
                                 </span>
                               </div>
                             </Link>
@@ -796,7 +885,12 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
                               {job.tailoredGenerated ? (
                                 <span className="flex items-center gap-1 text-[10px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-1 rounded-lg">
                                   <CheckCircle2 className="w-3 h-3" />
-                                  Tailored
+                                  Tailored ready
+                                </span>
+                              ) : isTailoring ? (
+                                <span className="flex items-center gap-1 text-[10px] font-semibold bg-blue-50 text-blue-600 border border-blue-100 px-2 py-1 rounded-lg">
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  Generating
                                 </span>
                               ) : (
                                 <span className="text-[10px] font-semibold bg-amber-50 text-amber-600 border border-amber-100 px-2 py-1 rounded-lg">
@@ -808,7 +902,7 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleFindAnotherJob();
+                                  handleFindAnotherJob(jobId);
                                 }}
                                 disabled={findingJobs || jobsLoading}
                                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200 transition-all disabled:opacity-50"
@@ -821,27 +915,40 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
                                 Find other
                               </button>
 
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleGenerateDocs(jobId);
-                                }}
-                                disabled={isGenerating}
-                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm shadow-purple-200"
-                              >
-                                {isGenerating ? (
-                                  <>
-                                    <Loader2 className="w-3 h-3 animate-spin" />{' '}
-                                    Generating…
-                                  </>
-                                ) : (
-                                  <>
-                                    <FileText className="w-3 h-3" /> Generate
-                                    Tailored
-                                  </>
-                                )}
-                              </button>
+                              {isTailoredReady && job.tailoredViewUrl ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(job.tailoredViewUrl);
+                                  }}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-200"
+                                >
+                                  <FileText className="w-3 h-3" /> View docs
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGenerateDocs(jobId);
+                                  }}
+                                  disabled={isTailoring}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm shadow-purple-200"
+                                >
+                                  {isTailoring ? (
+                                    <>
+                                      <Loader2 className="w-3 h-3 animate-spin" />{' '}
+                                      Generating…
+                                    </>
+                                  ) : (
+                                    <>
+                                      <FileText className="w-3 h-3" /> Generate
+                                      Tailored
+                                    </>
+                                  )}
+                                </button>
+                              )}
                             </div>
                           </li>
                         );

@@ -11,10 +11,9 @@ import {
   X,
   Search,
 } from 'lucide-react';
-import { toast, useToast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DocumentCard } from './DocumentCard';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import {
@@ -22,7 +21,6 @@ import {
   deleteSavedResumeRequest,
   fetchGeneratedCLsRequest,
   fetchGeneratedCVsRequest,
-  fetchTailoredApplicationsRequest,
   getDocumentCountsRequest,
   renameSavedCoverLetterRequest,
   renameSavedResumeRequest,
@@ -33,6 +31,8 @@ import { useDispatch } from 'react-redux';
 import { Loader } from '@/components/Loader';
 import { DocumentSection } from './DocumentSection';
 import { StatCard } from './StatusCard';
+import { fetchTailoredApps } from '@/services/api/ai';
+import { DocumentCard } from './DocumentCard';
 
 interface CV {
   _id: string;
@@ -73,6 +73,13 @@ interface TailoredApplication {
   completedAt?: string;
 }
 
+interface ApplicationPagination {
+  totalApplications: number;
+  hasNextPage: boolean;
+}
+
+const APPLICATIONS_PAGE_SIZE = 10;
+
 export default function DocumentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -89,15 +96,16 @@ export default function DocumentsPage() {
   const [cvs, setCvs] = useState<CV[]>([]);
   const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
   const [applications, setApplications] = useState<TailoredApplication[]>([]);
+  const [applicationsPage, setApplicationsPage] = useState(1);
+  const [applicationsPagination, setApplicationsPagination] =
+    useState<ApplicationPagination | null>(null);
+  const [isLoadingMoreApplications, setIsLoadingMoreApplications] =
+    useState(false);
 
   const dispatch = useDispatch();
-  const {
-    documentCounts,
-    loading,
-    generatedCVs,
-    generatedCLs,
-    tailoredApplications,
-  } = useSelector((state: RootState) => state.ai);
+  const { documentCounts, generatedCVs, generatedCLs } = useSelector(
+    (state: RootState) => state.ai,
+  );
 
   useEffect(() => {
     dispatch(getDocumentCountsRequest());
@@ -120,6 +128,7 @@ export default function DocumentsPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     params.set('tab', activeTab);
+    params.delete('page');
     router.replace(`${window.location.pathname}?${params.toString()}`);
   }, [activeTab, router]);
 
@@ -133,7 +142,8 @@ export default function DocumentsPage() {
         } else if (activeTab === 'cover-letters') {
           await fetchCoverLetters();
         } else if (activeTab === 'applications') {
-          await fetchApplications();
+          setApplicationsPage(1);
+          await fetchApplications(1, false);
         }
       } catch (error) {
         console.error('Failed to fetch tab data:', error);
@@ -148,8 +158,7 @@ export default function DocumentsPage() {
   useEffect(() => {
     if (generatedCVs) setCvs(generatedCVs || []);
     if (generatedCLs) setCoverLetters(generatedCLs || []);
-    if (tailoredApplications) setApplications(tailoredApplications || []);
-  }, [generatedCVs, generatedCLs, tailoredApplications]);
+  }, [generatedCVs, generatedCLs]);
 
   // Api calls
 
@@ -171,9 +180,29 @@ export default function DocumentsPage() {
     }
   };
 
-  const fetchApplications = async () => {
+  const fetchApplications = async (page = 1, append = false) => {
     try {
-      dispatch(fetchTailoredApplicationsRequest());
+      const response = await fetchTailoredApps({
+        page,
+        limit: APPLICATIONS_PAGE_SIZE,
+      });
+
+      const nextApplications = response.data.tailoredApplications || [];
+      setApplications((prev) => {
+        if (!append) return nextApplications;
+
+        const merged = [...prev, ...nextApplications];
+        return Array.from(
+          new Map(merged.map((item) => [item._id, item])).values(),
+        );
+      });
+      setApplicationsPagination(
+        response.data.pagination || {
+          totalApplications: response.data.tailoredApplications?.length || 0,
+          hasNextPage: false,
+        },
+      );
+      setApplicationsPage(page);
     } catch (error) {
       console.error('Failed to fetch applications:', error);
       throw error;
@@ -353,7 +382,22 @@ export default function DocumentsPage() {
     try {
       await apiInstance.delete(`/students/tailored-applications/${appId}`);
       toast({ title: 'Success', description: 'Application deleted' });
-      fetchApplications();
+      const loadedPages = Math.max(applicationsPage, 1);
+      const refreshLimit = loadedPages * APPLICATIONS_PAGE_SIZE;
+      const response = await fetchTailoredApps({
+        page: 1,
+        limit: refreshLimit,
+      });
+      setApplications(response.data.tailoredApplications || []);
+      setApplicationsPagination({
+        totalApplications:
+          response.data.pagination?.totalApplications ||
+          response.data.tailoredApplications?.length ||
+          0,
+        hasNextPage:
+          response.data.pagination?.hasNextPage ||
+          (response.data.tailoredApplications?.length || 0) < refreshLimit,
+      });
       dispatch(getDocumentCountsRequest());
     } catch {
       toast({
@@ -469,6 +513,19 @@ export default function DocumentsPage() {
     }
   };
 
+  const handleLoadMoreApplications = async () => {
+    if (!applicationsPagination?.hasNextPage || isLoadingMoreApplications) {
+      return;
+    }
+
+    setIsLoadingMoreApplications(true);
+    try {
+      await fetchApplications(applicationsPage + 1, true);
+    } finally {
+      setIsLoadingMoreApplications(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="p-4 sm:p-6 max-w-7xl mx-auto">
@@ -556,19 +613,24 @@ export default function DocumentsPage() {
               )}
 
               {activeTab === 'applications' && (
-                <DocumentSection
-                  title="Tailored Applications"
-                  items={applications}
-                  documentCounts={documentCounts}
-                  onDelete={deleteApplication}
-                  onCopy={copyToClipboard}
-                  onDownload={downloadAsFile}
-                  copiedId={copiedId}
-                  getStatusIcon={getStatusIcon}
-                  getStatusColor={getStatusColor}
-                  formatDate={formatDate}
-                  type="application"
-                />
+                <>
+                  <DocumentSection
+                    title="Tailored Applications"
+                    items={applications}
+                    documentCounts={documentCounts}
+                    onDelete={deleteApplication}
+                    onCopy={copyToClipboard}
+                    onDownload={downloadAsFile}
+                    copiedId={copiedId}
+                    getStatusIcon={getStatusIcon}
+                    getStatusColor={getStatusColor}
+                    formatDate={formatDate}
+                    type="application"
+                    hasMore={applicationsPagination?.hasNextPage}
+                    isLoadingMore={isLoadingMoreApplications}
+                    onLoadMore={handleLoadMoreApplications}
+                  />
+                </>
               )}
             </>
           )}
@@ -695,6 +757,9 @@ const DocumentSection = ({
   getStatusColor,
   formatDate,
   type,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
 }: any) => {
   const [visibleCount, setVisibleCount] = useState(10);
   const dispatch = useDispatch();
@@ -1010,32 +1075,45 @@ const DocumentSection = ({
         // This shows the filtered results
         <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
           {/* 5. Map over the filtered list */}
-          {filteredItems
-            .slice(0, visibleCount)
-            .map((item: any, index: number) => (
-              <DocumentCard
-                key={item._id}
-                index={index + 1}
-                item={item}
-                type={type}
-                onDelete={onDelete}
-                onDeleteSaved={onDeleteSaved}
-                onRenameSaved={onRenameSaved}
-                onRename={handleRenameDocument}
-                onCopy={onCopy}
-                onDownload={onDownload}
-                copiedId={copiedId}
-                getStatusIcon={getStatusIcon}
-                getStatusColor={getStatusColor}
-                formatDate={formatDate}
-                docState={docState}
-              />
-            ))}
+          {(type === 'application'
+            ? filteredItems
+            : filteredItems.slice(0, visibleCount)
+          ).map((item: any, index: number) => (
+            <DocumentCard
+              key={item._id}
+              index={index + 1}
+              item={item}
+              type={type}
+              onDelete={onDelete}
+              onDeleteSaved={onDeleteSaved}
+              onRenameSaved={onRenameSaved}
+              onRename={handleRenameDocument}
+              onCopy={onCopy}
+              onDownload={onDownload}
+              copiedId={copiedId}
+              getStatusIcon={getStatusIcon}
+              getStatusColor={getStatusColor}
+              formatDate={formatDate}
+              docState={docState}
+            />
+          ))}
         </div>
       )}
 
       {/* Show "See More" only if not all items are visible */}
-      {visibleCount < filteredItems?.length && (
+      {type === 'application' && hasMore && (
+        <div className="text-center mt-4">
+          <button
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isLoadingMore ? 'Loading...' : 'See More'}
+          </button>
+        </div>
+      )}
+
+      {type !== 'application' && visibleCount < filteredItems?.length && (
         <div className="text-center mt-4">
           <button
             onClick={() => setVisibleCount(visibleCount + 10)}

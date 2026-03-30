@@ -77,8 +77,6 @@ export default function ViewAllBlogs() {
 
   const totalPages = blogPaginator?.pageCount || 1;
 
-  console.log('blog details ', blogListdata);
-
   return (
     <div className="min-h-screen bg-[#fafafa] selection:bg-indigo-100 selection:text-indigo-700">
       {/* BACKGROUND DECORATION */}

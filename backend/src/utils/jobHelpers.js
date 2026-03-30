@@ -72,8 +72,186 @@ const EMPLOYMENT_TYPE_MAP = {
   FREELANCE: 'CONTRACTOR', // JSearch doesn't have freelance, so map to contractor
 };
 
+const EXPERIENCE_LEVEL_RANGES = {
+  FRESHER: { min: 0, max: 0.25 },
+  ZERO_TO_ONE: { min: 0, max: 1 },
+  ONE_TO_THREE: { min: 1, max: 3 },
+  THREE_TO_FIVE: { min: 3, max: 5 },
+  FIVE_TO_SEVEN: { min: 5, max: 7 },
+  SEVEN_TO_TEN: { min: 7, max: 10 },
+  TEN_PLUS: { min: 10, max: Infinity },
+};
+
+function normalizeExperienceLevelValue(value) {
+  if (!value || typeof value !== 'string') return null;
+
+  const cleaned = value
+    .replace(/[–—]/g, '-')
+    .replace(/\s*\+\s*/g, '+')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+  if (
+    cleaned === 'fresher' ||
+    cleaned === 'freshers' ||
+    cleaned === 'entry level' ||
+    cleaned === 'entry-level'
+  ) {
+    return 'FRESHER';
+  }
+
+  if (/^0\s*-\s*1\s*years?$/.test(cleaned) || /^0\s*to\s*1\s*years?$/.test(cleaned)) {
+    return 'ZERO_TO_ONE';
+  }
+
+  if (/^1\s*-\s*3\s*years?$/.test(cleaned) || /^1\s*to\s*3\s*years?$/.test(cleaned)) {
+    return 'ONE_TO_THREE';
+  }
+
+  if (/^3\s*-\s*5\s*years?$/.test(cleaned) || /^3\s*to\s*5\s*years?$/.test(cleaned)) {
+    return 'THREE_TO_FIVE';
+  }
+
+  if (/^5\s*-\s*7\s*years?$/.test(cleaned) || /^5\s*to\s*7\s*years?$/.test(cleaned)) {
+    return 'FIVE_TO_SEVEN';
+  }
+
+  if (/^7\s*-\s*10\s*years?$/.test(cleaned) || /^7\s*to\s*10\s*years?$/.test(cleaned)) {
+    return 'SEVEN_TO_TEN';
+  }
+
+  if (/^10\+\s*years?$/.test(cleaned) || /^10\s*or\s*more\s*years?$/.test(cleaned)) {
+    return 'TEN_PLUS';
+  }
+
+  return null;
+}
+
+function normalizeExperienceFilters(experience) {
+  if (!experience) return [];
+
+  const rawValues = Array.isArray(experience)
+    ? experience
+    : String(experience)
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+  return Array.from(
+    new Set(rawValues.map(normalizeExperienceLevelValue).filter(Boolean)),
+  );
+}
+
+function experienceValueToYears(value, unit) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return null;
+  return /month|mo\b/i.test(unit) ? num / 12 : num;
+}
+
+function pushExperienceRange(ranges, min, max) {
+  if (!Number.isFinite(min) || min < 0) return;
+
+  const normalizedMax =
+    max === Infinity ? Infinity : Number.isFinite(max) ? Math.max(min, max) : min;
+
+  ranges.push({ min, max: normalizedMax });
+}
+
+function extractExperienceRangesFromText(text = '') {
+  if (!text) return [];
+
+  const ranges = [];
+  const normalizedText = String(text).replace(/[–—]/g, '-').toLowerCase();
+
+  if (
+    /\b(no experience|fresher(?:s)?|entry[\s-]?level|recent graduate|graduate trainee)\b/.test(
+      normalizedText,
+    )
+  ) {
+    pushExperienceRange(ranges, 0, 0.25);
+  }
+
+  const rangePattern =
+    /(\d+(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:\.\d+)?)\s*(years?|yrs?|year|yr|months?|mos?|month)\b/g;
+  let match;
+  while ((match = rangePattern.exec(normalizedText)) !== null) {
+    const min = experienceValueToYears(match[1], match[3]);
+    const max = experienceValueToYears(match[2], match[3]);
+    if (min !== null && max !== null) {
+      pushExperienceRange(ranges, min, max);
+    }
+  }
+
+  const exactOrMinimumPattern =
+    /\b(minimum|min\.?|at least|over|more than)?\s*(\d+(?:\.\d+)?)\s*(\+)?\s*(years?|yrs?|year|yr|months?|mos?|month)\b/g;
+  while ((match = exactOrMinimumPattern.exec(normalizedText)) !== null) {
+    const years = experienceValueToYears(match[2], match[4]);
+    if (years === null) continue;
+
+    const isLowerBound = Boolean(match[1] || match[3]);
+    pushExperienceRange(ranges, years, isLowerBound ? Infinity : years);
+  }
+
+  return ranges;
+}
+
+function extractJobExperienceRanges(job) {
+  const textParts = [];
+
+  if (Array.isArray(job?.experience)) {
+    textParts.push(...job.experience);
+  } else if (typeof job?.experience === 'string') {
+    textParts.push(job.experience);
+  }
+
+  if (Array.isArray(job?.qualifications)) {
+    textParts.push(...job.qualifications);
+  }
+
+  if (typeof job?.description === 'string') {
+    textParts.push(job.description);
+  }
+
+  const ranges = textParts.flatMap((part) => extractExperienceRangesFromText(part));
+
+  if (ranges.length > 0) return ranges;
+
+  const heuristicBlob = `${job?.title || ''} ${job?.description || ''}`.toLowerCase();
+  if (/\b(fresher(?:s)?|entry[\s-]?level|trainee|graduate)\b/.test(heuristicBlob)) {
+    return [{ min: 0, max: 0.25 }];
+  }
+
+  return [];
+}
+
+function rangesOverlap(a, b) {
+  const aMax = a.max ?? a.min;
+  const bMax = b.max ?? b.min;
+  return a.min <= bMax && b.min <= aMax;
+}
+
+function matchesExperienceFilter(job, experience) {
+  const selectedLevels = normalizeExperienceFilters(experience);
+  if (!selectedLevels.length) return true;
+
+  const selectedRanges = selectedLevels.map((level) => EXPERIENCE_LEVEL_RANGES[level]);
+  const jobRanges = extractJobExperienceRanges(job);
+
+  if (!jobRanges.length) return false;
+
+  return jobRanges.some((jobRange) =>
+    selectedRanges.some((selectedRange) => rangesOverlap(jobRange, selectedRange)),
+  );
+}
+
 function freshnessScore(date, halfLifeDays = 14) {
-  const ageDays = (Date.now() - new Date(date)) / 86400000;
+  const timestamp = new Date(date).getTime();
+  if (!Number.isFinite(timestamp)) return 0;
+
+  const ageDays = (Date.now() - timestamp) / 86400000;
+  if (!Number.isFinite(ageDays)) return 0;
+
   return Math.pow(0.5, ageDays / halfLifeDays);
 }
 
@@ -588,6 +766,7 @@ export async function fetchExternalJobs(
 
       const response = await axios.get(config.rapidJobApi, {
         params,
+        timeout: 8000,
         headers: {
           'X-RapidAPI-Key': config.rapidApiKey,
           'X-RapidAPI-Host': config.rapidApiHost,
@@ -616,7 +795,8 @@ export async function fetchExternalJobs(
 // --------------------
 
 export function applyFilters(jobs, context) {
-  const { country, state, city, employmentType } = context.filters || {};
+  const { country, state, city, employmentType, experience } =
+    context.filters || {};
   const interactions = context.interactions || {
     applied: new Set(),
     saved: new Set(),
@@ -720,6 +900,8 @@ export function applyFilters(jobs, context) {
 
       if (!typeMatch) return false;
     }
+
+    if (!matchesExperienceFilter(job, experience)) return false;
 
     // --- Existing location filters (unchanged) ---
     const jLoc = job.location || {};
@@ -831,7 +1013,13 @@ export async function buildSearchContext(req) {
     type: 'search',
     // query: req.query.q?.toLowerCase().trim() || '',
     query: rawQuery.toLowerCase().trim() || '',
-    filters: { country, state, city, employmentType: req.query.employmentType },
+    filters: {
+      country,
+      state,
+      city,
+      employmentType: req.query.employmentType,
+      experience: req.query.experience,
+    },
     userId: req.user?._id,
     interactions,
   };
@@ -903,10 +1091,13 @@ export async function retrieveCandidates(context, limit = 300) {
         transformRapidApiJob(j, context.query),
       );
 
-      // NON-BLOCKING DB WRITE
-      upsertExternalJobs(formatted).catch((e) =>
-        console.error('retrieveCandidates Upsert Error:', e.message),
-      );
+      // BLOCKING DB WRITE required to ensure `_id` and `slug` are populated
+      // before returning jobs to the caller (e.g. Autopilot, frontend).
+      try {
+        await upsertExternalJobs(formatted);
+      } catch (e) {
+        console.error('retrieveCandidates Upsert Error:', e.message);
+      }
 
       const validExternal = applyFilters(formatted, context);
 
@@ -1215,14 +1406,25 @@ export async function fetchExternalDeep({
   country,
   state,
   city,
+  employmentType,
   minRequired = 1500,
   maxPages = 30,
 }) {
   const pagePromises = [];
+  const normalizedEmploymentType = normalizeEmploymentTypeForApi(employmentType);
 
   for (let page = 1; page <= maxPages; page++) {
     pagePromises.push(
-      fetchExternalJobs(apiTerm, country, state, city, null, null, null, page),
+      fetchExternalJobs(
+        apiTerm,
+        country,
+        state,
+        city,
+        null,
+        normalizedEmploymentType,
+        null,
+        page,
+      ),
     );
   }
 

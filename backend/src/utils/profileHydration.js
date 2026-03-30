@@ -1,4 +1,5 @@
 // src/utils/profileHydration.js
+
 const norm = (s) => (s ? String(s).trim() : s);
 const lower = (s) => (s ? String(s).trim().toLowerCase() : s);
 
@@ -15,14 +16,123 @@ const EMPLOYMENT_TYPE_MAP = new Map([
 ]);
 
 const COUNTRY_ALIAS = new Map([
+  // USA
   ['usa', 'US'],
   ['united states', 'US'],
+  ['united states of america', 'US'],
   ['u.s.', 'US'],
   ['u.s.a', 'US'],
+  ['u.s.a.', 'US'],
+
+  // Common countries agents will actually use
+  ['india', 'IN'],
+  ['uk', 'GB'],
+  ['united kingdom', 'GB'],
+  ['england', 'GB'],
+  ['britain', 'GB'],
+  ['great britain', 'GB'],
+  ['canada', 'CA'],
+  ['australia', 'AU'],
+  ['germany', 'DE'],
+  ['france', 'FR'],
+  ['netherlands', 'NL'],
+  ['holland', 'NL'],
+  ['singapore', 'SG'],
+  ['uae', 'AE'],
+  ['united arab emirates', 'AE'],
+  ['dubai', 'AE'],
+  ['new zealand', 'NZ'],
+  ['ireland', 'IE'],
+  ['pakistan', 'PK'],
+  ['bangladesh', 'BD'],
+  ['sri lanka', 'LK'],
+  ['south africa', 'ZA'],
+  ['nigeria', 'NG'],
+  ['kenya', 'KE'],
+  ['japan', 'JP'],
+  ['china', 'CN'],
+  ['hong kong', 'HK'],
+  ['brazil', 'BR'],
+  ['mexico', 'MX'],
+  ['sweden', 'SE'],
+  ['norway', 'NO'],
+  ['denmark', 'DK'],
+  ['switzerland', 'CH'],
+  ['italy', 'IT'],
+  ['spain', 'ES'],
+  ['portugal', 'PT'],
+  ['poland', 'PL'],
+  ['israel', 'IL'],
+  ['malaysia', 'MY'],
+  ['philippines', 'PH'],
+  ['indonesia', 'ID'],
 ]);
 
-const sanitizeEmploymentType = (et) => {
+const ISO2 = new Set([
+  'US',
+  'GB',
+  'IN',
+  'CA',
+  'AU',
+  'DE',
+  'FR',
+  'NL',
+  'SG',
+  'AE',
+  'NZ',
+  'IE',
+  'PK',
+  'BD',
+  'LK',
+  'ZA',
+  'NG',
+  'KE',
+  'JP',
+  'CN',
+  'HK',
+  'BR',
+  'MX',
+  'SE',
+  'NO',
+  'DK',
+  'CH',
+  'IT',
+  'ES',
+  'PT',
+  'PL',
+  'IL',
+  'MY',
+  'PH',
+  'ID',
+  'BE',
+  'AT',
+  'FI',
+  'CZ',
+  'RO',
+  'HU',
+  'GR',
+  'TR',
+  'SA',
+  'QA',
+  'KW',
+  'BH',
+  'OM',
+  'EG',
+  'TH',
+  'VN',
+]);
+
+// Exported so getRecommendedJobs.js can sanitize agentConfig.employmentType
+// before it enters applyFilters. Handles strings, arrays, and legacy formats.
+export const sanitizeEmploymentType = (et) => {
   if (!et) return null;
+
+  // Handle arrays recursively — ["full-time", "part-time"] → "FULL_TIME,PART_TIME"
+  if (Array.isArray(et)) {
+    const results = et.map(sanitizeEmploymentType).filter(Boolean);
+    return results.length ? results.join(',') : null;
+  }
+
   const raw = lower(et);
   return EMPLOYMENT_TYPE_MAP.get(raw) || String(et).toUpperCase();
 };
@@ -33,10 +143,17 @@ const sanitizePreferredJobTypes = (arr) => {
   return Array.from(new Set(out));
 };
 
-const sanitizeCountry = (c) => {
+export const sanitizeCountry = (c) => {
   if (!c) return c;
-  const k = lower(c);
-  return COUNTRY_ALIAS.get(k) || c;
+  const trimmed = String(c).trim();
+  const upper = trimmed.toUpperCase();
+
+  // Already a valid ISO-2 code — return immediately
+  if (ISO2.has(upper)) return upper;
+
+  // Look up full name / common alias
+  const k = trimmed.toLowerCase();
+  return COUNTRY_ALIAS.get(k) || upper;
 };
 
 const uniqBy = (arr, key) => {
@@ -72,12 +189,18 @@ export function buildEffectiveStudentProfile(student, agent) {
   const preferredJobTypes = sanitizePreferredJobTypes(
     student?.jobPreferences?.preferredJobTypes,
   );
-  const agentType = sanitizeEmploymentType(agent?.employmentType);
-  if (agentType) preferredJobTypes.push(agentType);
+
+  // Spread sanitized agent types so arrays like ["full-time","part-time"]
+  // each become their own canonical entry rather than one joined string
+  const agentTypes = agent?.employmentType
+    ? sanitizeEmploymentType(agent.employmentType)?.split(',').filter(Boolean)
+    : [];
+  agentTypes.forEach((t) => preferredJobTypes.push(t));
 
   const preferredCountries = (
     student?.jobPreferences?.preferredCountries || []
   ).map(sanitizeCountry);
+
   const agentCountry = sanitizeCountry(agent?.country);
   if (agentCountry && !preferredCountries.includes(agentCountry)) {
     preferredCountries.push(agentCountry);

@@ -1,3 +1,5 @@
+// src/utils/getRecommendedJobs.js
+
 import mongoose from 'mongoose';
 import { Student } from '../models/students/student.model.js';
 import {
@@ -7,8 +9,11 @@ import {
   normalizeSet,
   buildInteractionContext,
 } from './jobHelpers.js';
+import { sanitizeCountry, sanitizeEmploymentType } from './profileHydration.js';
 
 const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+const shouldDebugJobs = () =>
+  process.env.DEBUG_JOBS === '1' || process.env.DEBUG_AUTOPILOT === '1';
 
 function extractProfileFromStudent(student) {
   const titles = new Set();
@@ -61,15 +66,31 @@ function buildRecommendationContext(
   const query = buildSearchQuery(studentProfile, agentConfig, queryOverride);
 
   const filters = {};
-  const country =
+
+  // ── Country ──────────────────────────────────────────────────────────────
+  // sanitizeCountry already returns uppercase ISO-2 in every code path,
+  // so no extra .toUpperCase() needed. Guard with a truthiness check so the
+  // key is never set to undefined (which some filter impls treat differently
+  // from the key being absent).
+  const rawCountry =
     agentConfig?.country ||
     studentProfile?.jobPreferences?.preferredCountries?.[0];
-  if (country) filters.country = String(country).toUpperCase().trim();
+  if (rawCountry) {
+    const normalizedCountry = sanitizeCountry(String(rawCountry).trim());
+    if (normalizedCountry) filters.country = normalizedCountry;
+  }
+
   if (agentConfig?.state) filters.state = String(agentConfig.state).trim();
   if (agentConfig?.city) filters.city = String(agentConfig.city).trim();
-  if (agentConfig?.employmentType)
-    filters.employmentType = agentConfig.employmentType;
-  else if (studentProfile?.jobPreferences?.preferredJobTypes?.length) {
+
+  // ── Employment type ───────────────────────────────────────────────────────
+  // Always run through sanitizeEmploymentType so arrays, mixed-case strings,
+  // and legacy "full-time" values all normalise to "FULL_TIME" / "PART_TIME"
+  // before reaching applyFilters.
+  if (agentConfig?.employmentType) {
+    const sanitized = sanitizeEmploymentType(agentConfig.employmentType);
+    if (sanitized) filters.employmentType = sanitized;
+  } else if (studentProfile?.jobPreferences?.preferredJobTypes?.length) {
     filters.employmentType =
       studentProfile.jobPreferences.preferredJobTypes.join(',');
   }
@@ -100,6 +121,8 @@ export const getRecommendedJobs = async ({
   skipExternalFetch = false,
   includeAppliedInResults = false,
   queryOverride,
+  skipCacheForAgent = false,
+  skipQueryOverrideFallback = false,
 }) => {
   const student = studentProfile || (await Student.findById(studentId).lean());
   if (!student) throw new Error('Student not found');
@@ -114,11 +137,18 @@ export const getRecommendedJobs = async ({
   );
   context.skipExternalFetch = skipExternalFetch;
   context.includeAppliedInResults = includeAppliedInResults;
-  context.skipCacheForAgent = includeAppliedInResults;
+  // ── Fix: use the passed-in value, not includeAppliedInResults ────────────
+  context.skipCacheForAgent = skipCacheForAgent;
 
+  // ── Fix: additive override — keeps existing profile titles and skills ─────
+  // Previously this replaced context.profile.titles with [queryOverride] only,
+  // stripping all skill-based ranking signals from the student profile.
   if (queryOverride) {
     context.query = queryOverride;
-    context.profile.titles = normalizeSet([queryOverride]);
+    context.profile.titles = normalizeSet([
+      queryOverride,
+      ...context.profile.titles,
+    ]);
   }
 
   // Merge JobInteraction-based applied/saved if available (e.g. from dashboard)
@@ -148,9 +178,37 @@ export const getRecommendedJobs = async ({
     filterContext = relaxedContext;
   }
 
-  let filtered = applyFilters(candidates, filterContext);
+  const strictFiltered = applyFilters(candidates, filterContext);
+  let filtered = strictFiltered;
 
-  // Remote filter: when agent prefers remote, prefer remote jobs but don't drop all if none match
+  // Agent/autopilot queries already retrieved this candidate pool using the
+  // requested title. If the extra title-token gate wipes out everything,
+  // retry once without that final gate so strong vector/keyword matches
+  // still have a chance to rank instead of returning an empty set.
+  if (!filtered.length && candidates.length > 0 && filterContext.queryOverride) {
+    const relaxedTitleContext = {
+      ...filterContext,
+      queryOverride: null,
+    };
+    const titleRelaxed = applyFilters(candidates, relaxedTitleContext);
+
+    if (shouldDebugJobs()) {
+      console.log('[DEBUG_JOBS] Agent filter summary:', {
+        query: context.query,
+        queryOverride: filterContext.queryOverride,
+        filters: filterContext.filters,
+        candidates: candidates.length,
+        strictFiltered: strictFiltered.length,
+        titleRelaxed: titleRelaxed.length,
+      });
+    }
+
+    if (titleRelaxed.length > 0) {
+      filtered = titleRelaxed;
+    }
+  }
+
+  // Remote filter: prefer remote jobs but don't drop all results if none match
   const prefersRemote =
     agentConfig?.isRemote || student?.jobPreferences?.isRemote;
   if (prefersRemote) {
@@ -159,10 +217,20 @@ export const getRecommendedJobs = async ({
   }
 
   const ranked = rankJobsWithIntentBoost(filtered, context);
-
   const jobs = ranked.slice(0, limit);
 
-  if (process.env.DEBUG_JOBS === '1') {
+  if (shouldDebugJobs()) {
+    console.log('[DEBUG_JOBS] Recommendation summary:', {
+      query: context.query,
+      queryOverride: context.queryOverride,
+      filters: filterContext.filters,
+      candidates: candidates.length,
+      strictFiltered: strictFiltered.length,
+      finalFiltered: filtered.length,
+      remotePreferred: !!prefersRemote,
+      finalJobs: jobs.length,
+    });
+
     const preview = jobs.slice(0, Math.min(20, jobs.length)).map((job) => ({
       id: String(job._id || ''),
       origin: job.origin || 'HOSTED',
@@ -175,6 +243,28 @@ export const getRecommendedJobs = async ({
       rankScore: job.rankScore,
     }));
     console.log(`[DEBUG_JOBS] Top ${preview.length} jobs:`, preview);
+  }
+
+  if (!jobs.length && queryOverride && !skipQueryOverrideFallback) {
+    if (shouldDebugJobs()) {
+      console.log('[DEBUG_JOBS] Retrying with profile-derived query:', {
+        failedQueryOverride: queryOverride,
+        filters: filterContext.filters,
+      });
+    }
+
+    return getRecommendedJobs({
+      studentId,
+      agentConfig: { ...agentConfig, jobTitle: undefined },
+      studentProfile: student,
+      appliedJobIds,
+      limit,
+      skipExternalFetch,
+      includeAppliedInResults,
+      queryOverride: null,
+      skipCacheForAgent,
+      skipQueryOverrideFallback: true,
+    });
   }
 
   return jobs;

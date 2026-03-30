@@ -1,6 +1,446 @@
+// 'use client';
+
+// import React, { useState, useEffect } from 'react';
+// import {
+//   Rocket,
+//   Pin,
+//   PinOff,
+//   FileText,
+//   Bot,
+//   Users,
+//   ChevronRight,
+//   Zap,
+//   Crown,
+//   Gift,
+//   Newspaper,
+//   Wand2,
+//   FileCheck2,
+//   Building2,
+//   Search,
+//   Layers,
+//   ZapIcon,
+//   Activity,
+//   Clock10,
+//   BookOpen,
+//   Handshake,
+//   Network,
+//   BotMessageSquare,
+//   Send,
+// } from 'lucide-react';
+// import Link from 'next/link';
+// import { usePathname, useRouter } from 'next/navigation';
+// import { useSelector } from 'react-redux';
+// import { RootState } from '@/redux/rootReducer';
+// import { useSidebar } from '@/app/(app)/layout-client';
+// import apiInstance from '@/services/api';
+// import Image from 'next/image';
+
+// export const AppSidebarContent = ({
+//   isCollapsed,
+// }: {
+//   isCollapsed: boolean;
+// }) => {
+//   const { isPinned, setPinned } = useSidebar();
+//   const pathname = usePathname();
+//   const router = useRouter();
+//   const { user: authUser } = useSelector((state: RootState) => state.auth);
+//   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+//   const studentWrapper = useSelector(
+//     (state: RootState) => state.student.students?.[0],
+//   );
+//   // const [planType, setPlanType] = useState('Free');
+
+//   // --- 1. ROLE DEFINITIONS ---
+//   const ROLES = {
+//     HR: 'hr',
+//     USER: 'user',
+//     STUDENT: 'student',
+//     UNI_STUDENT: 'uni-student',
+//     employerAdmin: 'employer-admin',
+//     guestOrg: 'guest-org',
+//     uniAdmin: 'uni-admin',
+//   };
+
+//   // Safe fallback to 'user' if role is missing
+//   const currentRole = authUser?.role || ROLES.USER;
+//   const { planType } = useSelector((state: RootState) => state.plan);
+
+//   const user = {
+//     role: currentRole,
+//     fullName: authUser?.fullName || 'Guest User',
+//     plan: planType,
+//   };
+
+//   const SIDEBAR_SECTIONS = [
+//     { label: 'AI Tools', start: 2 },
+//     { label: 'My Workspace', start: 6 },
+//     { label: 'More', start: 8 },
+//   ];
+
+//   // --- 3. SITE CONFIGURATION WITH PERMISSIONS ---
+//   const siteConfig = {
+//     name: 'ZobsAI',
+//     sidebarNav: [
+//       // === COMMON ITEMS (Visible to Everyone) ===
+//       {
+//         title: 'Dashboard',
+//         href: '/dashboard',
+//         icon: Rocket,
+//       },
+
+//       // === STUDENT / JOB SEEKER TOOLS ===
+//       {
+//         title: 'Job Search',
+//         href: '/dashboard/search-jobs',
+//         icon: Search,
+//         allowedRoles: [ROLES.STUDENT, ROLES.UNI_STUDENT, ROLES.USER],
+//       },
+//       // {
+//       //   title: 'Chat',
+//       //   href: '/dashboard/chat',
+//       //   icon: BotMessageSquare,
+//       // },
+
+//       {
+//         title: 'AI CV Generator',
+//         href: '/dashboard/cv-generator',
+//         icon: FileText,
+//         allowedRoles: [ROLES.STUDENT, ROLES.UNI_STUDENT, ROLES.USER],
+//       },
+//       {
+//         title: 'AI Cover Letter',
+//         href: '/dashboard/cover-letter-generator',
+//         icon: Newspaper,
+//         allowedRoles: [ROLES.STUDENT, ROLES.UNI_STUDENT, ROLES.USER],
+//       },
+//       {
+//         title: 'AI Auto Application',
+//         href: '/dashboard/ai-auto-apply',
+//         icon: Bot,
+//         allowedRoles: [ROLES.STUDENT, ROLES.UNI_STUDENT, ROLES.USER],
+//         comingSoon: false,
+//       },
+//       {
+//         title: 'AI Tailored Application',
+//         href: '/dashboard/apply',
+//         icon: Wand2,
+//         allowedRoles: [ROLES.STUDENT, ROLES.UNI_STUDENT, ROLES.USER],
+//       },
+//       {
+//         title: 'My Applications',
+//         href: '/dashboard/applications',
+//         icon: FileCheck2,
+//         allowedRoles: [ROLES.STUDENT, ROLES.UNI_STUDENT, ROLES.USER],
+//       },
+//       {
+//         title: 'My Docs',
+//         href: '/dashboard/my-docs',
+//         icon: Activity,
+//         allowedRoles: [ROLES.STUDENT, ROLES.UNI_STUDENT, ROLES.USER],
+//       },
+//       {
+//         title: 'Sent Emails',
+//         href: '/dashboard/sent-emails',
+//         icon: Send,
+//         allowedRoles: [ROLES.STUDENT, ROLES.UNI_STUDENT, ROLES.USER],
+//       },
+
+//       // === HR / ORGANIZATION TOOLS ===
+//       {
+//         title: 'Post a Job',
+//         href: '/dashboard/posted-jobs',
+//         icon: Users, // Or Briefcase
+//         allowedRoles: [
+//           ROLES.HR,
+//           ROLES.employerAdmin,
+//           ROLES.guestOrg,
+//           ROLES.uniAdmin,
+//         ],
+//       },
+//       {
+//         title: 'Team Management',
+//         href: '/dashboard/team-management',
+//         icon: Building2,
+//         allowedRoles: [ROLES.HR, ROLES.employerAdmin],
+//       },
+//       {
+//         title: 'Candidates',
+//         href: '/dashboard/candidates',
+//         icon: Users,
+//         allowedRoles: [ROLES.HR, ROLES.employerAdmin, ROLES.uniAdmin],
+//       },
+
+//       // === EXTRAS (Visible to Everyone) ===
+//       // {
+//       //   title: 'Partnership',
+//       //   href: '/dashboard/partnership',
+//       //   icon: Rocket,
+//       // },
+
+//       {
+//         title: 'Refer & Earn',
+//         href: '/dashboard/referrals',
+//         icon: Gift,
+//       },
+//       {
+//         title: 'Request New Feature',
+//         href: '/dashboard/request-new-feature',
+//         icon: Layers,
+//       },
+//     ],
+//   };
+
+//   const getPlanIcon = (plan: string) => {
+//     switch (plan) {
+//       case 'Free':
+//         return Zap;
+//       case 'Pro':
+//         return Crown;
+//       case 'OrgAdmin':
+//         return Building2;
+//       default:
+//         return Zap;
+//     }
+//   };
+
+//   const getPlanColor = (plan: string) => {
+//     switch (plan) {
+//       case 'Free':
+//         return 'from-blue-400 to-blue-600';
+//       case 'Weekly':
+//         return 'from-green-400 to-green-600';
+//       case 'Pro':
+//         return 'from-yellow-400 to-yellow-600';
+//       case 'Monthly':
+//         return 'from-purple-400 to-purple-600';
+//       case 'OrgAdmin':
+//         return 'from-blue-400 to-blue-600';
+//       default:
+//         return 'from-slate-400 to-slate-600';
+//     }
+//   };
+
+//   return (
+//     <div className="h-screen overflow-y-auto w-full flex flex-col relative bg-gradient-to-br from-slate-50 to-white border-r border-slate-200">
+//       {/* Ambient Background Glow */}
+//       <div className="absolute inset-0 overflow-hidden -z-10">
+//         <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-purple-200/30 to-blue-200/30 rounded-full blur-2xl animate-pulse"></div>
+//         <div
+//           className="absolute -bottom-4 -left-4 w-32 h-32 bg-gradient-to-br from-cyan-200/30 to-purple-200/30 rounded-full blur-2xl animate-pulse"
+//           style={{ animationDelay: '1s' }}
+//         ></div>
+//       </div>
+
+//       {/* Sidebar Header */}
+//       <div className="relative p-2 border-b border-slate-200/50">
+//         <div className="flex items-center justify-between">
+//           <Link
+//             href="/dashboard"
+//             className="flex items-center space-x-3 group"
+//             prefetch={false}
+//           >
+//             <div className="relative p-3">
+//               <div className="rounded-lg flex flex-col items-center justify-center">
+//                 <Image
+//                   width={100}
+//                   height={100}
+//                   src="/logo.png"
+//                   className="w-10 h-auto"
+//                   alt="ZobsAI Logo"
+//                 />
+//               </div>
+//             </div>
+//             {!isCollapsed && (
+//               <div className="overflow-hidden">
+//                 <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent animate-fadeIn">
+//                   {siteConfig.name}
+//                 </h1>
+//                 <div className="flex items-center space-x-1 mt-1">
+//                   {(() => {
+//                     const PlanIcon = getPlanIcon(user.plan);
+//                     return (
+//                       <div
+//                         className={`flex items-center space-x-1 px-2 py-1 rounded-full bg-gradient-to-r ${getPlanColor(
+//                           user.plan,
+//                         )} text-white text-xs font-medium`}
+//                       >
+//                         <PlanIcon className="w-3 h-3" />
+//                         <span>{user.plan}</span>
+//                       </div>
+//                     );
+//                   })()}
+//                 </div>
+//               </div>
+//             )}
+//           </Link>
+// {!isCollapsed && (
+//   <button
+//     onClick={() => setPinned(!isPinned)}
+//     className={`p-2 rounded-lg transition-all duration-200 ${
+//       isPinned
+//         ? 'text-purple-600 hover:bg-purpl e-200'
+//         : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+//     }`}
+//     title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
+//   >
+//     {isPinned ? (
+//       <PinOff className="hidden sm:block w-4 h-4" />
+//     ) : (
+//       <Pin className=" hidden sm:block w-4 h-4" />
+//     )}
+//   </button>
+// )}
+//         </div>
+//       </div>
+
+//       <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-hide">
+//         {siteConfig.sidebarNav.map((item, index) => {
+//           if (item.allowedRoles && !item.allowedRoles.includes(currentRole)) {
+//             return null;
+//           }
+
+//           // 🔹 check if a section starts here
+//           const section = SIDEBAR_SECTIONS.find((s) => s.start === index);
+
+//           const Icon = item.icon;
+//           const isActive =
+//             pathname === item.href ||
+//             (item.href !== '/dashboard' && pathname.startsWith(item.href));
+
+//           return (
+//             <React.Fragment key={item.href}>
+//               {/* Section header (does NOT get an id) */}
+//               {section && !isCollapsed && (
+//                 <p className="px-3 mt-4 mb-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+//                   {section.label}
+//                 </p>
+//               )}
+
+//               {/* 👇 THIS is where the id goes */}
+//               <div id={`sidebar-link-${index}`} className="relative">
+//                 <div className="group relative">
+//                   <Link
+//                     href={item.comingSoon ? '#' : item.href}
+//                     onClick={
+//                       item.comingSoon ? (e) => e.preventDefault() : undefined
+//                     }
+//                     prefetch={false}
+//                     className={`group w-full flex items-center gap-2 px-3 py-1 rounded-lg text-sm transition-all ${
+//                       isActive
+//                         ? 'bg-tabPrimary  text-gray-100 hover:bg-tabPrimary'
+//                         : 'text-slate-600 hover:bg-slate-100'
+//                     }`}
+//                   >
+//                     {/* icon */}
+//                     <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+//                       <Icon className="w-4 h-4" />
+//                     </div>
+//                     {!isCollapsed && <span>{item.title}</span>}
+//                     {!isCollapsed && item.comingSoon && (
+//                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-400 text-white font-semibold">
+//                         Soon
+//                       </span>
+//                     )}
+//                   </Link>
+//                 </div>
+//               </div>
+//             </React.Fragment>
+//           );
+//         })}
+//       </nav>
+
+//       {/* Sidebar Footer */}
+//       <div className="relative p-2 border-t border-slate-200/50 mt-auto">
+//         {!isCollapsed ? (
+//           <div className="space-y-3">
+//             <Link
+//               href="/dashboard/profile"
+//               prefetch={false}
+//               className="flex items-center space-x-3 p-3 bg-gradient-to-r from-slate-100 to-slate-200 rounded-xl"
+//             >
+//               <div className="flex-1 min-w-0">
+//                 <p className="font-medium text-slate-900 truncate text-sm capitalize">
+//                   {studentWrapper?.student.fullName || 'Guest'}
+//                 </p>
+//                 {/* Role Badge Component */}
+//                 <p className="text-xs text-slate-500">Welcome back!</p>
+//                 <span className=" py-0.5 text-xs font-semibold  text-indigo-700 rounded-full capitalize">
+//                   {user.role === 'uni-student' ? 'Student' : user.role}
+//                 </span>
+//               </div>
+//             </Link>
+//             {/* Show upgrade banner only if not Pro/Admin */}
+//             {user.plan !== 'Pro' &&
+//               user.plan !== 'OrgAdmin' &&
+//               user.plan !== 'Monthly' && (
+//                 <div className="p-2 bg-header-gradient-primary rounded-xl text-white">
+//                   <div className="flex items-center space-x-2 mb-2">
+//                     <Zap className="w-4 h-4" />
+//                     <span className="font-semibold text-sm">
+//                       Unlock More Features
+//                     </span>
+//                   </div>
+//                   <p className="text-xs text-purple-100 mb-3">
+//                     Upgrade to get unlimited AI generations.
+//                   </p>
+//                   <button
+//                     className="w-full bg-white/20 hover:bg-white/30 text-white text-xs font-medium py-2 rounded-lg transition-colors"
+//                     onClick={() => router.push('/dashboard/subscriptions')}
+//                   >
+//                     Upgrade Now
+//                   </button>
+//                 </div>
+//               )}
+//           </div>
+//         ) : (
+//           <div className="flex justify-center">
+//             <button
+//               onClick={() => setPinned(true)}
+//               className="w-full h-12 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+//               title="Expand sidebar"
+//             >
+//               <ChevronRight className="w-6 h-6" />
+//             </button>
+//           </div>
+//         )}
+//       </div>
+
+//       <style jsx>{`
+//         @keyframes slideInLeft {
+//           from {
+//             opacity: 0;
+//             transform: translateX(-20px);
+//           }
+//           to {
+//             opacity: 1;
+//             transform: translateX(0);
+//           }
+//         }
+//         @keyframes fadeIn {
+//           from {
+//             opacity: 0;
+//           }
+//           to {
+//             opacity: 1;
+//           }
+//         }
+//         .animate-fadeIn {
+//           animation: fadeIn 0.3s ease-out;
+//         }
+//         .scrollbar-hide::-webkit-scrollbar {
+//           display: none;
+//         }
+//         .scrollbar-hide {
+//           scrollbar-width: none;
+//         }
+//       `}</style>
+//     </div>
+//   );
+// };
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Rocket,
   Pin,
@@ -18,21 +458,15 @@ import {
   Building2,
   Search,
   Layers,
-  ZapIcon,
   Activity,
-  Clock10,
-  BookOpen,
-  Handshake,
-  Network,
-  BotMessageSquare,
   Send,
+  Link as LinkIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { useSidebar } from '@/app/(app)/layout-client';
-import apiInstance from '@/services/api';
 import Image from 'next/image';
 
 export const AppSidebarContent = ({
@@ -44,11 +478,9 @@ export const AppSidebarContent = ({
   const pathname = usePathname();
   const router = useRouter();
   const { user: authUser } = useSelector((state: RootState) => state.auth);
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const studentWrapper = useSelector(
     (state: RootState) => state.student.students?.[0],
   );
-  // const [planType, setPlanType] = useState('Free');
 
   // --- 1. ROLE DEFINITIONS ---
   const ROLES = {
@@ -68,7 +500,7 @@ export const AppSidebarContent = ({
   const user = {
     role: currentRole,
     fullName: authUser?.fullName || 'Guest User',
-    plan: planType,
+    plan: planType || 'Free',
   };
 
   const SIDEBAR_SECTIONS = [
@@ -95,12 +527,6 @@ export const AppSidebarContent = ({
         icon: Search,
         allowedRoles: [ROLES.STUDENT, ROLES.UNI_STUDENT, ROLES.USER],
       },
-      // {
-      //   title: 'Chat',
-      //   href: '/dashboard/chat',
-      //   icon: BotMessageSquare,
-      // },
-
       {
         title: 'AI CV Generator',
         href: '/dashboard/cv-generator',
@@ -149,7 +575,7 @@ export const AppSidebarContent = ({
       {
         title: 'Post a Job',
         href: '/dashboard/posted-jobs',
-        icon: Users, // Or Briefcase
+        icon: Users,
         allowedRoles: [
           ROLES.HR,
           ROLES.employerAdmin,
@@ -171,12 +597,6 @@ export const AppSidebarContent = ({
       },
 
       // === EXTRAS (Visible to Everyone) ===
-      // {
-      //   title: 'Partnership',
-      //   href: '/dashboard/partnership',
-      //   icon: Rocket,
-      // },
-
       {
         title: 'Refer & Earn',
         href: '/dashboard/referrals',
@@ -203,6 +623,7 @@ export const AppSidebarContent = ({
     }
   };
 
+  // Original Plan Colors Restored
   const getPlanColor = (plan: string) => {
     switch (plan) {
       case 'Free':
@@ -221,87 +642,94 @@ export const AppSidebarContent = ({
   };
 
   return (
-    <div className="h-screen overflow-y-auto w-full flex flex-col relative bg-gradient-to-br from-slate-50 to-white border-r border-slate-200">
-      {/* Ambient Background Glow */}
-      <div className="absolute inset-0 overflow-hidden -z-10">
-        <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-purple-200/30 to-blue-200/30 rounded-full blur-2xl animate-pulse"></div>
-        <div
-          className="absolute -bottom-4 -left-4 w-32 h-32 bg-gradient-to-br from-cyan-200/30 to-purple-200/30 rounded-full blur-2xl animate-pulse"
-          style={{ animationDelay: '1s' }}
-        ></div>
-      </div>
-
+    <div className="flex h-full w-full flex-col bg-white relative z-20">
       {/* Sidebar Header */}
-      <div className="relative p-2 border-b border-slate-200/50">
-        <div className="flex items-center justify-between">
-          <Link
-            href="/dashboard"
-            className="flex items-center space-x-3 group"
-            prefetch={false}
-          >
-            <div className="relative p-3">
-              <div className="rounded-lg flex flex-col items-center justify-center">
-                <Image
-                  width={100}
-                  height={100}
-                  src="/logo.png"
-                  className="w-10 h-auto"
-                  alt="ZobsAI Logo"
-                />
+      <div className="flex h-[70px] shrink-0 items-center justify-between px-6 border-b border-slate-100">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-3 outline-none"
+        >
+          {/* Original Logo Restored */}
+          <div className="flex shrink-0 items-center justify-center rounded-lg">
+            <Image
+              width={100}
+              height={100}
+              src="/logo.png"
+              className="h-8 w-auto"
+              alt="ZobsAI Logo"
+              priority
+            />
+          </div>
+
+          {!isCollapsed && (
+            <div className="flex flex-col justify-center animate-fadeIn">
+              {/* Original Gradient Text Restored */}
+              <span className="bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-[19px] font-bold leading-none text-transparent">
+                {siteConfig.name}
+              </span>
+
+              {/* Original Dynamic Plan Badge Restored */}
+              <div className="mt-1 flex items-center space-x-1">
+                {(() => {
+                  const PlanIcon = getPlanIcon(user.plan);
+                  return (
+                    <div
+                      className={`flex items-center space-x-1 rounded-full bg-gradient-to-r ${getPlanColor(
+                        user.plan,
+                      )} px-2 py-0.5 text-[10px] font-medium text-white`}
+                    >
+                      <PlanIcon className="h-3 w-3" />
+                      <span>{user.plan}</span>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
-            {!isCollapsed && (
-              <div className="overflow-hidden">
-                <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent animate-fadeIn">
-                  {siteConfig.name}
-                </h1>
-                <div className="flex items-center space-x-1 mt-1">
-                  {(() => {
-                    const PlanIcon = getPlanIcon(user.plan);
-                    return (
-                      <div
-                        className={`flex items-center space-x-1 px-2 py-1 rounded-full bg-gradient-to-r ${getPlanColor(
-                          user.plan,
-                        )} text-white text-xs font-medium`}
-                      >
-                        <PlanIcon className="w-3 h-3" />
-                        <span>{user.plan}</span>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-          </Link>
-          {!isCollapsed && (
-            <button
-              onClick={() => setPinned(!isPinned)}
-              className={`p-2 rounded-lg transition-all duration-200 ${
-                isPinned
-                  ? 'text-purple-600 hover:bg-purpl e-200'
-                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
-              }`}
-              title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
-            >
-              {isPinned ? (
-                <PinOff className="hidden sm:block w-4 h-4" />
-              ) : (
-                <Pin className=" hidden sm:block w-4 h-4" />
-              )}
-            </button>
           )}
-        </div>
+        </Link>
+
+        {!isCollapsed && (
+          <button
+            onClick={() => setPinned(!isPinned)}
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-50 hover:text-blue-600"
+            title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
+          >
+            {/* <Pin className="h-4 w-4" strokeWidth={2.5} /> */}
+            {isPinned ? (
+              <PinOff className="hidden sm:block w-4 h-4" strokeWidth={2.5} />
+            ) : (
+              <Pin className=" hidden sm:block w-4 h-4" strokeWidth={2.5} />
+            )}
+          </button>
+        )}
+
+        {/* {!isCollapsed && (
+          <button
+            onClick={() => setPinned(!isPinned)}
+            className={`p-2 rounded-lg transition-all duration-200 ${
+              isPinned
+                ? 'text-purple-600 hover:bg-purpl e-200'
+                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+            }`}
+            title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
+          >
+            {isPinned ? (
+              <PinOff className="hidden sm:block w-4 h-4" />
+            ) : (
+              <Pin className=" hidden sm:block w-4 h-4" />
+            )}
+          </button>
+        )} */}
       </div>
 
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-hide">
+      {/* Navigation */}
+      <nav className="nav-scrollbar flex-1 space-y-1 overflow-y-auto px-4 py-4">
         {siteConfig.sidebarNav.map((item, index) => {
           if (item.allowedRoles && !item.allowedRoles.includes(currentRole)) {
             return null;
           }
 
-          // 🔹 check if a section starts here
           const section = SIDEBAR_SECTIONS.find((s) => s.start === index);
-
           const Icon = item.icon;
           const isActive =
             pathname === item.href ||
@@ -309,40 +737,48 @@ export const AppSidebarContent = ({
 
           return (
             <React.Fragment key={item.href}>
-              {/* Section header (does NOT get an id) */}
+              {/* Section Header */}
               {section && !isCollapsed && (
-                <p className="px-3 mt-4 mb-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
-                  {section.label}
-                </p>
+                <div className="px-3.5  pt-2 animate-fadeIn">
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-slate-400">
+                    {section.label}
+                  </p>
+                </div>
               )}
 
-              {/* 👇 THIS is where the id goes */}
+              {/* Nav Item (Restored bg-tabPrimary) */}
+
               <div id={`sidebar-link-${index}`} className="relative">
-                <div className="group relative">
-                  <Link
-                    href={item.comingSoon ? '#' : item.href}
-                    onClick={
-                      item.comingSoon ? (e) => e.preventDefault() : undefined
-                    }
-                    prefetch={false}
-                    className={`group w-full flex items-center gap-2 px-3 py-1 rounded-lg text-sm transition-all ${
+                <Link
+                  href={item.comingSoon ? '#' : item.href}
+                  onClick={
+                    item.comingSoon ? (e) => e.preventDefault() : undefined
+                  }
+                  prefetch={false}
+                  className={`group flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${
+                    isActive
+                      ? 'bg-tabPrimary text-white shadow-md'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                  } ${isCollapsed ? 'justify-center px-0' : ''}`}
+                  title={isCollapsed ? item.title : ''}
+                >
+                  <Icon
+                    className={`h-[18px] w-[18px] shrink-0 transition-colors ${
                       isActive
-                        ? 'bg-tabPrimary  text-gray-100 hover:bg-tabPrimary'
-                        : 'text-slate-600 hover:bg-slate-100'
+                        ? 'text-white'
+                        : 'text-slate-400 group-hover:text-blue-600'
                     }`}
-                  >
-                    {/* icon */}
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center">
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    {!isCollapsed && <span>{item.title}</span>}
-                    {!isCollapsed && item.comingSoon && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-400 text-white font-semibold">
-                        Soon
-                      </span>
-                    )}
-                  </Link>
-                </div>
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                  {!isCollapsed && (
+                    <span className="truncate flex-1">{item.title} </span>
+                  )}
+                  {!isCollapsed && item.comingSoon && (
+                    <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-[10px] font-semibold text-white shrink-0">
+                      Soon
+                    </span>
+                  )}
+                </Link>
               </div>
             </React.Fragment>
           );
@@ -350,72 +786,66 @@ export const AppSidebarContent = ({
       </nav>
 
       {/* Sidebar Footer */}
-      <div className="relative p-2 border-t border-slate-200/50 mt-auto">
+      <div className="shrink-0 p-4">
         {!isCollapsed ? (
-          <div className="space-y-3">
-            <Link
-              href="/dashboard/profile"
-              prefetch={false}
-              className="flex items-center space-x-3 p-3 bg-gradient-to-r from-slate-100 to-slate-200 rounded-xl"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-slate-900 truncate text-sm capitalize">
-                  {studentWrapper?.student.fullName || 'Guest'}
-                </p>
-                {/* Role Badge Component */}
-                <p className="text-xs text-slate-500">Welcome back!</p>
-                <span className=" py-0.5 text-xs font-semibold  text-indigo-700 rounded-full capitalize">
-                  {user.role === 'uni-student' ? 'Student' : user.role}
-                </span>
-              </div>
-            </Link>
-            {/* Show upgrade banner only if not Pro/Admin */}
+          <div className="space-y-3 animate-fadeIn">
+            {/* Original Upgrade Banner Restored */}
             {user.plan !== 'Pro' &&
               user.plan !== 'OrgAdmin' &&
               user.plan !== 'Monthly' && (
-                <div className="p-2 bg-header-gradient-primary rounded-xl text-white">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Zap className="w-4 h-4" />
-                    <span className="font-semibold text-sm">
-                      Unlock More Features
+                <div className="rounded-[14px] border border-blue-100 bg-blue-50/40 p-4 transition-colors hover:border-blue-200">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <Zap
+                      className="h-4 w-4 text-blue-500"
+                      fill="currentColor"
+                    />
+                    <span className="text-[13px] font-extrabold text-slate-900">
+                      Unlock Features
                     </span>
                   </div>
-                  <p className="text-xs text-purple-100 mb-3">
+                  <p className="mb-3 text-[11px] font-medium leading-relaxed text-slate-500">
                     Upgrade to get unlimited AI generations.
                   </p>
                   <button
-                    className="w-full bg-white/20 hover:bg-white/30 text-white text-xs font-medium py-2 rounded-lg transition-colors"
+                    className="w-full rounded-[10px] bg-white px-3 py-2 text-[12px] font-bold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 transition-all hover:bg-blue-50 hover:text-blue-600 hover:ring-blue-200"
                     onClick={() => router.push('/dashboard/subscriptions')}
                   >
                     Upgrade Now
                   </button>
                 </div>
               )}
+
+            {/* Profile Box */}
+            <Link href="/dashboard/profile" className="block outline-none">
+              <div className="group flex cursor-pointer items-center justify-between rounded-[14px] border border-slate-200/60 bg-[#F1F5F9] p-3.5 transition-colors hover:bg-[#E2E8F0]">
+                <div className="flex flex-col min-w-0">
+                  <span className="truncate text-[13px] font-extrabold leading-tight text-slate-900 capitalize">
+                    {studentWrapper?.student.fullName || 'Guest'}
+                  </span>
+                  <span className="mt-0.5 text-[11px] font-medium text-slate-500">
+                    Welcome back!
+                  </span>
+                  <span className="mt-1 text-[11.5px] font-bold tracking-tight text-blue-600 capitalize">
+                    {user.role === 'uni-student' ? 'Student' : user.role}
+                  </span>
+                </div>
+              </div>
+            </Link>
           </div>
         ) : (
           <div className="flex justify-center">
             <button
               onClick={() => setPinned(true)}
-              className="w-full h-12 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+              className="flex h-12 w-full items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-50 hover:text-blue-600"
               title="Expand sidebar"
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="h-6 w-6" strokeWidth={2} />
             </button>
           </div>
         )}
       </div>
 
       <style jsx>{`
-        @keyframes slideInLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -427,11 +857,19 @@ export const AppSidebarContent = ({
         .animate-fadeIn {
           animation: fadeIn 0.3s ease-out;
         }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
+        /* Elegant thin scrollbar for navigation */
+        .nav-scrollbar::-webkit-scrollbar {
+          width: 5px;
         }
-        .scrollbar-hide {
-          scrollbar-width: none;
+        .nav-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .nav-scrollbar::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 10px;
+        }
+        .nav-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #cbd5e1;
         }
       `}</style>
     </div>

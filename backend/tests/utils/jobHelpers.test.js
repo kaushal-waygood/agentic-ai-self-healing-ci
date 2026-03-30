@@ -1,4 +1,7 @@
-import { applyFilters } from '../../src/utils/jobHelpers.js';
+import {
+  applyFilters,
+  rankJobsWithIntentBoost,
+} from '../../src/utils/jobHelpers.js';
 
 describe('Job Filters Utility', () => {
   const baseContext = {
@@ -104,6 +107,83 @@ describe('Job Filters Utility', () => {
 
       const result = applyFilters([jobNoCode], context);
       expect(result.length).toBe(1);
+    });
+
+    it('should filter jobs by selected experience ranges', () => {
+      const jobs = [
+        getJobMock({
+          _id: 'exp-1',
+          experience: ['6 months'],
+          description: 'Ideal for candidates with 6 months of experience',
+        }),
+        getJobMock({
+          _id: 'exp-2',
+          experience: ['2 years'],
+          description: 'Requires 2 years of experience',
+        }),
+        getJobMock({
+          _id: 'exp-3',
+          experience: ['6 years'],
+          description: 'Requires 6 years of experience',
+        }),
+      ];
+
+      const context = {
+        ...baseContext,
+        filters: { country: 'IN', experience: '1 – 3 Years' },
+      };
+
+      const result = applyFilters(jobs, context);
+      expect(result).toHaveLength(1);
+      expect(result[0]._id).toBe('exp-2');
+    });
+
+    it('should match fresher filters against descriptive job text', () => {
+      const jobs = [
+        getJobMock({
+          _id: 'fresh-1',
+          title: 'Graduate Engineer Trainee',
+          experience: [],
+          description: 'Fresher candidates are encouraged to apply.',
+        }),
+        getJobMock({
+          _id: 'fresh-2',
+          title: 'Senior Backend Developer',
+          experience: ['5+ years'],
+          description: 'Requires at least 5 years of experience',
+        }),
+      ];
+
+      const context = {
+        ...baseContext,
+        filters: { country: 'IN', experience: 'Fresher' },
+      };
+
+      const result = applyFilters(jobs, context);
+      expect(result).toHaveLength(1);
+      expect(result[0]._id).toBe('fresh-1');
+    });
+  });
+
+  describe('rankJobsWithIntentBoost', () => {
+    it('should produce numeric rank scores even when jobPostedAt is invalid', () => {
+      const ranked = rankJobsWithIntentBoost(
+        [
+          getJobMock({
+            title: 'Backend Developer',
+            jobPostedAt: 'not-a-date',
+            remote: true,
+          }),
+        ],
+        {
+          filters: {},
+          profile: { titles: ['Backend Developer'] },
+        },
+      );
+
+      expect(ranked).toHaveLength(1);
+      expect(Number.isNaN(ranked[0].rankScore)).toBe(false);
+      expect(Number.isFinite(ranked[0].rankScore)).toBe(true);
     });
   });
 });

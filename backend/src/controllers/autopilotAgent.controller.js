@@ -10,6 +10,7 @@ import {
   addCredits,
   CREDIT_EARN,
   earnCreditsForAction,
+  getAutopilotEntitlements,
 } from '../utils/credits.js';
 import { extractTextFromCV, parseCVData } from './rough.js';
 import { processAutopilotAgent } from '../utils/autopilot.background.js';
@@ -21,7 +22,10 @@ import { Job } from '../models/jobs.model.js';
 import { getStudentProfileSnapshot } from '../services/getStudentProfileSnapshot.js';
 import { buildEffectiveStudentProfile } from '../utils/profileHydration.js';
 import { getRecommendedJobs } from '../utils/getRecommendedJobs.js';
-import { buildApplicationData } from '../worker/autopilotWorker.js';
+import {
+  buildApplicationData,
+  processAgentDiscovery,
+} from '../worker/autopilotWorker.js';
 import { processTailoredApplication } from '../utils/tailoredApply.background.js';
 import { AgentFoundJob } from '../models/AgentFoundJob.js';
 
@@ -63,6 +67,126 @@ const normalizeCountry = (v) => {
 };
 
 const ensureStringId = () => uuidv4();
+const activeFoundJobFilter = {
+  $or: [{ status: 'ACTIVE' }, { status: { $exists: false } }],
+};
+
+const buildTailoredViewUrl = (applicationId) =>
+  applicationId ? `/dashboard/my-docs/application/${applicationId}` : null;
+
+const mapAgentJob = (record, tailoredApplication) => {
+  const job = record?.job;
+  if (!job) return null;
+
+  return {
+    id: job._id,
+    _id: job._id,
+    title: job.title,
+    company: job.company,
+    country: job.country,
+    location: job.location,
+    remote: job.remote,
+    jobTypes: job.jobTypes,
+    jobPostedAt: job.jobPostedAt,
+    slug: job.slug,
+    foundAt: record.foundAt,
+    status: record.status || 'ACTIVE',
+    tailoredStatus: tailoredApplication?.status || null,
+    tailoredGenerated: tailoredApplication?.status === 'completed',
+    tailoredApplicationId: tailoredApplication?._id || null,
+    tailoredCompletedAt: tailoredApplication?.completedAt || null,
+    tailoredViewUrl: buildTailoredViewUrl(tailoredApplication?._id),
+  };
+};
+
+const buildJobsByDate = (jobs) => {
+  const byDate = {
+    today: [],
+    yesterday: [],
+    lastWeek: [],
+    older: [],
+  };
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const lastWeek = new Date(today);
+  lastWeek.setDate(lastWeek.getDate() - 7);
+
+  jobs.forEach((job) => {
+    const sourceDate = new Date(job.foundAt || job.jobPostedAt || 0);
+    const timestamp = sourceDate.getTime();
+
+    if (!Number.isFinite(timestamp)) {
+      byDate.older.push(job);
+      return;
+    }
+
+    if (timestamp >= today.getTime()) {
+      byDate.today.push(job);
+    } else if (timestamp >= yesterday.getTime()) {
+      byDate.yesterday.push(job);
+    } else if (timestamp >= lastWeek.getTime()) {
+      byDate.lastWeek.push(job);
+    } else {
+      byDate.older.push(job);
+    }
+  });
+
+  return byDate;
+};
+
+const fetchActiveAgentJobs = async (studentId, agentMongoId, limit = 20) => {
+  const foundJobs = await AgentFoundJob.find({
+    student: studentId,
+    agent: agentMongoId,
+    ...activeFoundJobFilter,
+  })
+    .sort({ foundAt: -1 })
+    .limit(limit)
+    .populate({
+      path: 'job',
+      select:
+        'title company country location remote jobTypes slug jobPostedAt',
+    })
+    .lean();
+
+  const jobIds = foundJobs
+    .map((record) => record?.job?._id)
+    .filter(Boolean);
+
+  let tailoredByJobId = new Map();
+  if (jobIds.length > 0) {
+    const tailoredApplications = await StudentTailoredApplication.find({
+      student: studentId,
+      flag: 'agent',
+      jobId: { $in: jobIds },
+    })
+      .sort({ createdAt: -1 })
+      .select('_id jobId status completedAt createdAt')
+      .lean();
+
+    tailoredByJobId = tailoredApplications.reduce((map, application) => {
+      const key = String(application.jobId || '');
+      if (key && !map.has(key)) {
+        map.set(key, application);
+      }
+      return map;
+    }, new Map());
+  }
+
+  return foundJobs
+    .map((record) =>
+      mapAgentJob(
+        record,
+        tailoredByJobId.get(String(record?.job?._id || '')),
+      ),
+    )
+    .filter(Boolean);
+};
 
 export const createAutopilotAgent = async (req, res) => {
   try {
@@ -93,10 +217,9 @@ export const createAutopilotAgent = async (req, res) => {
     const agentName = String(req.body.agentName).trim();
     const jobTitle = String(req.body.jobTitle).trim();
     const employmentType = req.body.employmentTypes;
-    const isRemote = Boolean(req.body.isRemote);
-    const isOnsite = Boolean(req.body.isOnsite);
+    const isRemote = toBool(req.body.isRemote);
+    const isOnsite = toBool(req.body.isOnsite);
     const keywords = String(req.body.keywords || '').trim();
-    const agentDailyLimit = Math.min(Number(req.body.maxApplications || 5), 20);
     const cvOption =
       req.body.cvOption === 'uploaded_pdf' ? 'uploaded_pdf' : 'current_profile';
     const jobDescription = String(req.body.jobDescription || '');
@@ -125,10 +248,30 @@ export const createAutopilotAgent = async (req, res) => {
 
     const agentId = `agent_${uuidv4()}`;
 
+    const entitlements = await getAutopilotEntitlements(studentId);
+    const activeAgentCount = await StudentAgent.countDocuments({
+      student: studentId,
+      isAgentActive: true,
+    });
     const existingAgentCount = await StudentAgent.countDocuments({
       student: studentId,
     });
     const isFirstAgent = existingAgentCount === 0;
+
+    if (
+      Number.isFinite(entitlements.maxAgents) &&
+      activeAgentCount >= entitlements.maxAgents
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          entitlements.isFree
+            ? 'Free plan supports only 1 active AI job agent. Upgrade to add more.'
+            : `Your plan supports only ${entitlements.maxAgents} active AI job agents.`,
+        errorCode: 'AGENT_LIMIT_REACHED',
+        upgradeRequired: entitlements.isFree,
+      });
+    }
 
     const agent = await StudentAgent.create({
       student: studentId,
@@ -137,7 +280,7 @@ export const createAutopilotAgent = async (req, res) => {
       jobTitle,
       country,
       isRemote,
-      agentDailyLimit,
+      agentDailyLimit: entitlements.dailyJobLimit,
       isOnsite,
       keywords,
       employmentType,
@@ -219,7 +362,8 @@ export const getAllPilotAgents = async (req, res) => {
       appliedStats[0]?.total?.[0]?.count ??
       user?.usageCounters?.aiAutoApply ??
       0;
-    const dailyLimit = user?.usageLimits?.aiAutoApplyDailyLimit ?? 5;
+    const entitlements = await getAutopilotEntitlements(studentId);
+    const dailyLimit = entitlements.dailyJobLimit;
     const totalLimit = user?.usageLimits?.aiAutoApply ?? -1;
 
     const planUsage = {
@@ -231,7 +375,7 @@ export const getAllPilotAgents = async (req, res) => {
 
     const enrichedAgents = activeAgents.map((agent) => {
       const agentCap = Math.min(
-        Number(agent.agentDailyLimit) || 5,
+        dailyLimit,
         dailyLimit === -1 ? 999 : dailyLimit,
       );
       return {
@@ -363,37 +507,11 @@ export const getAgentJobs = async (req, res) => {
       });
     }
 
-    const foundJobs = await AgentFoundJob.find({
-      student: studentId,
-      agent: agent._id,
-    })
-      .sort({ foundAt: -1 })
-      .limit(limit)
-      .populate({
-        path: 'job',
-        select:
-          'title company country location remote jobTypes slug jobPostedAt',
-      })
-      .lean();
-
-    const jobs = foundJobs
-      .map((j) => j.job)
-      .filter(Boolean)
-      .map((j) => ({
-        id: j._id,
-        title: j.title,
-        company: j.company,
-        country: j.country,
-        location: j.location,
-        remote: j.remote,
-        jobTypes: j.jobTypes,
-        jobPostedAt: j.jobPostedAt,
-        slug: j.slug,
-      }));
+    const jobs = await fetchActiveAgentJobs(studentId, agent._id, limit);
 
     return res.status(200).json({
       success: true,
-      data: { jobs },
+      data: { jobs, byDate: buildJobsByDate(jobs) },
       meta: {
         agentId: agent.agentId,
         count: jobs.length,
@@ -404,6 +522,81 @@ export const getAgentJobs = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch agent jobs',
+    });
+  }
+};
+
+export const replaceAgentJob = async (req, res) => {
+  const studentId = req.user._id;
+  const { agentId, jobId } = req.params;
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
+
+  try {
+    const isMongoId =
+      mongoose.Types.ObjectId.isValid(agentId) && String(agentId).length === 24;
+    const agent = await StudentAgent.findOne(
+      isMongoId
+        ? { _id: agentId, student: studentId }
+        : { agentId, student: studentId },
+    ).lean();
+
+    if (!agent) {
+      return res.status(404).json({
+        success: false,
+        message: 'Agent not found',
+      });
+    }
+
+    const updated = await AgentFoundJob.findOneAndUpdate(
+      {
+        student: studentId,
+        agent: agent._id,
+        job: jobId,
+        ...activeFoundJobFilter,
+      },
+      {
+        $set: {
+          status: 'NOT_INTERESTED',
+          resolvedAt: new Date(),
+        },
+      },
+      { new: true },
+    ).lean();
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: 'Agent job not found',
+      });
+    }
+
+    const discovery = await processAgentDiscovery(agent, {
+      force: true,
+      requestedSlots: 1,
+    });
+    const jobs = await fetchActiveAgentJobs(studentId, agent._id, limit);
+
+    return res.status(200).json({
+      success: true,
+      message:
+        discovery.processed > 0
+          ? 'Replacement job found'
+          : 'Job marked as not interested',
+      data: {
+        jobs,
+        byDate: buildJobsByDate(jobs),
+        replacementFound: discovery.processed > 0,
+      },
+      meta: {
+        agentId: agent.agentId,
+        count: jobs.length,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to replace agent job',
     });
   }
 };
@@ -466,16 +659,30 @@ export const startAgentJobTailoredGeneration = async (req, res) => {
     });
     if (existingDraft) {
       if (existingDraft.status === 'completed') {
-        return res.status(400).json({
-          success: false,
+        return res.status(200).json({
+          success: true,
           message: 'Tailored docs already generated for this job',
-          errorCode: 'ALREADY_GENERATED',
+          data: {
+            applicationId: existingDraft._id,
+            jobTitle: job.title,
+            company: job.company,
+            tailoredStatus: existingDraft.status,
+            tailoredGenerated: true,
+            tailoredViewUrl: buildTailoredViewUrl(existingDraft._id),
+          },
         });
       }
-      return res.status(400).json({
-        success: false,
+      return res.status(202).json({
+        success: true,
         message: 'Generation already in progress for this job',
-        errorCode: 'GENERATION_IN_PROGRESS',
+        data: {
+          applicationId: existingDraft._id,
+          jobTitle: job.title,
+          company: job.company,
+          tailoredStatus: existingDraft.status,
+          tailoredGenerated: false,
+          tailoredViewUrl: buildTailoredViewUrl(existingDraft._id),
+        },
       });
     }
 
@@ -534,6 +741,9 @@ export const startAgentJobTailoredGeneration = async (req, res) => {
         applicationId: application._id,
         jobTitle: job.title,
         company: job.company,
+        tailoredStatus: application.status,
+        tailoredGenerated: false,
+        tailoredViewUrl: buildTailoredViewUrl(application._id),
       },
     });
   } catch (error) {
@@ -624,9 +834,41 @@ export const activateAgent = async (req, res) => {
       });
     }
 
+    if (isActive) {
+      const entitlements = await getAutopilotEntitlements(studentId);
+      const activeAgentCount = await StudentAgent.countDocuments({
+        student: studentId,
+        isAgentActive: true,
+        agentId: { $ne: agentId },
+      });
+
+      if (
+        Number.isFinite(entitlements.maxAgents) &&
+        activeAgentCount >= entitlements.maxAgents
+      ) {
+        return res.status(403).json({
+          success: false,
+          message:
+            entitlements.isFree
+              ? 'Free plan supports only 1 active AI job agent. Upgrade to activate more.'
+              : `Your plan supports only ${entitlements.maxAgents} active AI job agents.`,
+          errorCode: 'AGENT_LIMIT_REACHED',
+          upgradeRequired: entitlements.isFree,
+        });
+      }
+    }
+
     const updatedAgent = await StudentAgent.findOneAndUpdate(
       { agentId, student: studentId },
-      { $set: { isAgentActive: isActive } },
+      {
+        $set: isActive
+          ? {
+              isAgentActive: isActive,
+              agentDailyLimit: (await getAutopilotEntitlements(studentId))
+                .dailyJobLimit,
+            }
+          : { isAgentActive: isActive },
+      },
       { new: true },
     );
 
@@ -676,9 +918,41 @@ export const singleActivateAgent = async (req, res) => {
       });
     }
 
+    if (isAgentActive) {
+      const entitlements = await getAutopilotEntitlements(studentId);
+      const activeAgentCount = await StudentAgent.countDocuments({
+        student: studentId,
+        isAgentActive: true,
+        agentId: { $ne: agentId },
+      });
+
+      if (
+        Number.isFinite(entitlements.maxAgents) &&
+        activeAgentCount >= entitlements.maxAgents
+      ) {
+        return res.status(403).json({
+          success: false,
+          message:
+            entitlements.isFree
+              ? 'Free plan supports only 1 active AI job agent. Upgrade to activate more.'
+              : `Your plan supports only ${entitlements.maxAgents} active AI job agents.`,
+          errorCode: 'AGENT_LIMIT_REACHED',
+          upgradeRequired: entitlements.isFree,
+        });
+      }
+    }
+
     const updatedAgent = await StudentAgent.findOneAndUpdate(
       { agentId, student: studentId },
-      { $set: { isAgentActive } },
+      {
+        $set: isAgentActive
+          ? {
+              isAgentActive,
+              agentDailyLimit: (await getAutopilotEntitlements(studentId))
+                .dailyJobLimit,
+            }
+          : { isAgentActive },
+      },
       { new: true },
     );
 
