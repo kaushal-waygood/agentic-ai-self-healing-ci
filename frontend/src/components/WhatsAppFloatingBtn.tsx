@@ -10,10 +10,13 @@ const WhatsAppFloatingBtn = () => {
 
   const pathname = usePathname();
 
-  if (pathname.includes('/dashboard')) {
+  const excludedPaths = ['/dashboard', '/login', '/signup'];
+
+  const isExcluded = excludedPaths.some((path) => pathname.includes(path));
+
+  if (isExcluded) {
     return null;
   }
-
   return (
     <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-1">
       {/* Interactive Text Bubble */}
@@ -27,7 +30,6 @@ const WhatsAppFloatingBtn = () => {
           Join ZobsAI Community 👋
         </p>
 
-        {/* Little triangle pointer for the bubble */}
         <div className="absolute -bottom-1.5 left-4 h-3 w-3 rotate-45 bg-white dark:bg-gray-800"></div>
       </a>
 
