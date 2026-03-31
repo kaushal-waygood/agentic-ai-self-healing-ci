@@ -15,6 +15,94 @@ const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 const shouldDebugJobs = () =>
   process.env.DEBUG_JOBS === '1' || process.env.DEBUG_AUTOPILOT === '1';
 
+function cloneContextWithRelaxedFilters(
+  context,
+  {
+    dropCountry = false,
+    dropState = false,
+    dropCity = false,
+    dropEmploymentType = false,
+    dropQueryOverride = false,
+  } = {},
+) {
+  const filters = { ...(context.filters || {}) };
+
+  if (dropCountry) delete filters.country;
+  if (dropState) delete filters.state;
+  if (dropCity) delete filters.city;
+  if (dropEmploymentType) delete filters.employmentType;
+
+  const nextContext = {
+    ...context,
+    filters,
+  };
+
+  if (dropQueryOverride) {
+    nextContext.queryOverride = null;
+  }
+
+  return nextContext;
+}
+
+function buildRecommendationRelaxationStages(context) {
+  const stages = [];
+  const seen = new Set();
+
+  const pushStage = (label, options = {}) => {
+    const stageContext = cloneContextWithRelaxedFilters(context, options);
+    const signature = JSON.stringify({
+      queryOverride: stageContext.queryOverride || null,
+      country: stageContext.filters?.country || null,
+      state: stageContext.filters?.state || null,
+      city: stageContext.filters?.city || null,
+      employmentType: stageContext.filters?.employmentType || null,
+    });
+
+    if (seen.has(signature)) return;
+    seen.add(signature);
+    stages.push({ label, context: stageContext });
+  };
+
+  pushStage('titleRelaxed', { dropQueryOverride: true });
+  pushStage('locationRelaxed', { dropState: true, dropCity: true });
+  pushStage('titleLocationRelaxed', {
+    dropQueryOverride: true,
+    dropState: true,
+    dropCity: true,
+  });
+  pushStage('employmentTypeRelaxed', { dropEmploymentType: true });
+  pushStage('titleEmploymentTypeRelaxed', {
+    dropQueryOverride: true,
+    dropEmploymentType: true,
+  });
+  pushStage('countryRelaxed', {
+    dropCountry: true,
+    dropState: true,
+    dropCity: true,
+  });
+  pushStage('titleCountryRelaxed', {
+    dropQueryOverride: true,
+    dropCountry: true,
+    dropState: true,
+    dropCity: true,
+  });
+  pushStage('employmentTypeCountryRelaxed', {
+    dropEmploymentType: true,
+    dropCountry: true,
+    dropState: true,
+    dropCity: true,
+  });
+  pushStage('broadFallback', {
+    dropQueryOverride: true,
+    dropEmploymentType: true,
+    dropCountry: true,
+    dropState: true,
+    dropCity: true,
+  });
+
+  return stages;
+}
+
 function extractProfileFromStudent(student) {
   const titles = new Set();
   const skills = new Set();
@@ -164,6 +252,7 @@ export const getRecommendedJobs = async ({
 
   let candidates = await retrieveCandidates(context, poolSize);
   let filterContext = context;
+  let appliedFilterStage = 'strict';
 
   // When autopilot gets 0 local jobs, retry with relaxed country filter
   if (
@@ -180,11 +269,51 @@ export const getRecommendedJobs = async ({
 
   const strictFiltered = applyFilters(candidates, filterContext);
   let filtered = strictFiltered;
+  const relaxationDebug = [
+    {
+      stage: 'strict',
+      count: strictFiltered.length,
+      queryOverride: filterContext.queryOverride,
+      filters: filterContext.filters,
+    },
+  ];
 
-  // Agent/autopilot queries already retrieved this candidate pool using the
-  // requested title. If the extra title-token gate wipes out everything,
-  // retry once without that final gate so strong vector/keyword matches
-  // still have a chance to rank instead of returning an empty set.
+  if (!filtered.length && candidates.length > 0 && filterContext.type === 'recommendation') {
+    const relaxationStages = buildRecommendationRelaxationStages(filterContext);
+
+    for (const stage of relaxationStages) {
+      const stageFiltered = applyFilters(candidates, stage.context);
+      relaxationDebug.push({
+        stage: stage.label,
+        count: stageFiltered.length,
+        queryOverride: stage.context.queryOverride,
+        filters: stage.context.filters,
+      });
+
+      if (stageFiltered.length > 0) {
+        filtered = stageFiltered;
+        filterContext = stage.context;
+        appliedFilterStage = stage.label;
+        break;
+      }
+    }
+  }
+
+  if (shouldDebugJobs() && candidates.length > 0) {
+    console.log('[DEBUG_JOBS] Agent filter summary:', {
+      query: context.query,
+      queryOverride: context.queryOverride,
+      candidates: candidates.length,
+      stages: relaxationDebug.map((entry) => ({
+        stage: entry.stage,
+        count: entry.count,
+        queryOverride: entry.queryOverride,
+        filters: entry.filters,
+      })),
+      chosenStage: appliedFilterStage,
+    });
+  }
+
   if (!filtered.length && candidates.length > 0 && filterContext.queryOverride) {
     const relaxedTitleContext = {
       ...filterContext,
@@ -192,19 +321,10 @@ export const getRecommendedJobs = async ({
     };
     const titleRelaxed = applyFilters(candidates, relaxedTitleContext);
 
-    if (shouldDebugJobs()) {
-      console.log('[DEBUG_JOBS] Agent filter summary:', {
-        query: context.query,
-        queryOverride: filterContext.queryOverride,
-        filters: filterContext.filters,
-        candidates: candidates.length,
-        strictFiltered: strictFiltered.length,
-        titleRelaxed: titleRelaxed.length,
-      });
-    }
-
     if (titleRelaxed.length > 0) {
       filtered = titleRelaxed;
+      filterContext = relaxedTitleContext;
+      appliedFilterStage = `${appliedFilterStage}:titleRelaxedFinal`;
     }
   }
 
@@ -226,6 +346,7 @@ export const getRecommendedJobs = async ({
       filters: filterContext.filters,
       candidates: candidates.length,
       strictFiltered: strictFiltered.length,
+      appliedFilterStage,
       finalFiltered: filtered.length,
       remotePreferred: !!prefersRemote,
       finalJobs: jobs.length,

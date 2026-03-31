@@ -414,75 +414,192 @@ export const findAndProcessJobs = async () => {
     };
   }
 
-  let processed = 0;
-  let alreadySearchedToday = 0;
-  let poolAlreadyFull = 0;
-  let planAgentCapReached = 0;
-  let autopilotDisabled = 0;
-  let missingProfile = 0;
-  let noJobsFound = 0;
-  const entitlementsCache = new Map();
-  const processedAgentSlotsByStudent = new Map();
+  const activeAgentIds = activeAgents.map((agent) => agent._id).filter(Boolean);
+  const activeCountsRaw =
+    activeAgentIds.length > 0
+      ? await AgentFoundJob.aggregate([
+          {
+            $match: {
+              agent: { $in: activeAgentIds },
+              ...activeFoundJobFilter(),
+            },
+          },
+          {
+            $group: {
+              _id: '$agent',
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : [];
+  const activeCountByAgent = new Map(
+    activeCountsRaw.map((row) => [String(row._id), Number(row.count) || 0]),
+  );
+
+  const studentConcurrency = normalizeLimit(
+    process.env.AUTOPILOT_STUDENT_CONCURRENCY,
+    8,
+    { min: 1, max: 50 },
+  );
+  const groupedAgents = new Map();
 
   for (const agent of activeAgents) {
-    try {
-      const studentKey = String(agent.student);
-      let entitlements = entitlementsCache.get(studentKey);
-      if (!entitlements) {
-        entitlements = await getAutopilotEntitlements(agent.student);
-        entitlementsCache.set(studentKey, entitlements);
-      }
-
-      const alreadyReserved = processedAgentSlotsByStudent.get(studentKey) || 0;
-      if (
-        Number.isFinite(entitlements.maxAgents) &&
-        alreadyReserved >= entitlements.maxAgents
-      ) {
-        planAgentCapReached++;
-        continue;
-      }
-      processedAgentSlotsByStudent.set(studentKey, alreadyReserved + 1);
-
-      const result = await processAgentDiscovery(agent, {
-        planEntitlements: entitlements,
-      });
-      processed += result.processed || 0;
-
-      switch (result.reason) {
-        case 'alreadySearchedToday':
-          alreadySearchedToday++;
-          break;
-        case 'poolAlreadyFull':
-          poolAlreadyFull++;
-          break;
-        case 'planAgentCapReached':
-          planAgentCapReached++;
-          break;
-        case 'autopilotDisabled':
-          autopilotDisabled++;
-          break;
-        case 'missingProfile':
-          missingProfile++;
-          break;
-        case 'noJobsFound':
-          noJobsFound++;
-          break;
-        default:
-          break;
-      }
-    } catch (err) {
-      console.error(`Autopilot agent failed (${agent.agentName})`, err.message);
+    const studentKey = String(agent.student);
+    const existing = groupedAgents.get(studentKey);
+    if (existing) {
+      existing.push(agent);
+    } else {
+      groupedAgents.set(studentKey, [agent]);
     }
   }
 
+  const studentBatches = Array.from(groupedAgents.values());
+  const summaries = [];
+
+  await runWithConcurrency(
+    studentBatches,
+    async (studentAgents) => {
+      const summary = {
+        processed: 0,
+        alreadySearchedToday: 0,
+        poolAlreadyFull: 0,
+        planAgentCapReached: 0,
+        autopilotDisabled: 0,
+        missingProfile: 0,
+        noJobsFound: 0,
+      };
+
+      if (!studentAgents.length) {
+        summaries.push(summary);
+        return;
+      }
+
+      let entitlements = null;
+      try {
+        entitlements = await getAutopilotEntitlements(studentAgents[0].student);
+      } catch (err) {
+        console.error(
+          `[Autopilot] Failed to load entitlements for student ${studentAgents[0].student}:`,
+          err.message,
+        );
+        summaries.push(summary);
+        return;
+      }
+
+      for (let index = 0; index < studentAgents.length; index++) {
+        const agent = studentAgents[index];
+
+        try {
+          if (
+            Number.isFinite(entitlements.maxAgents) &&
+            index >= entitlements.maxAgents
+          ) {
+            summary.planAgentCapReached++;
+            continue;
+          }
+
+          const strictAgentLimit = normalizeLimit(
+            entitlements.dailyJobLimit,
+            5,
+            { min: 1, max: 12 },
+          );
+          const strictActiveCount =
+            activeCountByAgent.get(String(agent._id)) || 0;
+
+          if (strictActiveCount >= strictAgentLimit) {
+            summary.poolAlreadyFull++;
+
+            await StudentAgent.updateOne(
+              { _id: agent._id },
+              {
+                $set: {
+                  lastDiscoveryRunAt: new Date(),
+                  lastDiscoveryActiveCount: strictActiveCount,
+                  lastDiscoveryTargetLimit: strictAgentLimit,
+                },
+              },
+            ).catch(() => {});
+
+            if (process.env.DEBUG_AUTOPILOT === '1') {
+              console.log(
+                `[Autopilot] ${agent.agentName} already full at ${strictActiveCount}/${strictAgentLimit}; skipping discovery`,
+              );
+            }
+            continue;
+          }
+
+          const result = await processAgentDiscovery(agent, {
+            planEntitlements: entitlements,
+          });
+
+          summary.processed += result.processed || 0;
+
+          switch (result.reason) {
+            case 'alreadySearchedToday':
+              summary.alreadySearchedToday++;
+              break;
+            case 'poolAlreadyFull':
+              summary.poolAlreadyFull++;
+              break;
+            case 'planAgentCapReached':
+              summary.planAgentCapReached++;
+              break;
+            case 'autopilotDisabled':
+              summary.autopilotDisabled++;
+              break;
+            case 'missingProfile':
+              summary.missingProfile++;
+              break;
+            case 'noJobsFound':
+              summary.noJobsFound++;
+              break;
+            default:
+              break;
+          }
+        } catch (err) {
+          console.error(
+            `Autopilot agent failed (${agent.agentName})`,
+            err.message,
+          );
+        }
+      }
+
+      summaries.push(summary);
+    },
+    studentConcurrency,
+  );
+
+  const totals = summaries.reduce(
+    (acc, summary) => ({
+      processed: acc.processed + summary.processed,
+      alreadySearchedToday:
+        acc.alreadySearchedToday + summary.alreadySearchedToday,
+      poolAlreadyFull: acc.poolAlreadyFull + summary.poolAlreadyFull,
+      planAgentCapReached:
+        acc.planAgentCapReached + summary.planAgentCapReached,
+      autopilotDisabled: acc.autopilotDisabled + summary.autopilotDisabled,
+      missingProfile: acc.missingProfile + summary.missingProfile,
+      noJobsFound: acc.noJobsFound + summary.noJobsFound,
+    }),
+    {
+      processed: 0,
+      alreadySearchedToday: 0,
+      poolAlreadyFull: 0,
+      planAgentCapReached: 0,
+      autopilotDisabled: 0,
+      missingProfile: 0,
+      noJobsFound: 0,
+    },
+  );
+
   return {
-    processed,
+    processed: totals.processed,
     agentsChecked: activeAgents.length,
-    alreadySearchedToday,
-    poolAlreadyFull,
-    planAgentCapReached,
-    autopilotDisabled,
-    missingProfile,
-    noJobsFound,
+    alreadySearchedToday: totals.alreadySearchedToday,
+    poolAlreadyFull: totals.poolAlreadyFull,
+    planAgentCapReached: totals.planAgentCapReached,
+    autopilotDisabled: totals.autopilotDisabled,
+    missingProfile: totals.missingProfile,
+    noJobsFound: totals.noJobsFound,
   };
 };

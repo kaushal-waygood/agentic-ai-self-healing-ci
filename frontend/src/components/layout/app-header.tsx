@@ -536,7 +536,7 @@ const AppHeader = ({
     setIsNotificationOpen(false);
   };
 
-  if (!user) {
+  if (!mounted || !user) {
     return (
       <header className="sticky h-[70px] top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm">
         <div className="flex h-16 items-center justify-between px-6 animate-pulse">
