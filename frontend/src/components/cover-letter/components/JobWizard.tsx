@@ -683,7 +683,8 @@ const JobWizard = ({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden p-4 md:p-6 font-jakarta antialiased">
-      <div className="mx-auto flex h-full w-full max-w-[850px] flex-col">
+      {/* <div className="mx-auto flex h-full w-full max-w-[850px] flex-col"> */}
+      <div className="mx-auto flex h-full w-full flex-col">
         {/* HEADER & STEPPER */}
         <div className="mb-6 shrink-0">
           <div className="mb-6 text-center">
@@ -714,7 +715,7 @@ const JobWizard = ({
                   2
                 </div>
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
-                  Select Focus
+                  CV Context
                 </span>
               </div>
               <div className="flex flex-col items-center gap-1.5 bg-slate-50 px-2 dark:bg-transparent">
