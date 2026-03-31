@@ -1,337 +1,354 @@
 'use client';
+
 import { Button } from '@/components/ui/button';
 import { getToken } from '@/hooks/useToken';
-import { Menu, X, Search } from 'lucide-react';
+import { ArrowRight, Menu, Search, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
+
+const navItems = [
+  { name: 'Home', href: '/' },
+  { name: 'Why ZobsAI?', href: '/#platforms' },
+  { name: 'Pricing', href: '/#pricing' },
+  { name: 'Success Stories', href: '/#testimonials' },
+];
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDesktopSearchOpen, setIsDesktopSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [token, setToken] = useState<string | undefined>(undefined);
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const tokens = getToken();
   const pathname = usePathname();
-  const isJobSearchPage = pathname.includes('/search-jobs');
+  const isJobSearchPage =
+    pathname.includes('/search-jobs') ||
+    pathname.includes('/dashboard/search-jobs');
+  const searchPath = token ? '/dashboard/search-jobs' : '/search-jobs';
 
-  // On component mount, check if the access token cookie exists
   useEffect(() => {
-    const accessToken = tokens;
-    setToken(accessToken);
+    const accessToken = getToken();
+    setToken(accessToken ?? undefined);
   }, []);
 
-  const navItems = [
-    { name: 'Features', href: '/#platforms' },
-    { name: 'How it Works', href: '/#how-it-works' },
-    { name: 'Pricing', href: '/#pricing' },
-    { name: 'Success Stories', href: '/#testimonials' },
-  ];
+  useEffect(() => {
+    if (!isDesktopSearchOpen) return;
+
+    desktopSearchInputRef.current?.focus();
+  }, [isDesktopSearchOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: globalThis.MouseEvent) => {
+      if (
+        desktopSearchRef.current &&
+        !desktopSearchRef.current.contains(event.target as Node)
+      ) {
+        setIsDesktopSearchOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSearchSubmit = () => {
     const trimmedQuery = searchQuery.trim();
-    if (!trimmedQuery) return;
-    const encodedQuery = trimmedQuery ? encodeURIComponent(trimmedQuery) : '';
 
-    setSearchQuery('');
-
-    if (token) {
-      router.push(
-        `/dashboard/search-jobs${encodedQuery ? `?q=${encodedQuery}` : ''}`,
-      );
-    } else {
-      router.push(`/search-jobs${encodedQuery ? `?q=${encodedQuery}` : ''}`);
+    if (!trimmedQuery) {
+      handleSearchRoute();
+      return;
     }
 
+    const encodedQuery = encodeURIComponent(trimmedQuery);
+    setSearchQuery('');
+    router.push(`${searchPath}?q=${encodedQuery}`);
     setIsOpen(false);
+    setIsDesktopSearchOpen(false);
+  };
+
+  const handleSearchClick = () => {
+    setIsDesktopSearchOpen(true);
+  };
+
+  const handleSearchRoute = () => {
+    router.push(searchPath);
+    setIsOpen(false);
+    setIsDesktopSearchOpen(false);
+  };
+
+  const handleDesktopSearchClose = () => {
+    setIsDesktopSearchOpen(false);
+    setIsSearchFocused(false);
+    setSearchQuery('');
+  };
+
+  const handleHomeClick = (
+    event: ReactMouseEvent<HTMLAnchorElement>,
+    closeMenu = false,
+  ) => {
+    if (pathname !== '/') {
+      if (closeMenu) setIsOpen(false);
+      return;
+    }
+
+    event.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (closeMenu) setIsOpen(false);
   };
 
   const handleLogout = () => {
-    // To log out, we expire the cookie by setting its date to the past
     document.cookie =
       'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    setToken(undefined); // Clear the token from state
-    router.push('/login'); // Redirect to the login page
+    setToken(undefined);
+    router.push('/login');
   };
 
   return (
-    <nav className="sticky top-0 left-0 right-0 z-50 bg-white/50 backdrop-blur-3xl border-b border-black/10 border-b-1 py-2">
-      {/* Enhanced background gradients */}
-      <div className="absolute inset-0 bg-gradient-to-r from-violet-500/8 via-indigo-500/6 to-cyan-400/8"></div>
-      <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/5 to-transparent"></div>
+    <nav className="sticky top-0 left-0 right-0 z-50 border-b border-[#edf0f6] bg-white">
+      <div className="mx-auto flex h-[82px] w-full max-w-[1400px] items-center gap-6 px-5 sm:px-8 lg:px-10">
+        <Link
+          href="/"
+          prefetch={false}
+          onClick={(event) => handleHomeClick(event)}
+          className="flex shrink-0 items-start gap-1"
+        >
+          <Image
+            src="/logo.png"
+            alt="ZobsAI"
+            width={56}
+            height={56}
+            priority
+            className="h-11 w-11 sm:h-[50px] sm:w-[50px]"
+          />
+          <span className="-ml-1 mt-[4px] flex flex-col leading-none sm:-ml-1.5 sm:mt-[8px]">
+            <span className="bg-[linear-gradient(90deg,#7359f6_0%,#298be9_100%)] bg-clip-text text-[17px] font-extrabold tracking-[-0.04em] text-transparent sm:text-[19px]">
+              ZobsAI
+            </span>
+            <span className="mt-[1px] pl-[2px] text-[7px] font-medium tracking-[0.03em] text-[#8c92a6] sm:text-[8px]">
+              AI Job Assistant
+            </span>
+          </span>
+        </Link>
 
-      {/* Subtle mesh pattern overlay */}
-      <div
-        className="absolute inset-0 opacity-20"
-        style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0)`,
-          backgroundSize: '24px 24px',
-        }}
-      ></div>
+        <div className="hidden flex-1 items-center justify-between lg:flex">
+          <div className="ml-4 flex items-center gap-7 xl:gap-[42px]">
+            {navItems.map((item) => {
+              const isActive = item.name === 'Home' && pathname === '/';
 
-      <div className="relative container mx-auto px-6">
-        <div className="flex items-center justify-between h-18">
-          <div className="flex items-center">
-            <div className="relative group">
-              <div className="relative flex items-center space-x-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                <div className="w-8 h-8  rounded-lg flex items-center justify-center ">
-                  <Image width={32} height={32} src="/logo.png" alt="abc" />
-                </div>
-
+              return (
                 <Link
-                  href={'/'}
+                  key={item.name}
+                  href={item.href}
                   prefetch={false}
-                  className="text-2xl font-bold bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 bg-clip-text text-transparent"
+                  scroll
+                  onClick={
+                    item.name === 'Home'
+                      ? (event) => handleHomeClick(event)
+                      : undefined
+                  }
+                  className={`text-[15px] font-semibold transition-colors ${
+                    isActive
+                      ? 'text-[#5664f5]'
+                      : 'text-[#2f374b] hover:text-[#5664f5]'
+                  }`}
                 >
-                  ZobsAI
+                  {item.name}
                 </Link>
-              </div>
-            </div>
+              );
+            })}
           </div>
 
-          {/* Enhanced Desktop Search Box */}
-          {!isJobSearchPage && (
-            <div className="hidden lg:flex flex-1 max-w-lg mx-8">
-              <div className="relative w-full group">
-                <div className="relative">
-                  <div className="input-search-box-div">
-                    <button
-                      onClick={handleSearchSubmit}
-                      aria-label="Search"
-                      className="input-search-icon"
-                    >
-                      <Search />
-                    </button>
-                    <input
-                      type="text"
-                      placeholder="economist in New York, NY | system design in San Francisco, CA"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onFocus={() => setIsSearchFocused(true)}
-                      onBlur={() => setIsSearchFocused(false)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSearchSubmit();
-                        }
-                      }}
-                      className="input-search py-2"
-                    />
-                  </div>
+          <div className="flex items-center gap-4 xl:gap-5">
+            <div ref={desktopSearchRef} className="flex items-center">
+              {isDesktopSearchOpen ? (
+                <div
+                  className={`flex h-10 w-[300px] items-center rounded-[14px] border bg-[#f7f8fb] pl-3 pr-2 shadow-none transition-colors xl:w-[322px] ${
+                    isSearchFocused ? 'border-[#aeb8ff]' : 'border-[#d6dde8]'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    aria-label="Submit search"
+                    onClick={handleSearchSubmit}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#8b91a3] transition-colors hover:text-[#5664f5]"
+                  >
+                    <Search className="h-4 w-4" />
+                  </button>
+                  <input
+                    ref={desktopSearchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    placeholder="Job title, preferences, keywords, or company"
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') handleSearchSubmit();
+                      if (event.key === 'Escape') handleDesktopSearchClose();
+                    }}
+                    className="h-full flex-1 bg-transparent px-2 text-[11px] font-medium text-[#5c6478] outline-none placeholder:text-[#a7afc0]"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Close search"
+                    onClick={handleDesktopSearchClose}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#9aa1b5] transition-colors hover:bg-[#eef2f8] hover:text-[#5664f5]"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-              </div>
+              ) : (
+                <button
+                  type="button"
+                  aria-label="Search jobs"
+                  onClick={handleSearchClick}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[#777d8e] transition-colors hover:bg-[#f5f7fc] hover:text-[#4c56ea]"
+                >
+                  <Search className="h-[30px] w-[30px] stroke-[1.8]" />
+                </button>
+              )}
             </div>
-          )}
 
-          {/* Enhanced Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
-            {navItems.map((item, index) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                scroll={true} // Ensures the scroll to hash happens
-                className="relative px-4 py-2 text-gray-700 hover:text-violet-600 transition-all duration-300 font-medium group rounded-xl"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                {/* Hover background */}
-                <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-indigo-500/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 scale-95 group-hover:scale-100"></div>
-
-                <span className="relative z-10 text-sm">{item.name}</span>
-
-                {/* Enhanced underline animation */}
-                <div className="absolute inset-x-2 -bottom-0.5 h-0.5 bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-400 origin-center rounded-full"></div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Enhanced Desktop CTA - Conditional Buttons */}
-          <div className="hidden md:flex items-center space-x-3">
             {token ? (
-              <>
+              <Button
+                asChild
+                className="h-12 rounded-[16px] bg-[linear-gradient(90deg,#7b4df8_0%,#2793df_100%)] px-7 text-[15px] font-semibold text-white shadow-none transition-transform duration-200 hover:-translate-y-0.5 hover:opacity-95"
+              >
                 <Link href="/dashboard" prefetch={false}>
-                  <Button className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 hover:from-violet-700 hover:via-indigo-700 hover:to-cyan-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm rounded-xl px-6 py-3 font-semibold text-sm border border-white/20">
-                    <span className="relative z-10">Dashboard</span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
-                  </Button>
+                  Dashboard
                 </Link>
-              </>
+              </Button>
             ) : (
               <>
                 <Link
-                  href={'/login'}
+                  href="/login"
                   prefetch={false}
-                  className="px-5 py-2 rounded-lg text-gray-700 hover:text-violet-600 hover:bg-white/15 backdrop-blur-sm transition-all duration-300 hover:shadow-lg font-medium text-sm border border-transparent hover:border-white/20"
+                  className="inline-flex h-12 min-w-[126px] items-center justify-center rounded-[16px] border border-[#2f82f7] px-7 text-[15px] font-semibold text-[#5664f5] transition-colors hover:bg-[#f6f9ff]"
                 >
                   Sign In
                 </Link>
+
                 <Button
-                  onClick={() => router.push('/signup')}
-                  className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 hover:from-violet-700 hover:via-indigo-700 hover:to-cyan-700 text-white transition-all duration-300 transform hover:scale-105 rounded-lg px-5 py-3 font-medium text-sm border border-white/20"
+                  asChild
+                  className="h-12 min-w-[198px] rounded-[16px] bg-[linear-gradient(90deg,#7b4df8_0%,#2793df_100%)] px-7 text-[15px] font-semibold text-white shadow-none transition-transform duration-200 hover:-translate-y-0.5 hover:opacity-95"
                 >
-                  Start Free Trial
+                  <Link href="/signup" prefetch={false}>
+                    Start A Free Trial
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </Button>
               </>
             )}
           </div>
-
-          {/* Enhanced Mobile Menu Button */}
-          <div className="md:hidden">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsOpen(!isOpen)}
-              className="relative hover:bg-white/15 backdrop-blur-sm transition-all duration-300 rounded-xl p-3 border border-white/10"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-cyan-500/10 rounded-xl opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
-              <div
-                className={`transition-transform duration-300 ${
-                  isOpen ? 'rotate-180' : 'rotate-0'
-                }`}
-              >
-                {isOpen ? (
-                  <X className="w-5 h-5 relative z-10 text-gray-700" />
-                ) : (
-                  <Menu className="w-5 h-5 relative z-10 text-gray-700" />
-                )}
-              </div>
-            </Button>
-          </div>
         </div>
 
-        {/* Enhanced Mobile Navigation */}
-        {isOpen && (
-          <div className="md:hidden relative mt-4 mb-6">
-            {/* Enhanced mobile menu background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/25 via-white/15 to-white/5 backdrop-blur-3xl rounded-3xl border border-white/20 shadow-2xl"></div>
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/8 via-indigo-500/5 to-cyan-500/8 rounded-3xl"></div>
+        <div className="ml-auto lg:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsOpen((open) => !open)}
+            className="h-11 w-11 rounded-[14px] border border-[#e6eaf3] bg-white text-[#2f374b] hover:bg-[#f5f7fc] hover:text-[#5664f5]"
+          >
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
+      </div>
 
-            {/* Subtle pattern overlay for mobile */}
-            <div
-              className="absolute inset-0 opacity-30 rounded-3xl"
-              style={{
-                backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)`,
-                backgroundSize: '20px 20px',
-              }}
-            ></div>
-
-            <div className="relative p-8 space-y-8">
-              {/* Enhanced Mobile Search */}
-
-              {/* <div className="relative group">
-                <div
-                  className={`absolute -inset-1 bg-gradient-to-r from-violet-500/30 to-cyan-500/30 rounded-2xl blur transition-all duration-300 ${
-                    isSearchFocused
-                      ? 'opacity-100 scale-105'
-                      : 'opacity-50 scale-100'
-                  }`}
-                ></div>
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-white/10 rounded-2xl"></div>
-                  <div className="relative flex items-center">
-                    <button
-                      onClick={handleSearchSubmit}
-                      aria-label="Search"
-                      className="absolute left-4 w-5 h-5 text-gray-400 transition-colors duration-200 group-hover:text-violet-500 focus:outline-none"
-                    >
-                      <Search />
-                    </button>
-                    <input
-                      type="text"
-                      placeholder="Search features, docs, help..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onFocus={() => setIsSearchFocused(true)}
-                      onBlur={() => setIsSearchFocused(false)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSearchSubmit();
-                        }
-                      }}
-                      className="w-full pl-12 pr-6 py-4 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-white/30 transition-all duration-300 hover:bg-white/15 text-sm font-medium"
-                    />
-                  </div>
-                </div>
-              </div> */}
-              {/* 5. Conditional Mobile Search */}
+      {isOpen && (
+        <div className="border-t border-[#edf0f6] bg-white lg:hidden">
+          <div className="mx-auto w-full max-w-[1400px] px-5 py-4 sm:px-8">
+            <div className="rounded-[24px] border border-[#e8ecf5] bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
               {!isJobSearchPage && (
-                <div className="relative group">
-                  <div
-                    className={`absolute -inset-1 bg-gradient-to-r from-violet-500/30 to-cyan-500/30 rounded-2xl blur transition-all duration-300 ${
+                <div className="relative mb-4">
+                  <button
+                    type="button"
+                    aria-label="Search"
+                    onClick={handleSearchSubmit}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8d93a6] transition-colors hover:text-[#5664f5]"
+                  >
+                    <Search className="h-5 w-5" />
+                  </button>
+                  <input
+                    type="text"
+                    placeholder="Search jobs..."
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') handleSearchSubmit();
+                    }}
+                    className={`h-12 w-full rounded-[16px] border bg-[#fbfcff] pl-12 pr-4 text-[15px] text-[#2f374b] outline-none transition-colors placeholder:text-[#9aa1b5] ${
                       isSearchFocused
-                        ? 'opacity-100 scale-105'
-                        : 'opacity-50 scale-100'
+                        ? 'border-[#91a8ff]'
+                        : 'border-[#e5eaf4] focus:border-[#91a8ff]'
                     }`}
-                  ></div>
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-white/10 rounded-2xl"></div>
-                    <div className="relative flex items-center">
-                      <button
-                        onClick={handleSearchSubmit}
-                        aria-label="Search"
-                        className="absolute left-4 w-5 h-5 text-gray-400 transition-colors duration-200 group-hover:text-violet-500 focus:outline-none"
-                      >
-                        <Search />
-                      </button>
-                      <input
-                        type="text"
-                        placeholder="Search jobs..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onFocus={() => setIsSearchFocused(true)}
-                        onBlur={() => setIsSearchFocused(false)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleSearchSubmit();
-                          }
-                        }}
-                        className="w-full pl-12 pr-6 py-4 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-white/30 transition-all duration-300 hover:bg-white/15 text-sm font-medium"
-                      />
-                    </div>
-                  </div>
+                  />
                 </div>
               )}
 
-              {/* Enhanced mobile navigation items */}
-              <div className="space-y-2">
-                {navItems.map((item, index) => (
-                  <a
+              <div className="space-y-1">
+                {navItems.map((item) => (
+                  <Link
                     key={item.name}
                     href={item.href}
-                    className="block text-gray-700 hover:text-violet-600 transition-all duration-300 font-medium py-4 px-6 rounded-2xl hover:bg-white/15 backdrop-blur-sm group relative overflow-hidden"
-                    onClick={() => setIsOpen(false)}
-                    style={{
-                      animationDelay: `${index * 75}ms`,
-                      animation: 'slideInFromRight 0.6s ease-out forwards',
-                    }}
+                    prefetch={false}
+                    scroll
+                    onClick={
+                      item.name === 'Home'
+                        ? (event) => handleHomeClick(event, true)
+                        : () => setIsOpen(false)
+                    }
+                    className={`block rounded-[16px] px-4 py-3 text-[15px] font-semibold transition-colors ${
+                      item.name === 'Home' && pathname === '/'
+                        ? 'bg-[#f5f7ff] text-[#5664f5]'
+                        : 'text-[#2f374b] hover:bg-[#f7f9fc] hover:text-[#5664f5]'
+                    }`}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <span className="relative flex items-center justify-between">
-                      <span className="text-base">{item.name}</span>
-                      <div className="w-2 h-2 bg-gradient-to-r from-violet-500 to-cyan-500 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0"></div>
-                    </span>
-                  </a>
+                    {item.name}
+                  </Link>
                 ))}
               </div>
 
-              {/* Enhanced Mobile CTA - Conditional Buttons */}
-              <div className="pt-6 border-t border-white/20 space-y-4">
+              <div className="mt-4 flex flex-col gap-3 border-t border-[#edf0f6] pt-4">
+                <button
+                  type="button"
+                  onClick={handleSearchRoute}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] border border-[#e5eaf4] bg-[#fbfcff] text-[15px] font-semibold text-[#2f374b] transition-colors hover:bg-[#f5f7fc] hover:text-[#5664f5]"
+                >
+                  <Search className="h-4 w-4" />
+                  Search Jobs
+                </button>
+
                 {token ? (
                   <>
-                    <Link
-                      href="/dashboard"
-                      className="w-full block"
-                      prefetch={false}
-                    >
-                      <Button className="w-full relative overflow-hidden bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 hover:from-violet-700 hover:via-indigo-700 hover:to-cyan-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] rounded-2xl py-4 font-semibold text-base border border-white/20">
-                        <span className="relative z-10">Dashboard</span>
-                        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
-                      </Button>
-                    </Link>
                     <Button
-                      onClick={handleLogout}
+                      asChild
+                      className="h-12 rounded-[16px] bg-[linear-gradient(90deg,#7b4df8_0%,#2793df_100%)] text-[15px] font-semibold text-white shadow-none"
+                    >
+                      <Link
+                        href="/dashboard"
+                        prefetch={false}
+                        onClick={() => setIsOpen(false)}
+                      >
+                        Dashboard
+                      </Link>
+                    </Button>
+                    <Button
+                      type="button"
                       variant="outline"
-                      className="w-full px-6 py-4 rounded-2xl text-gray-700 bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all duration-300 hover:shadow-lg border border-white/20 font-medium text-base"
+                      onClick={handleLogout}
+                      className="h-12 rounded-[16px] border-[#d9e1f1] text-[15px] font-semibold text-[#2f374b] hover:bg-[#f7f9fc]"
                     >
                       Logout
                     </Button>
@@ -339,40 +356,33 @@ export const Navigation = () => {
                 ) : (
                   <>
                     <Link
-                      href={'/login'}
+                      href="/login"
                       prefetch={false}
-                      className="w-full inline-flex items-center justify-center px-6 py-4 rounded-2xl text-gray-700 hover:text-violet-600 hover:bg-white/15 backdrop-blur-sm transition-all duration-300 hover:shadow-lg border border-white/20 font-medium text-base"
+                      onClick={() => setIsOpen(false)}
+                      className="inline-flex h-12 items-center justify-center rounded-[16px] border border-[#2f82f7] text-[15px] font-semibold text-[#5664f5] transition-colors hover:bg-[#f6f9ff]"
                     >
                       Sign In
                     </Link>
                     <Button
-                      onClick={() => router.push('/signup')}
-                      className="w-full relative overflow-hidden bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 hover:from-violet-700 hover:via-indigo-700 hover:to-cyan-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] rounded-2xl py-4 font-semibold text-base border border-white/20"
+                      asChild
+                      className="h-12 rounded-[16px] bg-[linear-gradient(90deg,#7b4df8_0%,#2793df_100%)] text-[15px] font-semibold text-white shadow-none"
                     >
-                      <span className="relative z-10">Start Free Trial</span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                      <Link
+                        href="/signup"
+                        prefetch={false}
+                        onClick={() => setIsOpen(false)}
+                      >
+                        Start A Free Trial
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
                     </Button>
                   </>
                 )}
               </div>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Add keyframe animation for mobile menu items */}
-      <style jsx>{`
-        @keyframes slideInFromRight {
-          0% {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-      `}</style>
+        </div>
+      )}
     </nav>
   );
 };
