@@ -139,14 +139,28 @@ const buildJobsByDate = (jobs) => {
   return byDate;
 };
 
-const fetchActiveAgentJobs = async (studentId, agentMongoId, limit = 20) => {
-  const foundJobs = await AgentFoundJob.find({
+const fetchActiveAgentJobs = async (
+  studentId,
+  agentMongoId,
+  { page = 1, limit = 20 } = {},
+) => {
+  const filter = {
     student: studentId,
     agent: agentMongoId,
     ...activeFoundJobFilter,
-  })
+  };
+  const safePage = Math.max(1, parseInt(page, 10) || 1);
+  const safeLimit = Math.min(
+    Math.max(1, parseInt(limit, 10) || 20),
+    50,
+  );
+  const skip = (safePage - 1) * safeLimit;
+
+  const total = await AgentFoundJob.countDocuments(filter);
+  const foundJobs = await AgentFoundJob.find(filter)
     .sort({ foundAt: -1 })
-    .limit(limit)
+    .skip(skip)
+    .limit(safeLimit)
     .populate({
       path: 'job',
       select:
@@ -178,7 +192,7 @@ const fetchActiveAgentJobs = async (studentId, agentMongoId, limit = 20) => {
     }, new Map());
   }
 
-  return foundJobs
+  const jobs = foundJobs
     .map((record) =>
       mapAgentJob(
         record,
@@ -186,6 +200,18 @@ const fetchActiveAgentJobs = async (studentId, agentMongoId, limit = 20) => {
       ),
     )
     .filter(Boolean);
+
+  return {
+    jobs,
+    pagination: {
+      page: safePage,
+      limit: safeLimit,
+      total,
+      totalPages: total > 0 ? Math.ceil(total / safeLimit) : 0,
+      hasNextPage: skip + safeLimit < total,
+      hasPrevPage: safePage > 1,
+    },
+  };
 };
 
 export const createAutopilotAgent = async (req, res) => {
@@ -435,10 +461,13 @@ export const getSinglePilotAgent = async (req, res) => {
   const { id: agentId } = req.params;
 
   try {
-    const agent = await StudentAgent.find({
-      _id: agentId,
-      student: studentId,
-    }).lean();
+    const isMongoId =
+      mongoose.Types.ObjectId.isValid(agentId) && String(agentId).length === 24;
+    const agent = await StudentAgent.findOne(
+      isMongoId
+        ? { _id: agentId, student: studentId }
+        : { agentId, student: studentId },
+    ).lean();
 
     if (!agent) {
       return res.status(404).json({
@@ -492,6 +521,7 @@ export const getSinglePilotAgent = async (req, res) => {
 export const getAgentJobs = async (req, res) => {
   const studentId = req.user._id;
   const { id: agentId } = req.params;
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
 
   try {
@@ -507,7 +537,10 @@ export const getAgentJobs = async (req, res) => {
       });
     }
 
-    const jobs = await fetchActiveAgentJobs(studentId, agent._id, limit);
+    const { jobs, pagination } = await fetchActiveAgentJobs(studentId, agent._id, {
+      page,
+      limit,
+    });
 
     return res.status(200).json({
       success: true,
@@ -515,6 +548,7 @@ export const getAgentJobs = async (req, res) => {
       meta: {
         agentId: agent.agentId,
         count: jobs.length,
+        pagination,
       },
     });
   } catch (error) {
@@ -529,6 +563,7 @@ export const getAgentJobs = async (req, res) => {
 export const replaceAgentJob = async (req, res) => {
   const studentId = req.user._id;
   const { agentId, jobId } = req.params;
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
 
   try {
@@ -574,7 +609,10 @@ export const replaceAgentJob = async (req, res) => {
       force: true,
       requestedSlots: 1,
     });
-    const jobs = await fetchActiveAgentJobs(studentId, agent._id, limit);
+    const { jobs, pagination } = await fetchActiveAgentJobs(studentId, agent._id, {
+      page,
+      limit,
+    });
 
     return res.status(200).json({
       success: true,
@@ -590,6 +628,7 @@ export const replaceAgentJob = async (req, res) => {
       meta: {
         agentId: agent.agentId,
         count: jobs.length,
+        pagination,
       },
     });
   } catch (error) {

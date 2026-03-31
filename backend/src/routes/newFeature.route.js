@@ -1,6 +1,7 @@
 import {
   reportAutofillIssue,
   requestNewFeature,
+  getNewFeaturesRequests,
 } from '../controllers/newFeature.controller.js';
 import { Router } from 'express';
 import {
@@ -12,6 +13,7 @@ import {
 const router = Router();
 
 router.post('/', authMiddleware, isUserOrUniStudent, requestNewFeature);
+router.get('/', authMiddleware, isUserOrUniStudent, getNewFeaturesRequests);
 router.post(
   '/report-autofill-issue',
   authMiddleware,

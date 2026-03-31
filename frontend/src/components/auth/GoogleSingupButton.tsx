@@ -16,8 +16,7 @@ export function GoogleSignInButton({ authType = 'login' }) {
   };
 
   // Determine button text based on the authType prop
-  const buttonText =
-    authType === 'signup' ? 'Login with Google' : 'Sign in with Google';
+  const buttonText = authType === 'signup' ? 'Google' : 'Google';
   const loadingText =
     authType === 'signup'
       ? 'Redirecting to Google...'
@@ -64,9 +63,7 @@ export function GoogleSignInButton({ authType = 'login' }) {
               fill="#EA4335"
             />
           </svg>
-          <span className="text-gray-700 font-medium text-base">
-            {buttonText}
-          </span>
+          <span className="text-gray-700 font-semibold ">{buttonText}</span>
         </div>
       )}
     </Button>
@@ -95,8 +92,7 @@ export function LinkedInSignInButton({ authType = 'login' }) {
     }
   };
 
-  const buttonText =
-    authType === 'signup' ? 'Sign up with LinkedIn' : 'Login with LinkedIn';
+  const buttonText = authType === 'signup' ? 'LinkedIn' : 'LinkedIn';
   const loadingText = 'Connecting to LinkedIn...';
 
   return (
@@ -128,9 +124,7 @@ export function LinkedInSignInButton({ authType = 'login' }) {
               fill="#0077B5" // Official LinkedIn Blue
             />
           </svg>
-          <span className="text-gray-700 font-medium text-base">
-            {buttonText}
-          </span>
+          <span className="text-gray-700 font-semibold">{buttonText}</span>
         </div>
       )}
     </Button>
