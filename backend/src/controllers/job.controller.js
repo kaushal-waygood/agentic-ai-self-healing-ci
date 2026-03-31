@@ -46,6 +46,10 @@ import { ScheduledEmail } from '../models/ScheduledEmail.model.js';
 // --- Constants ---
 const SEARCH_TTL = 120; // seconds
 const LOCK_TTL = 10; // seconds for in-flight refresh lock
+const SEARCH_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
+const SEARCH_FAST_LOCAL_POOL = 800;
+const SEARCH_CACHE_TARGET = 120;
+const searchSyncCooldown = new Map();
 
 const ALLOWED_JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN'];
 const ALLOWED_SALARY_PERIODS = ['HOUR', 'DAY', 'MONTH', 'YEAR'];
@@ -217,6 +221,15 @@ export async function searchJobs(req, res) {
     const pageNum = safeParseInt(page, 1);
     const limitNum = safeParseInt(limit, 10);
     const skip = (pageNum - 1) * limitNum;
+    const buildPagination = (totalJobs) => ({
+      page: pageNum,
+      currentPage: pageNum,
+      limit: limitNum,
+      total: totalJobs,
+      totalJobs,
+      totalPages: totalJobs > 0 ? Math.ceil(totalJobs / limitNum) : 0,
+      hasNextPage: true,
+    });
 
     const context = await buildSearchContext(req);
 
@@ -255,32 +268,6 @@ export async function searchJobs(req, res) {
         `${context.query}:${country || ''}:${state || ''}:${city || ''}:${employmentType || ''}:${experience || ''}`,
       )
       .digest('hex')}`;
-      
-
-    // Pages 2+: serve from the cached pool built on page 1
-    if (pageNum > 1) {
-      try {
-        
-        const cached = await redisClient.get(poolCacheKey);
-        if (cached) {
-          const pool = JSON.parse(cached);
-          const slice = pool.slice(skip, skip + limitNum);
-          const jobs = await attachJobViews(slice);
-          return res.status(200).json({
-            success: true,
-            jobs,
-            pagination: {
-              currentPage: pageNum,
-              // hasNextPage: skip + limitNum < pool.length,
-              hasNextPage: true,
-              totalJobs: pool.length,
-            },
-          });
-        }
-      } catch (_) {
-        // cache miss — fall through and rebuild
-      }
-    }
 
     // Progressively relax geography, but keep the country filter when
     // the user explicitly requested one so we never return irrelevant results.
@@ -314,9 +301,94 @@ export async function searchJobs(req, res) {
       }
     }
 
+    const refreshSearchPoolInBackground = () => {
+      const syncKey = `${poolCacheKey}:refresh`;
+      const lastSyncAt = searchSyncCooldown.get(syncKey) || 0;
+
+      if (Date.now() - lastSyncAt <= SEARCH_SYNC_COOLDOWN_MS) return;
+      searchSyncCooldown.set(syncKey, Date.now());
+
+      setImmediate(async () => {
+        try {
+          let backgroundPool = [];
+
+          for (const filterSet of levels) {
+            const ctx = makeContext(filterSet);
+            const localCandidates = await retrieveLocalCandidates(
+              ctx,
+              SEARCH_FAST_LOCAL_POOL,
+            );
+
+            let processed = processPool(localCandidates, ctx);
+            backgroundPool = diversify(processed);
+
+            if (backgroundPool.length < SEARCH_CACHE_TARGET) {
+              const externalRaw = await fetchExternalDeep({
+                apiTerm,
+                country: filterSet.country || country || 'IN',
+                state: filterSet.state,
+                city: filterSet.city,
+                employmentType: ctx.filters?.employmentType,
+                minRequired: experience ? 80 : SEARCH_CACHE_TARGET,
+                maxPages: experience ? 3 : 6,
+              });
+
+              if (externalRaw.length) {
+                const formatted = externalRaw.map((j) =>
+                  transformRapidApiJob(j, q || 'job'),
+                );
+
+                await upsertExternalJobs(formatted).catch((err) =>
+                  console.error('Search background upsert error:', err.message),
+                );
+
+                processed = processPool(
+                  dedupeByTitleCompany([...localCandidates, ...formatted]),
+                  ctx,
+                );
+                backgroundPool = diversify(processed);
+              }
+            }
+
+            if (backgroundPool.length >= SEARCH_CACHE_TARGET) break;
+          }
+
+          if (backgroundPool.length > 0) {
+            await redisClient.set(
+              poolCacheKey,
+              JSON.stringify(backgroundPool),
+              300,
+            );
+          }
+        } catch (err) {
+          console.error(
+            'Search background refresh failed:',
+            err?.message || err,
+          );
+        }
+      });
+    };
+
+    try {
+      const cached = await redisClient.get(poolCacheKey);
+      if (cached) {
+        const pool = JSON.parse(cached);
+        const slice = pool.slice(skip, skip + limitNum);
+        const jobs = await attachJobViews(slice);
+        refreshSearchPoolInBackground();
+        return res.status(200).json({
+          success: true,
+          jobs,
+          pagination: buildPagination(pool.length),
+        });
+      }
+    } catch (_) {
+      // cache miss — fall through and rebuild
+    }
+
     let diversifiedPool = [];
     let finalJobs = [];
-    const poolSize = 3000;
+    const poolSize = SEARCH_FAST_LOCAL_POOL;
 
     for (const filterSet of levels) {
       const ctx = makeContext(filterSet);
@@ -326,57 +398,22 @@ export async function searchJobs(req, res) {
       diversifiedPool = diversify(processed);
       finalJobs = diversifiedPool.slice(skip, skip + limitNum);
 
-      const isRelaxedLevel = 'employmentType' in filterSet;
-      const needsExternal = diversifiedPool.length < skip + limitNum;
-
-      if (needsExternal) {
-        const externalRaw = await fetchExternalDeep({
-          apiTerm,
-          country: filterSet.country || country || 'IN',
-          state: filterSet.state,
-          city: filterSet.city,
-          employmentType: ctx.filters?.employmentType,
-          minRequired: experience ? 80 : 200,
-          maxPages: experience ? 3 : 8,
-        });
-
-        if (externalRaw.length) {
-          const formatted = externalRaw.map((j) =>
-            transformRapidApiJob(j, q || 'job'),
-          );
-
-          await upsertExternalJobs(formatted);
-
-          const merged = dedupeByTitleCompany([
-            ...localCandidates,
-            ...formatted,
-          ]);
-
-          processed = processPool(merged, ctx);
-          diversifiedPool = diversify(processed);
-          finalJobs = diversifiedPool.slice(skip, skip + limitNum);
-        }
-      }
-
       if (diversifiedPool.length >= skip + limitNum) break;
     }
 
     // Cache the full pool so pages 2+ get consistent results
-    if (diversifiedPool.length > skip + limitNum) {
+    if (diversifiedPool.length > 0) {
       await redisClient.set(poolCacheKey, JSON.stringify(diversifiedPool), 300);
     }
+
+    refreshSearchPoolInBackground();
 
     const jobsWithViews = await attachJobViews(finalJobs);
 
     return res.status(200).json({
       success: true,
       jobs: jobsWithViews,
-      pagination: {
-        currentPage: pageNum,
-        // hasNextPage: skip + limitNum < diversifiedPool.length,
-        hasNextPage: true,
-        totalJobs: diversifiedPool.length,
-      },
+      pagination: buildPagination(diversifiedPool.length),
     });
   } catch (error) {
     console.error('Search Error:', error);
