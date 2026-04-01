@@ -566,7 +566,8 @@ export function JobStep({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden p-4 md:p-6 font-jakarta antialiased">
-      <div className="mx-auto flex h-full w-full max-w-[850px] flex-col">
+      {/* <div className="mx-auto flex h-full w-full max-w-[850px] flex-col"> */}
+      <div className="mx-auto flex h-full w-full max-w-[1250px] flex-col">
         {/* HEADER & STEPPER */}
         <div className="mb-6 shrink-0">
           <div className="mb-6 text-center">

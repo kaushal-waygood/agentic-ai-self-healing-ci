@@ -540,7 +540,8 @@ export const DocumentCard = ({
   const [isRenaming, setIsRenaming] = useState(false);
   const [isSavingRename, setIsSavingRename] = useState(false);
 
-  const isProcessing = status === 'pending';
+  const isSaved = docState === 'saved';
+  const isProcessing = !isSaved && status === 'pending';
   const isClickable = status === 'completed' || docState === 'saved';
 
   const [isDeleting, setIsDeleting] = useState(false);
@@ -605,7 +606,6 @@ export const DocumentCard = ({
     }
   };
 
-  const isSaved = docState === 'saved';
   const canRefresh =
     status !== 'completed' && docState !== 'saved' && status !== 'failed';
 

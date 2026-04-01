@@ -228,9 +228,9 @@ export default function JobsPage() {
     // Logic for individual pill removal
     const newFilters = { ...filters };
 
-    if (key === 'employmentType') {
-      newFilters.employmentType = (newFilters.employmentType || []).filter(
-        (t: string) => t !== value,
+    if (key === 'employmentType' || key === 'experience') {
+      newFilters[key] = (newFilters[key] || []).filter(
+        (item: string) => item !== value,
       );
     } else if (key === 'country') {
       // If country is removed, state must be cleared as well

@@ -42,6 +42,9 @@ import { StudentCL } from '../models/students/studentCL.model.js';
 import fs from 'fs'; // Required to read the uploaded files
 import { runEmailScrape } from '../config/geminiCron.js';
 import { ScheduledEmail } from '../models/ScheduledEmail.model.js';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc.js';
+import timezone from 'dayjs/plugin/timezone.js';
 
 // --- Constants ---
 const SEARCH_TTL = 120; // seconds
@@ -53,6 +56,9 @@ const searchSyncCooldown = new Map();
 
 const ALLOWED_JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN'];
 const ALLOWED_SALARY_PERIODS = ['HOUR', 'DAY', 'MONTH', 'YEAR'];
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const tm = new TemplateManager({
   baseDir: path.join(__dirname, '..', 'email-templates', 'templates'),
@@ -85,6 +91,29 @@ const sendRawEmail = async ({ to, subject, html }) =>
     subject,
     html,
   });
+
+const parseScheduledSendDate = (scheduledAt, timezoneName = 'UTC') => {
+  if (!scheduledAt || typeof scheduledAt !== 'string') return null;
+
+  const bracketTimezoneMatch = scheduledAt.match(/^(.+)\[([^\]]+)\]$/);
+  if (bracketTimezoneMatch) {
+    const [, localDateTime, bracketTimezone] = bracketTimezoneMatch;
+    const parsed = dayjs.tz(localDateTime, bracketTimezone);
+    return parsed.isValid() ? parsed.toDate() : null;
+  }
+
+  const hasExplicitOffset =
+    /(?:[zZ]|[+-]\d{2}:\d{2})$/.test(scheduledAt) ||
+    /(?:[zZ]|[+-]\d{2}\d{2})$/.test(scheduledAt);
+
+  if (hasExplicitOffset) {
+    const directParse = dayjs(scheduledAt);
+    if (directParse.isValid()) return directParse.toDate();
+  }
+
+  const timezoneParse = dayjs.tz(scheduledAt, timezoneName);
+  return timezoneParse.isValid() ? timezoneParse.toDate() : null;
+};
 
 // --- Functions ---
 
@@ -2270,8 +2299,10 @@ export const scheduleRecruitmentEmail = async (req, res) => {
         .json({ success: false, message: 'Invalid recipient email' });
     }
 
-    const sendDate = new Date(scheduledAt);
-    if (isNaN(sendDate.getTime())) {
+    // const sendDate = new Date(scheduledAt);
+    // if (isNaN(sendDate.getTime())) {
+    const sendDate = parseScheduledSendDate(scheduledAt, timezone || 'UTC');
+    if (!sendDate) {
       return res
         .status(400)
         .json({ success: false, message: 'Invalid scheduledAt date' });
@@ -2311,12 +2342,44 @@ export const scheduleRecruitmentEmail = async (req, res) => {
  */
 export const getScheduledEmails = async (req, res) => {
   try {
-    const { _id } = req.user;
-    const emails = await ScheduledEmail.find({ student: _id })
-      .sort({ scheduledAt: -1 })
-      .limit(50);
+    //  const { _id } = req.user;
+    //  const emails = await ScheduledEmail.find({ student: _id })
+    //    .sort({ scheduledAt: -1 })
+    //    .limit(50);
 
-    return res.status(200).json({ success: true, emails });
+    //  return res.status(200).json({ success: true, emails });
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Unauthorized.' });
+    }
+
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(
+      50,
+      Math.max(1, parseInt(req.query.limit, 10) || 20),
+    );
+    const skip = (page - 1) * limit;
+    const filter = { student: req.user._id };
+
+    const [items, total] = await Promise.all([
+      ScheduledEmail.find(filter)
+        .sort({ scheduledAt: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      ScheduledEmail.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      items,
+      emails: items,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
   } catch (err) {
     console.error('[getScheduledEmails]', err);
     return res.status(500).json({ success: false, message: err.message });

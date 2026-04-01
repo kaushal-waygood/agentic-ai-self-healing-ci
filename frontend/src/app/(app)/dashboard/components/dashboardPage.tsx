@@ -653,6 +653,13 @@ export default function DashboardPage() {
     router.push(`/dashboard/search-jobs?q=${encodeURIComponent(trimmed)}`);
   };
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   return (
     <div className="relative min-h-screen bg-slate-50 font-jakarta text-slate-800 antialiased selection:bg-blue-100 selection:text-blue-900">
       {/* Background Gradient Wash */}
@@ -751,7 +758,7 @@ export default function DashboardPage() {
         </header>
 
         {/* WELCOME BANNER */}
-        <div className="relative mb-6 flex flex-col items-start justify-between gap-6 overflow-hidden rounded-[22px] bg-[linear-gradient(130deg,#2563eb_0%,#1d4ed8_55%,#1a3fad_100%)] p-7 sm:flex-row sm:items-center sm:p-9  animate-in fade-in slide-in-from-bottom-4">
+        {/* <div className="relative mb-6 flex flex-col items-start justify-between gap-6 overflow-hidden rounded-[22px] bg-[linear-gradient(130deg,#2563eb_0%,#1d4ed8_55%,#1a3fad_100%)] p-7 sm:flex-row sm:items-center sm:p-9  animate-in fade-in slide-in-from-bottom-4">
           <div className="absolute -right-[50px] -top-[50px] h-[240px] w-[240px] rounded-full bg-white/5" />
           <div className="absolute -bottom-[70px] right-[120px] h-[180px] w-[180px] rounded-full bg-white/5" />
 
@@ -779,6 +786,46 @@ export default function DashboardPage() {
             <Link href="/dashboard/profile" prefetch={false}>
               <div className="cursor-pointer rounded-[20px] border border-white bg-white px-[15px] py-[7px] text-xs font-bold text-blue-700 transition-colors hover:bg-blue-50">
                 Complete Profile →
+              </div>
+            </Link>
+          </div>
+        </div> */}
+
+        <div className="relative mb-6 flex flex-col items-start justify-between gap-6 overflow-hidden rounded-[22px] bg-[linear-gradient(130deg,#2563eb_0%,#1d4ed8_55%,#1a3fad_100%)] p-7 sm:flex-row sm:items-center sm:p-9 animate-in fade-in slide-in-from-bottom-4">
+          <div className="absolute -right-[50px] -top-[50px] h-[240px] w-[240px] rounded-full bg-white/5" />
+          <div className="absolute -bottom-[70px] right-[120px] h-[180px] w-[180px] rounded-full bg-white/5" />
+
+          {/* LEFT SECTION */}
+          <div className="relative z-10">
+            <div className="mb-1 text-[12.5px] font-medium text-white/60">
+              👋 {getGreeting()}
+            </div>
+
+            <div className="mb-1.5 text-2xl font-extrabold tracking-tight text-white">
+              Welcome back,{' '}
+              {studentFullName || authUser?.fullName?.split(' ')[0] || 'User'}!
+            </div>
+
+            <div className="text-[13px] text-white/70 font-medium">
+              {stats?.appliedJobsCount > 0
+                ? `You have applied to ${stats.appliedJobsCount} jobs. Keep going 🚀`
+                : 'Start applying to jobs and build your career '}
+            </div>
+          </div>
+
+          {/* RIGHT SECTION */}
+          <div className="relative z-10 flex flex-wrap gap-2">
+            <div className="cursor-default rounded-[20px] border border-white/20 bg-white/10 px-[15px] py-[7px] text-xs font-medium text-white hover:bg-white/20">
+              {stats?.appliedJobsCount || 0} Applications
+            </div>
+
+            <div className="cursor-default rounded-[20px] border border-white/20 bg-white/10 px-[15px] py-[7px] text-xs font-medium text-white hover:bg-white/20">
+              {stats?.cvsGenerated || 0} CVs
+            </div>
+
+            <Link href="/dashboard/search-jobs" prefetch={false}>
+              <div className="cursor-pointer rounded-[20px] border border-white bg-white px-[15px] py-[7px] text-xs font-bold text-blue-700 hover:bg-blue-50">
+                Browse Jobs →
               </div>
             </Link>
           </div>
