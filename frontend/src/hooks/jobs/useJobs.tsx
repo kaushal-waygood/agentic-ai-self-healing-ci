@@ -124,7 +124,6 @@ export const useJobs = () => {
     // Update ref IMMEDIATELY before dispatching
     fetchedKeyRef.current = key;
 
-    console.log('token', tokens);
     if (isEmpty) {
       // --- UPDATED LOGIC HERE ---
       // Only call Recommended API if the user is authenticated

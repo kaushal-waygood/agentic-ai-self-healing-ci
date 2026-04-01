@@ -1,19 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Bot,
-  Plus,
-  Trash2,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  Zap,
-  Clock,
-  Briefcase,
-  Activity,
-  Tag,
-  Link,
-} from 'lucide-react';
+import { Trash2, Loader2, Tag, Link } from 'lucide-react';
 import apiInstance from '@/services/api';
 import {
   getAgentJobs,
@@ -365,6 +352,7 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
           findingJobs={findingJobs}
           onFindAnotherJob={handleFindAnotherJob}
           onGenerateDocs={handleGenerateDocs}
+          agentTitle={agent.agentName || agent.agentId}
         />
       )}
     </div>

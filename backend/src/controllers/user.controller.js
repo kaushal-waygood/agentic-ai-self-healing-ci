@@ -20,6 +20,7 @@ import { addCredits, CREDIT_EARN } from '../utils/credits.js';
 import { Feedback } from '../models/feedback.model.js';
 import { RecruiterEmailSent } from '../models/RecruiterEmailSent.model.js';
 import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
+import { Student } from '../models/students/student.model.js';
 
 import { v4 as uuidv4 } from 'uuid';
 import { LoginHistory } from '../models/analyics/loginHistory.model.js';
@@ -54,6 +55,10 @@ const FRONTEND_URL =
     : process.env.NODE_ENV === 'development'
       ? 'https://dev.zobsai.com'
       : 'http://127.0.0.1:3000';
+
+const LINKEDIN_CALLBACK_URI = `${BACKEND_API_BASE_URL}/api/v1/user/linkedin/callback`;
+const LINKEDIN_OAUTH_SCOPE = 'openid email profile';
+const LINKEDIN_PROFILE_IMPORT_PURPOSE = 'linkedin_profile_import';
 
 /* -------------------------
    Helper Utilities
@@ -243,7 +248,7 @@ const getAccessToken = async (code) => {
     code: code,
     client_id: process.env.LINKEDIN_CLIENT_ID,
     client_secret: process.env.LINKEDIN_CLIENT_SECRET,
-    redirect_uri: `${BACKEND_API_BASE_URL}/api/v1/user/linkedin/callback`,
+    redirect_uri: LINKEDIN_CALLBACK_URI,
   });
 
   const response = await fetch(
@@ -259,6 +264,25 @@ const getAccessToken = async (code) => {
   return await response.json();
 };
 
+const buildLinkedInAuthUrl = ({ state } = {}) => {
+  if (!process.env.LINKEDIN_CLIENT_ID) {
+    throw new Error('Missing LinkedIn client id');
+  }
+
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: process.env.LINKEDIN_CLIENT_ID,
+    redirect_uri: LINKEDIN_CALLBACK_URI,
+    scope: LINKEDIN_OAUTH_SCOPE,
+  });
+
+  if (state) {
+    params.set('state', state);
+  }
+
+  return `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
+};
+
 const getUserData = async (accessToken) => {
   const response = await fetch('https://api.linkedin.com/v2/userinfo', {
     method: 'get',
@@ -267,6 +291,155 @@ const getUserData = async (accessToken) => {
 
   if (!response.ok) throw new Error(response.statusText);
   return await response.json();
+};
+
+const parseLinkedInState = (state) => {
+  if (!state || typeof state !== 'string') return null;
+
+  try {
+    return jwt.verify(state, config.accessTokenSecret);
+  } catch {
+    return null;
+  }
+};
+
+const pickFirstNonEmpty = (...values) =>
+  values.find((value) => typeof value === 'string' && value.trim())?.trim() ||
+  '';
+
+const syncLinkedInProfileImport = async ({ userId, userData }) => {
+  const user = await User.findById(userId).lean();
+  const importedAt = new Date();
+  const fullName = pickFirstNonEmpty(
+    userData?.name,
+    [userData?.given_name, userData?.family_name].filter(Boolean).join(' '),
+    user?.fullName,
+  );
+  const email = pickFirstNonEmpty(
+    userData?.email,
+    userData?.emailAddress,
+    user?.email,
+  ).toLowerCase();
+  const picture = pickFirstNonEmpty(userData?.picture, userData?.avatar);
+  const headline = pickFirstNonEmpty(
+    userData?.headline,
+    userData?.localizedHeadline,
+  );
+  const vanityName = pickFirstNonEmpty(
+    userData?.vanityName,
+    userData?.preferred_username,
+  );
+  const publicProfileUrl = vanityName
+    ? `https://www.linkedin.com/in/${vanityName}`
+    : null;
+
+  let student = await Student.findById(userId);
+  if (!student) {
+    student = await Student.create({
+      _id: userId,
+      fullName: fullName || 'LinkedIn User',
+      email: email || user?.email,
+    });
+  }
+
+  const importedFields = [];
+  const update = {
+    metadata: {
+      ...(student.metadata || {}),
+      linkedin: {
+        ...(student.metadata?.linkedin || {}),
+        linkedInUid: userData?.sub || null,
+        headline: headline || null,
+        email: email || null,
+        picture: picture || null,
+        publicProfileUrl,
+        importedAt,
+      },
+    },
+  };
+
+  if (fullName && !student.fullName) {
+    update.fullName = fullName;
+    importedFields.push('name');
+  }
+
+  if (picture && !student.profileImage) {
+    update.profileImage = picture;
+    importedFields.push('photo');
+  }
+
+  if (headline && !student.jobRole) {
+    update.jobRole = headline;
+    importedFields.push('headline');
+  }
+
+  if (email && !student.email) {
+    update.email = email;
+    importedFields.push('email');
+  }
+
+  const updatedStudent = await Student.findByIdAndUpdate(
+    userId,
+    { $set: update },
+    { new: true, runValidators: true },
+  );
+
+  const userUpdate = {};
+  if (userData?.sub) {
+    userUpdate.linkedInUid = userData.sub;
+  }
+  if (picture) {
+    userUpdate.avatar = picture;
+  }
+
+  if (Object.keys(userUpdate).length) {
+    await User.findByIdAndUpdate(userId, { $set: userUpdate });
+  }
+
+  await redisClient.invalidateStudentCache(userId);
+  await Promise.allSettled([
+    redisClient.del(`student:${userId}:details`),
+    redisClient.del(`student:${userId}:skills`),
+    redisClient.del(`student:${userId}:profileCompletion`),
+  ]);
+
+  if (updatedStudent) {
+    await redisClient.set(
+      `student:${userId}:details`,
+      JSON.stringify(updatedStudent.toObject()),
+      300,
+    );
+  }
+
+  return {
+    importedFields,
+  };
+};
+
+export const getLinkedInImportUrl = async (req, res) => {
+  try {
+    const state = jwt.sign(
+      {
+        purpose: LINKEDIN_PROFILE_IMPORT_PURPOSE,
+        userId: String(req.user._id),
+      },
+      config.accessTokenSecret,
+      { expiresIn: '10m' },
+    );
+
+    console.log('LinkedIn import url state:', state);
+
+    return res.status(200).json({
+      success: true,
+      authUrl: buildLinkedInAuthUrl({ state }),
+    });
+  } catch (error) {
+    console.error('LinkedIn import url error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to start LinkedIn import',
+    });
+  }
 };
 
 /* -------------------------
@@ -487,10 +660,34 @@ export const firebaseGoogleLogin = async (req, res) => {
 };
 
 export const linkedInCallback = async (req, res) => {
+  const statePayload = parseLinkedInState(req.query.state);
+  const isProfileImport =
+    statePayload?.purpose === LINKEDIN_PROFILE_IMPORT_PURPOSE &&
+    statePayload?.userId;
+
   try {
     const { code } = req.query;
     const accessTokenData = await getAccessToken(code);
     const userData = await getUserData(accessTokenData.access_token);
+
+    if (isProfileImport) {
+      const { importedFields } = await syncLinkedInProfileImport({
+        userId: statePayload.userId,
+        userData,
+      });
+
+      const params = new URLSearchParams({
+        linkedin: 'success',
+      });
+
+      if (importedFields.length) {
+        params.set('linkedin_fields', importedFields.join(','));
+      }
+
+      return res.redirect(
+        `${FRONTEND_URL}/dashboard/profile?${params.toString()}`,
+      );
+    }
 
     if (!userData) {
       return res.status(500).json({
@@ -564,6 +761,14 @@ export const linkedInCallback = async (req, res) => {
     );
   } catch (error) {
     console.error('LinkedIn callback error:', error);
+    if (isProfileImport) {
+      const params = new URLSearchParams({
+        linkedin: 'error',
+      });
+      return res.redirect(
+        `${FRONTEND_URL}/dashboard/profile?${params.toString()}`,
+      );
+    }
     return res.status(500).redirect(`${FRONTEND_URL}/login?error=auth_failed`);
   }
 };

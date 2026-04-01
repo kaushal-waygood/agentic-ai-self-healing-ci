@@ -35,8 +35,6 @@ const genAIWithRetry = async (
   }
 };
 
-// ── Data normaliser (handles both API path and worker path) ──
-
 const normalizeApplicationData = (raw) => {
   // Already normalised (has candidate at top level)
   if (raw?.candidate) return raw;
@@ -52,17 +50,6 @@ const normalizeApplicationData = (raw) => {
     preferences: raw?.finalTouch || '',
   };
 };
-
-// ── BUG 2 + 3 FIX: model-agnostic DB update ─────────────────
-//
-// Previously this function ALWAYS updated StudentApplication.
-// The manual endpoint (startAgentJobTailoredGeneration) creates a
-// StudentTailoredApplication record, so updateOne found 0 matching
-// docs and silently no-oped — generated content was lost.
-//
-// Fix: accept a `modelType` param that tells us which collection to
-// update, and a `statusMap` so each caller controls its own status
-// vocabulary ('Applied' for autopilot, 'completed' for manual).
 
 const resolveModel = (modelType) => {
   if (modelType === 'StudentTailoredApplication')

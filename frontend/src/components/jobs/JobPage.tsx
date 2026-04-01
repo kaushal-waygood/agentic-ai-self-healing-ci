@@ -26,6 +26,7 @@ import { Loader } from '../Loader';
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<HTMLDivElement>(null);
+  const lastErrorToastRef = useRef<string | null>(null);
 
   const {
     jobs,
@@ -244,13 +245,22 @@ export default function JobsPage() {
 
     handleFilterChange(newFilters);
   };
-  if (error) {
+
+  useEffect(() => {
+    if (!error) {
+      lastErrorToastRef.current = null;
+      return;
+    }
+
+    if (lastErrorToastRef.current === error) return;
+
+    lastErrorToastRef.current = error;
     toast({
       variant: 'destructive',
       title: 'Error',
       description: error,
     });
-  }
+  }, [error]);
 
   return (
     <div className="min-h-screen  pt-4">

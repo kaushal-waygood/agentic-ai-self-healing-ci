@@ -82,6 +82,7 @@ const mapAgentJob = (record, tailoredApplication) => {
     id: job._id,
     _id: job._id,
     title: job.title,
+    description: job.description,
     company: job.company,
     country: job.country,
     location: job.location,
@@ -164,7 +165,7 @@ const fetchActiveAgentJobs = async (
     .populate({
       path: 'job',
       select:
-        'title company country location remote jobTypes slug jobPostedAt',
+        'title description company country location remote jobTypes slug jobPostedAt',
     })
     .lean();
 

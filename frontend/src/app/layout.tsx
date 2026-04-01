@@ -102,7 +102,7 @@ export default function RootLayout({
   Clarity.init(projectId);
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta
           name="google-site-verification"
