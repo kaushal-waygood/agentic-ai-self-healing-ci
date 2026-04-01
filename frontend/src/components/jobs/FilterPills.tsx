@@ -159,7 +159,7 @@
 //     </div>
 //   );
 // };
-import { X, MapPin, Calendar, Briefcase, Trash2 } from 'lucide-react';
+import { X, MapPin, Calendar, Briefcase, Clock, Trash2 } from 'lucide-react';
 
 export const FilterPills = ({
   filters,
@@ -207,6 +207,17 @@ export const FilterPills = ({
         label: type.toLowerCase().replace(/_/g, ' '),
         icon: Briefcase,
         value: type,
+      });
+    });
+  }
+
+  if (Array.isArray(filters.experience)) {
+    filters.experience.forEach((level: string) => {
+      activeFilters.push({
+        key: 'experience',
+        label: level,
+        icon: Clock,
+        value: level,
       });
     });
   }
