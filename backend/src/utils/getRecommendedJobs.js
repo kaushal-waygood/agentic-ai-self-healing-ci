@@ -278,7 +278,11 @@ export const getRecommendedJobs = async ({
     },
   ];
 
-  if (!filtered.length && candidates.length > 0 && filterContext.type === 'recommendation') {
+  if (
+    !filtered.length &&
+    candidates.length > 0 &&
+    filterContext.type === 'recommendation'
+  ) {
     const relaxationStages = buildRecommendationRelaxationStages(filterContext);
 
     for (const stage of relaxationStages) {
@@ -299,22 +303,26 @@ export const getRecommendedJobs = async ({
     }
   }
 
-  if (shouldDebugJobs() && candidates.length > 0) {
-    console.log('[DEBUG_JOBS] Agent filter summary:', {
-      query: context.query,
-      queryOverride: context.queryOverride,
-      candidates: candidates.length,
-      stages: relaxationDebug.map((entry) => ({
-        stage: entry.stage,
-        count: entry.count,
-        queryOverride: entry.queryOverride,
-        filters: entry.filters,
-      })),
-      chosenStage: appliedFilterStage,
-    });
-  }
+  // if (shouldDebugJobs() && candidates.length > 0) {
+  //   console.log('[DEBUG_JOBS] Agent filter summary:', {
+  //     query: context.query,
+  //     queryOverride: context.queryOverride,
+  //     candidates: candidates.length,
+  //     stages: relaxationDebug.map((entry) => ({
+  //       stage: entry.stage,
+  //       count: entry.count,
+  //       queryOverride: entry.queryOverride,
+  //       filters: entry.filters,
+  //     })),
+  //     chosenStage: appliedFilterStage,
+  //   });
+  // }
 
-  if (!filtered.length && candidates.length > 0 && filterContext.queryOverride) {
+  if (
+    !filtered.length &&
+    candidates.length > 0 &&
+    filterContext.queryOverride
+  ) {
     const relaxedTitleContext = {
       ...filterContext,
       queryOverride: null,
@@ -340,17 +348,17 @@ export const getRecommendedJobs = async ({
   const jobs = ranked.slice(0, limit);
 
   if (shouldDebugJobs()) {
-    console.log('[DEBUG_JOBS] Recommendation summary:', {
-      query: context.query,
-      queryOverride: context.queryOverride,
-      filters: filterContext.filters,
-      candidates: candidates.length,
-      strictFiltered: strictFiltered.length,
-      appliedFilterStage,
-      finalFiltered: filtered.length,
-      remotePreferred: !!prefersRemote,
-      finalJobs: jobs.length,
-    });
+    // console.log('[DEBUG_JOBS] Recommendation summary:', {
+    //   query: context.query,
+    //   queryOverride: context.queryOverride,
+    //   filters: filterContext.filters,
+    //   candidates: candidates.length,
+    //   strictFiltered: strictFiltered.length,
+    //   appliedFilterStage,
+    //   finalFiltered: filtered.length,
+    //   remotePreferred: !!prefersRemote,
+    //   finalJobs: jobs.length,
+    // });
 
     const preview = jobs.slice(0, Math.min(20, jobs.length)).map((job) => ({
       id: String(job._id || ''),
@@ -363,15 +371,15 @@ export const getRecommendedJobs = async ({
       isRemote: !!job.remote,
       rankScore: job.rankScore,
     }));
-    console.log(`[DEBUG_JOBS] Top ${preview.length} jobs:`, preview);
+    // console.log(`[DEBUG_JOBS] Top ${preview.length} jobs:`, preview);
   }
 
   if (!jobs.length && queryOverride && !skipQueryOverrideFallback) {
     if (shouldDebugJobs()) {
-      console.log('[DEBUG_JOBS] Retrying with profile-derived query:', {
-        failedQueryOverride: queryOverride,
-        filters: filterContext.filters,
-      });
+      // console.log('[DEBUG_JOBS] Retrying with profile-derived query:', {
+      //   failedQueryOverride: queryOverride,
+      //   filters: filterContext.filters,
+      // });
     }
 
     return getRecommendedJobs({

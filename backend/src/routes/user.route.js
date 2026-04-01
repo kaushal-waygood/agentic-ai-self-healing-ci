@@ -23,6 +23,7 @@ import {
   isEmailSentForNotify,
   verifyUpdateEmail,
   linkedInCallback,
+  getLinkedInImportUrl,
   resendVerificationEmail,
   firebaseGoogleSignup,
   getVerifiedUser,
@@ -45,8 +46,10 @@ import {
   saveOrganizationDetails,
 } from '../controllers/bringZobs.controller.js';
 import { upload } from '../middlewares/multer.js';
+import { memoryUpload } from '../middlewares/multer.js';
 import { getVerifiedUsers } from '../controllers/student.controller.js';
 import { subscribeToNewsletter } from '../controllers/newsletter.controller.js';
+import { extractStudentDataFromCV } from '../controllers/rough.js';
 
 const router = Router();
 
@@ -57,6 +60,19 @@ router.get('/oauth2callback', oAuth2Callback);
 router.post('/google/disconnect', authMiddleware, disconnectGoogle);
 
 router.get('/linkedin/callback', linkedInCallback);
+router.get(
+  '/linkedin/import-url',
+  authMiddleware,
+  isUserOrUniStudent,
+  getLinkedInImportUrl,
+);
+router.post(
+  '/linkedin/import-document',
+  authMiddleware,
+  isUserOrUniStudent,
+  memoryUpload.single('cv'),
+  extractStudentDataFromCV,
+);
 
 router.get('/google/auth/redirect', redirectToGoogle);
 router.get('/google/auth/redirect/callback', handleGoogleCallback);

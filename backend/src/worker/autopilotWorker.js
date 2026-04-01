@@ -8,7 +8,7 @@ import { AgentFoundJob } from '../models/AgentFoundJob.js';
 import { getRecommendedJobs } from '../utils/getRecommendedJobs.js';
 import { buildEffectiveStudentProfile } from '../utils/profileHydration.js';
 import { buildJobContextString } from '../utils/jobContext.js';
-import { processTailoredApplication } from '../utils/tailored.autopilot.js';
+import { processTailoredApplication } from '../utils/tailoredApply.background.js';
 import { Job } from '../models/jobs.model.js';
 import { runEmailScrape } from '../config/geminiCron.js';
 import { getAutopilotEntitlements } from '../utils/credits.js';
@@ -132,7 +132,8 @@ export const processAgentDiscovery = async (
     return { processed: 0, reason: 'poolAlreadyFull' };
   }
 
-  const searchedToday = !force && isSameOrAfter(agent.lastDiscoveryRunAt, today);
+  const searchedToday =
+    !force && isSameOrAfter(agent.lastDiscoveryRunAt, today);
   if (searchedToday && process.env.DEBUG_AUTOPILOT === '1') {
     console.log(
       `[Autopilot] ${agent.agentName} is still under target at ${activeFoundCount}/${agentLimit}; retrying same-day discovery`,
@@ -313,7 +314,11 @@ export const processAgentDiscovery = async (
 
       if (!job.scrapedEmails || job.scrapedEmails.length === 0) {
         if (job.company) {
-          const locationStr = [job.location?.city, job.location?.state, job.country]
+          const locationStr = [
+            job.location?.city,
+            job.location?.state,
+            job.country,
+          ]
             .filter(Boolean)
             .join(', ');
           runEmailScrape(job.company, locationStr)
@@ -398,7 +403,8 @@ export const findAndProcessJobs = async () => {
     .lean();
   activeAgents.sort(
     (a, b) =>
-      new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime(),
+      new Date(a.createdAt || 0).getTime() -
+      new Date(b.createdAt || 0).getTime(),
   );
 
   if (!activeAgents.length) {
