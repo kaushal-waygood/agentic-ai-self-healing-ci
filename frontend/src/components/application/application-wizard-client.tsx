@@ -102,28 +102,6 @@ export function ApplicationWizardClient() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDeepInWizard]);
 
-  // useEffect(() => {
-  //   // if (!isDeepInWizard) return;
-  //   if (!backTrapActive) return;
-
-  //   // Push a dummy state to the history stack to "trap" the back button
-  //   window.history.pushState(null, '', window.location.href);
-
-  //   const handlePopState = () => {
-  //     // if (isDeepInWizard) {
-  //     if (backTrapActive) {
-  //       // Re-push the state to stay on the page
-  //       window.history.pushState(null, '', window.location.href);
-
-  //       alert('Please wait until resume extraction is complete.');
-  //     }
-  //   };
-
-  //   window.addEventListener('popstate', handlePopState);
-  //   return () => window.removeEventListener('popstate', handlePopState);
-  //   // }, [isDeepInWizard]);
-  // }, [backTrapActive]);
-
   const renderStep = () => {
     // Loading card when initializing
     if (isLoading && wizardStep === 'loading') {
