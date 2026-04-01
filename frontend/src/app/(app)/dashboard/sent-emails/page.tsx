@@ -2,8 +2,11 @@ import React, { Suspense } from 'react';
 import SentEmailsClient from './SentEmailsClient';
 
 export const metadata = {
-  title: 'Sent Emails to Recruiters | ZobsAI',
-  description: "Track emails you've sent to recruiters from the platform.",
+  // title: 'Sent Emails to Recruiters | ZobsAI',
+  // description: "Track emails you've sent to recruiters from the platform.",
+  title: 'Email History | ZobsAI',
+  description:
+    'Track recruiter emails you have sent or scheduled from the platform.',
 };
 
 export default function SentEmailsPage() {
