@@ -128,3 +128,13 @@ export const scheduleRecruitmentEmail = async (params: {
   const response = await apiInstance.post('/jobs/schedule-email', params);
   return response.data;
 };
+
+export const getScheduledEmails = async (params?: {
+  page?: number;
+  limit?: number;
+}) => {
+  const response = await apiInstance.get('/jobs/scheduled-emails', {
+    params,
+  });
+  return response.data;
+};
