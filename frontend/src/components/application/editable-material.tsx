@@ -114,7 +114,10 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   const stripHtml = (html: string) => {
     if (typeof document === 'undefined') return html;
     const div = document.createElement('div');
-    div.innerHTML = html;
+    div.innerHTML = html
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<head[\s\S]*?<\/head>/gi, '');
     return div.textContent || div.innerText || html;
   };
 
@@ -164,6 +167,51 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           <title>${title}</title>
           ${rawStyle ? `<style>${rawStyle}</style>` : ''}
           ${!state.showImages ? '<style>.profile-image{display:none !important;}</style>' : ''}
+        </head>
+        <body>
+          <div class="resume-isolation-container">${editorHtml}</div>
+        </body>
+      </html>`;
+  };
+
+  const buildCoverLetterAttachmentHtml = () => {
+    const editorHtml = (editorRef.current?.innerHTML || state.localContent || '')
+      .trim();
+
+    if (!editorHtml) {
+      return typeof content === 'string' ? content : '';
+    }
+
+    return `<!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${title}</title>
+          <style>
+            html, body {
+              margin: 0;
+              padding: 0;
+              background: #ffffff;
+            }
+            body {
+              color: #0f172a;
+              font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              -webkit-font-smoothing: antialiased;
+              text-rendering: optimizeLegibility;
+            }
+            .resume-isolation-container {
+              color: #0f172a;
+              font-size: 16px;
+              line-height: 1.55;
+            }
+            .resume-isolation-container p {
+              margin: 0 0 1.25rem;
+            }
+            .resume-isolation-container p:last-child {
+              margin-bottom: 0;
+            }
+          </style>
         </head>
         <body>
           <div class="resume-isolation-container">${editorHtml}</div>
@@ -339,6 +387,9 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
     if (template?.style) {
       payload.resumeHtml = buildResumeAttachmentHtml();
+    }
+    if (!coverLetterHtml && type === 'coverletter') {
+      payload.coverLetterHtml = buildCoverLetterAttachmentHtml();
     }
 
     if (!onSendEmail) return;

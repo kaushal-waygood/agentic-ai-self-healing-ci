@@ -10,6 +10,7 @@ import {
 } from './notification.utils.js';
 import { StudentApplication } from '../models/students/studentApplication.model.js';
 import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
+import { sendRealTimeDocumentStatus } from '../socket/notification.socket.js';
 
 const processCVResponse = (response) =>
   response.replace(/```json|```/g, '').trim();
@@ -84,6 +85,7 @@ export const processTailoredApplication = async (
   {
     modelType = 'StudentApplication',
     statusMap = { success: 'Applied', failed: 'Failed' },
+    rethrowOnError = false,
   } = {},
 ) => {
   const Model = resolveModel(modelType);
@@ -91,28 +93,15 @@ export const processTailoredApplication = async (
   try {
     const data = normalizeApplicationData(applicationData);
 
-    // 1) CV
-    const cvResponse = await genAIWithRetry(
-      generateCVPrompts(data),
-      endpoint,
-      userId,
-    );
+    // Generate all three assets in parallel to reduce end-to-end latency.
+    const [cvResponse, coverLetterResponse, emailResponse] = await Promise.all([
+      genAIWithRetry(generateCVPrompts(data), endpoint, userId),
+      genAIWithRetry(generateCoverLetterPrompts(data), endpoint, userId),
+      genAIWithRetry(generateEmailPrompt(data), endpoint, userId),
+    ]);
+
     const tailoredCV = processCVResponse(cvResponse);
-
-    // 2) Cover Letter
-    const coverLetterResponse = await genAIWithRetry(
-      generateCoverLetterPrompts(data),
-      endpoint,
-      userId,
-    );
     const tailoredCoverLetter = processCoverLetterResponse(coverLetterResponse);
-
-    // 3) Email
-    const emailResponse = await genAIWithRetry(
-      generateEmailPrompt(data),
-      endpoint,
-      userId,
-    );
     const applicationEmail = processEmailResponse(emailResponse);
 
     // ✅ Save to whichever model created the record
@@ -148,6 +137,13 @@ export const processTailoredApplication = async (
         notifyErr?.message || notifyErr,
       );
     }
+
+    sendRealTimeDocumentStatus(io, userId, {
+      documentId: String(applicationId),
+      documentType: 'application',
+      status: statusMap.success === 'Failed' ? 'failed' : 'completed',
+      updatedAt: new Date().toISOString(),
+    });
 
     return true;
   } catch (error) {
@@ -193,6 +189,18 @@ export const processTailoredApplication = async (
         '[TAILORED] Notification failed (error path):',
         notifyErr?.message || notifyErr,
       );
+    }
+
+    sendRealTimeDocumentStatus(io, userId, {
+      documentId: String(applicationId),
+      documentType: 'application',
+      status: 'failed',
+      updatedAt: new Date().toISOString(),
+      error: errorMessage,
+    });
+
+    if (rethrowOnError) {
+      throw error;
     }
 
     return false;

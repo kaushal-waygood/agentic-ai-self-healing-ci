@@ -65,7 +65,18 @@ const autopilotAgentSchema = new Schema(
     isOnsite: Boolean,
     employmentType: String,
 
-    cvOption: { type: String, enum: ['current_profile', 'uploaded_pdf'] },
+    cvOption: {
+      type: String,
+      enum: ['current_profile', 'uploaded_pdf', 'saved_cv'],
+    },
+    selectedCVId: String,
+    selectedCVSource: { type: String, enum: ['saved', 'generated'] },
+    selectedCVTitle: String,
+    coverLetterStrategy: { type: String, enum: ['generate', 'template'] },
+    selectedCoverLetterId: String,
+    selectedCoverLetterSource: { type: String, enum: ['saved', 'generated'] },
+    selectedCoverLetterTitle: String,
+    coverLetterInstructions: String,
 
     uploadedCVData: {
       education: [educationSchema],

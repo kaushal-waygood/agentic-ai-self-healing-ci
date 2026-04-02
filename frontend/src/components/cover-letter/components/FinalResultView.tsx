@@ -6,6 +6,14 @@ import { useRouter } from 'next/navigation';
 import apiInstance from '@/services/api';
 import { dispatchImprovementPopupEvent } from '@/lib/improvement-popup';
 
+type DocumentStatusUpdate = {
+  documentId: string;
+  documentType: 'cv' | 'cl' | 'application';
+  status: string;
+  updatedAt?: string;
+  error?: string;
+};
+
 type Props = {
   cvlink?: string;
   rateLimited?: boolean;
@@ -63,10 +71,54 @@ export default function FinalResultView({
     return () => clearTimeout(t);
   }, [rateLimited, incompleteProfile, documentId]);
 
-  // Poll status API when documentId is provided; stop when status is completed
   useEffect(() => {
     if (!documentId || rateLimited || incompleteProfile || statusCompleted)
       return;
+
+    if (documentType !== 'application') {
+      return;
+    }
+
+    const handleCompleted = () => {
+      setStatusCompleted(true);
+      setIsGenerating(false);
+      setShowNotification(true);
+      onStatusCompleted?.();
+      dispatchImprovementPopupEvent('job_apply_success');
+      window.dispatchEvent(new CustomEvent('document-generation-complete'));
+    };
+
+    const onStatusUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<DocumentStatusUpdate>).detail;
+      if (!detail || detail.documentType !== 'application') return;
+      if (detail.documentId !== documentId) return;
+
+      if (detail.status === 'completed' || detail.status === 'new') {
+        handleCompleted();
+      } else if (detail.status === 'failed') {
+        setIsGenerating(false);
+      }
+    };
+
+    window.addEventListener('document-status-updated', onStatusUpdated);
+
+    return () => {
+      window.removeEventListener('document-status-updated', onStatusUpdated);
+    };
+  }, [
+    documentId,
+    documentType,
+    rateLimited,
+    incompleteProfile,
+    statusCompleted,
+    onStatusCompleted,
+  ]);
+
+  // Keep polling only for cv/cl. Tailored applications now use realtime updates.
+  useEffect(() => {
+    if (!documentId || rateLimited || incompleteProfile || statusCompleted)
+      return;
+    if (documentType === 'application') return;
 
     const getEndpoint = () => {
       switch (documentType) {

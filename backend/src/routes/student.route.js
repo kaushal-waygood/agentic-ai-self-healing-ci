@@ -385,6 +385,7 @@ import {
 
 import puppeteer from 'puppeteer';
 import { spawn } from 'child_process';
+
 import {
   getStudentDetails,
   updateStudentCoreProfile,
@@ -436,6 +437,7 @@ import {
 } from '../controllers/credit.controller.js';
 import { upload } from '../middlewares/multer.js';
 import multer from 'multer';
+import { generatePdfFromHtml } from '../utils/pdfEmailService.js';
 
 const router = Router();
 
@@ -644,105 +646,29 @@ router.post(
 );
 
 router.post('/pdf/generate-pdf', async (req, res) => {
-  const { html, title, isShowImage } = req.body;
-
-  if (!html) {
+  const { html, title = 'document', isShowImage, documentType } = req.body;
+  if (!html)
     return res.status(400).json({ message: 'HTML content is required.' });
-  }
 
-  let browser;
   try {
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-      ],
-      protocolTimeout: 120000,
+    const pdfBuffer = await generatePdfFromHtml(html, {
+      documentType,
+      isShowImage,
+      margin: { top: '10mm', right: '15mm', bottom: '15mm', left: '15mm' },
     });
 
-    const page = await browser.newPage();
-    page.setDefaultTimeout(60000);
-
-    await page.emulateMediaType('screen');
-
-    // FIX 2: Better wait strategy
-    await page.setContent(html, {
-      waitUntil: ['load', 'networkidle0'],
-      timeout: 60000,
-    });
-
-    // FIX 3: Inject CSS to prevent content clipping
-    await page.addStyleTag({
-      content: `
-          * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-          }
-          html, body {
-            height: auto !important;
-            overflow: visible !important;
-            display: block !important;
-          }
-
-          ${
-            isShowImage
-              ? ''
-              : '.resume-container .profile-image { display: none; }'
-          }
-        `,
-    });
-
-    // FIX 4: Wait for fonts (Inter, Plus Jakarta Sans, etc.) to load before PDF
-    // Ensures downloaded PDF matches web preview font-family
-    await page.evaluate(async () => {
-      await document.fonts.ready;
-    });
-    await new Promise((r) => setTimeout(r, 300));
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '10mm',
-        right: '15mm',
-        bottom: '15mm',
-        left: '15mm',
-      },
-      timeout: 60000,
-    });
-
-    await browser.close();
-
-    res.setHeader('Content-Type', 'application/pdf');
-    // Sanitize filename to remove characters that might break headers
     const safeTitle = title.replace(/[^a-zA-Z0-9-_]/g, '_');
+    res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="zobsai_${safeTitle}.pdf"`,
     );
-
-    console.log('PDF generated successfully');
-
     res.send(pdfBuffer);
   } catch (error) {
     console.error('PDF Generation Error:', error);
-
-    if (browser) {
-      try {
-        await browser.close();
-      } catch (closeError) {
-        console.error('Error closing browser:', closeError);
-      }
-    }
-
-    res.status(500).json({
-      message: 'Failed to generate PDF.',
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({ message: 'Failed to generate PDF.', error: error.message });
   }
 });
 

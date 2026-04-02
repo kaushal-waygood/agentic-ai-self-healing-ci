@@ -24,6 +24,7 @@ import { StudentEducation } from '../models/students/studentEducation.model.js';
 import { StudentExperience } from '../models/students/studentExperience.model.js';
 import { StudentSkill } from '../models/students/studentSkill.model.js';
 import { StudentProject } from '../models/students/studentProject.model.js';
+import { sendRealTimeDocumentStatus } from '../socket/notification.socket.js';
 
 const stripCodeFences = (s) =>
   String(s || '')
@@ -37,6 +38,7 @@ export const processTailoredApplication = async (
   applicationId,
   applicationData,
   io,
+  { rethrowOnError = false } = {},
 ) => {
   console.log(`[TAILORED APPLY] Start ${applicationId}`);
 
@@ -102,8 +104,18 @@ export const processTailoredApplication = async (
       structuredCandidate,
       applicationData.preferences,
     );
+    const clPrompt = generateCoverLetterPrompts(
+      applicationData.job.title,
+      JSON.stringify(structuredCandidate),
+      applicationData.preferences,
+    );
+    const emailPrompt = generateEmailPrompt(applicationData);
 
-    const rawCv = await genAI(cvPrompt);
+    const [rawCv, clRaw, emailRaw] = await Promise.all([
+      genAI(cvPrompt),
+      genAI(clPrompt),
+      genAI(emailPrompt),
+    ]);
     const parsedCv = JSON.parse(stripCodeFences(rawCv));
 
     /* ---------------- B. HTML rendering ---------------- */
@@ -134,16 +146,8 @@ export const processTailoredApplication = async (
     };
 
     /* ---------------- C. Cover Letter & Email ---------------- */
-    const clPrompt = generateCoverLetterPrompts(
-      applicationData.job.title,
-      JSON.stringify(structuredCandidate),
-      applicationData.preferences,
-    );
-    const clRaw = await genAI(clPrompt);
     const coverLetterHtml = wrapCVHtml(stripCodeFences(clRaw), 'Cover Letter');
 
-    const emailPrompt = generateEmailPrompt(applicationData);
-    const emailRaw = await genAI(emailPrompt);
     const parsed = parseEmailDraftResponse(emailRaw);
     const subject = parsed.subject || 'Job Application';
     const body = parsed.body || '';
@@ -187,6 +191,12 @@ export const processTailoredApplication = async (
         applicationId,
       ),
     );
+    sendRealTimeDocumentStatus(io, userId, {
+      documentId: String(applicationId),
+      documentType: 'application',
+      status: 'completed',
+      updatedAt: new Date().toISOString(),
+    });
 
     console.log(`[TAILORED APPLY] Success ${applicationId}`);
   } catch (err) {
@@ -202,5 +212,16 @@ export const processTailoredApplication = async (
         err.message,
       ),
     );
+    sendRealTimeDocumentStatus(io, userId, {
+      documentId: String(applicationId),
+      documentType: 'application',
+      status: 'failed',
+      updatedAt: new Date().toISOString(),
+      error: err.message,
+    });
+
+    if (rethrowOnError) {
+      throw err;
+    }
   }
 };

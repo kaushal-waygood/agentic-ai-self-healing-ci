@@ -515,6 +515,14 @@ import {
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
+type DocumentStatusUpdate = {
+  documentId: string;
+  documentType: 'cv' | 'cl' | 'application';
+  status: string;
+  updatedAt?: string;
+  error?: string;
+};
+
 export const DocumentCard = ({
   item,
   index,
@@ -639,13 +647,32 @@ export const DocumentCard = ({
   };
 
   useEffect(() => {
+    if (type !== 'application') return;
+    if (status === 'completed' || status === 'failed' || docState === 'saved')
+      return;
+
+    const onStatusUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<DocumentStatusUpdate>).detail;
+      if (!detail || detail.documentType !== 'application') return;
+      if (detail.documentId !== item._id) return;
+      setStatus(normalizeStatus(detail.status));
+    };
+
+    window.addEventListener('document-status-updated', onStatusUpdated);
+    return () => {
+      window.removeEventListener('document-status-updated', onStatusUpdated);
+    };
+  }, [type, item._id, status, docState]);
+
+  useEffect(() => {
+    if (type === 'application') return;
     if (status === 'completed' || status === 'failed' || docState === 'saved')
       return;
     const interval = setInterval(() => {
       if (!isRefreshing) handleRefresh();
     }, 6000);
     return () => clearInterval(interval);
-  }, [status, docState, isRefreshing]);
+  }, [type, status, docState, isRefreshing]);
 
   const handleRenameClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -801,7 +828,11 @@ export const DocumentCard = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onDownload(getContent(), getFilename());
+                  onDownload(
+                    getContent(),
+                    getFilename(),
+                    type === 'coverLetter' ? 'coverletter' : 'resume',
+                  );
                 }}
                 disabled={!isClickable}
                 className={`rounded-lg p-1.5 transition-colors ${
