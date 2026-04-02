@@ -414,24 +414,24 @@ const SleekClStep = ({
       icon: Sparkles,
       title: 'Skip this step - Generate from scratch',
       description: 'Let AI create a personalized cover letter for you.',
-      colorClass: 'text-indigo-600',
-      bgClass: 'bg-indigo-100',
-      activeBorderClass: 'peer-checked:border-indigo-600',
-      activeDotClass: 'bg-indigo-600',
-      activeBgClass: 'peer-checked:bg-indigo-50/30',
-      iconBorderClass: 'peer-checked:border-indigo-600',
+      colorClass: 'text-blue-600',
+      bgClass: 'bg-blue-100',
+      activeBorderClass: 'peer-checked:border-blue-600',
+      activeDotClass: 'bg-blue-600',
+      activeBgClass: 'peer-checked:bg-blue-50/30',
+      iconBorderClass: 'peer-checked:border-blue-600',
     },
     {
       value: 'paste',
       icon: Edit3,
       title: 'Paste content from an old letter',
       description: 'Use your existing content as a starting point.',
-      colorClass: 'text-emerald-600',
-      bgClass: 'bg-emerald-100',
-      activeBorderClass: 'peer-checked:border-emerald-600',
-      activeDotClass: 'bg-emerald-600',
-      activeBgClass: 'peer-checked:bg-emerald-50/30',
-      iconBorderClass: 'peer-checked:border-emerald-600',
+      colorClass: 'text-blue-600',
+      bgClass: 'bg-blue-100',
+      activeBorderClass: 'peer-checked:border-blue-600',
+      activeDotClass: 'bg-blue-600',
+      activeBgClass: 'peer-checked:bg-blue-50/30',
+      iconBorderClass: 'peer-checked:border-blue-600',
     },
     {
       value: 'saved',
@@ -490,10 +490,10 @@ const SleekClStep = ({
               </div>
               {/* Step 3: Pending */}
               <div className="flex flex-col items-center gap-1.5 bg-slate-50 px-2 dark:bg-transparent">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white shadow-[0_0_0_4px_#f8fafc] transition-colors duration-300 animate-pulse">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-[0_0_0_4px_#f8fafc] transition-colors duration-300 animate-pulse">
                   3
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-teal-600">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-600">
                   Cover Letter
                 </span>
               </div>
@@ -505,7 +505,7 @@ const SleekClStep = ({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm animate-in fade-in duration-500">
           {/* Card Header */}
           <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-6 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-green-600 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shadow-sm">
               <FileText className="h-5 w-5" strokeWidth={2} />
             </div>
             <div>
@@ -588,7 +588,7 @@ const SleekClStep = ({
                                     <Textarea
                                       {...pastedField}
                                       placeholder="✨ Paste your draft cover letter here..."
-                                      className="custom-scrollbar min-h-[160px] w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-4 text-[13.5px] font-medium text-slate-900 shadow-inner transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-50"
+                                      className="custom-scrollbar min-h-[160px] w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-4 text-[13.5px] font-medium text-slate-900 shadow-inner transition-all placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-50"
                                     />
                                   )}
                                 />
@@ -697,7 +697,7 @@ const SleekClStep = ({
                 </button>
                 <button
                   type="submit"
-                  className="group flex items-center gap-2 rounded-xl bg-teal-600 px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_16px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-teal-700"
+                  className="group flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_16px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700"
                 >
                   Next Step
                   <ArrowRight

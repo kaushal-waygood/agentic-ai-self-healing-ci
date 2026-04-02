@@ -617,7 +617,7 @@ const CreateCvStep = ({
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
                 type="button"
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={createCvForm.handleSubmit(handleCreateCvFormSubmit)}
                 disabled={isLoading}
               >

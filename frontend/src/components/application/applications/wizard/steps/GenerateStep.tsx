@@ -318,8 +318,8 @@ export const GenerateStep = ({
       label: 'Job Position',
       value: jobDetail?.title || 'Not specified',
       sublabel: jobContext?.company || 'Company not specified',
-      iconBg: 'bg-purple-100',
-      iconText: 'text-purple-600',
+      iconBg: 'bg-blue-100',
+      iconText: 'text-blue-600',
     },
     {
       icon: FileText,
@@ -337,8 +337,8 @@ export const GenerateStep = ({
           ? 'Generate from scratch'
           : `Based on ${clContext?.name}`,
       sublabel: '',
-      iconBg: 'bg-teal-100',
-      iconText: 'text-teal-600',
+      iconBg: 'bg-blue-100',
+      iconText: 'text-blue-600',
     },
   ];
 
@@ -359,9 +359,9 @@ export const GenerateStep = ({
 
           {/* Minimal Dot Stepper matching ref image */}
           <div className="mx-auto flex items-center justify-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-purple-600"></div>
-            <div className="h-2 w-2 rounded-full bg-blue-600"></div>
-            <div className="h-2 w-6 rounded-full bg-emerald-500"></div>
+            <div className="h-2 w-2 rounded-full bg-blue-400"></div>
+            <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+            <div className="h-2 w-6 rounded-full bg-blue-600"></div>
           </div>
         </div>
 

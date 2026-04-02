@@ -572,7 +572,7 @@ const SleekCvStep = ({
             key={index}
             className="ml-4 flex items-start gap-2 text-[13px] text-slate-600"
           >
-            <span className="mt-1.5 w-1.5 h-1.5 bg-teal-500 rounded-full flex-shrink-0" />
+            <span className="mt-1.5 w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0" />
             <span>{trimmed.replace(/^[-•]/, '').trim()}</span>
           </div>
         );
@@ -645,10 +645,10 @@ const SleekCvStep = ({
               </div>
               {/* Step 2: Active */}
               <div className="flex flex-col items-center gap-1.5 bg-slate-50 px-2 dark:bg-transparent">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white shadow-[0_0_0_4px_#f8fafc] transition-colors duration-300">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-[0_0_0_4px_#f8fafc] transition-colors duration-300">
                   2
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-teal-600">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-600">
                   CV Setup
                 </span>
               </div>
@@ -669,7 +669,7 @@ const SleekCvStep = ({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm animate-in fade-in duration-500">
           {/* Card Header */}
           <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-6 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shadow-sm">
               <FileText className="h-5 w-5" strokeWidth={2} />
             </div>
             <div>
@@ -689,7 +689,7 @@ const SleekCvStep = ({
             <div className="shrink-0">
               <div className="mb-2 flex items-center gap-2">
                 <Briefcase
-                  className="h-4 w-4 text-teal-600"
+                  className="h-4 w-4 text-blue-600"
                   strokeWidth={2.5}
                 />
                 <span className="text-[13px] font-extrabold text-slate-900">
@@ -712,7 +712,7 @@ const SleekCvStep = ({
                         <ChevronDown className="h-5 w-5 text-slate-400 transition-transform group-open:rotate-180" />
                       </summary>
                       <div className="px-1 pb-4">
-                        <div className="custom-scrollbar max-h-[280px] overflow-y-auto whitespace-pre-line border-l-2 border-teal-400 pl-4 pr-2 text-sm">
+                        <div className="custom-scrollbar max-h-[280px] overflow-y-auto whitespace-pre-line border-l-2 border-blue-400 pl-4 pr-2 text-sm">
                           {renderJobDescription(jobDetail.description)}
                         </div>
                       </div>
@@ -738,7 +738,7 @@ const SleekCvStep = ({
             {/* Header for Saved CVs */}
             <div className="flex shrink-0 items-center justify-between px-1 mt-2">
               <h3 className="flex items-center gap-2 text-[13px] font-extrabold text-slate-900">
-                <FileText className="h-4 w-4 text-teal-600" strokeWidth={2.5} />
+                <FileText className="h-4 w-4 text-blue-600" strokeWidth={2.5} />
                 Select From Saved CVs
               </h3>
               <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
@@ -770,11 +770,11 @@ const SleekCvStep = ({
                         checked={selectedCvId === cv._id}
                         onChange={() => setSelectedCvId(cv._id)}
                       />
-                      <div className="flex items-center justify-between rounded-xl border-2 border-slate-200 bg-white p-4 transition-all hover:border-teal-600 peer-checked:border-teal-600 peer-checked:bg-teal-50/30">
+                      <div className="flex items-center justify-between rounded-xl border-2 border-slate-200 bg-white p-4 transition-all hover:border-blue-600 peer-checked:border-blue-600 peer-checked:bg-blue-50/30">
                         <div className="flex items-center gap-3">
                           {/* Radio Ring */}
-                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-300 peer-checked:border-teal-600">
-                            <div className="h-2.5 w-2.5 scale-0 rounded-full bg-teal-600 transition-transform peer-checked:scale-100"></div>
+                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-300 peer-checked:border-blue-600">
+                            <div className="h-2.5 w-2.5 scale-0 rounded-full bg-blue-600 transition-transform peer-checked:scale-100"></div>
                           </div>
                           {/* Details */}
                           <div>
@@ -929,7 +929,7 @@ const SleekCvStep = ({
             <button
               onClick={() => handleCvContextSubmit('saved', selectedCvId)}
               disabled={!selectedCvId || isLoading}
-              className="group flex items-center gap-2 rounded-xl bg-teal-600 px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_16px_rgba(13,148,136,0.25)] transition-all hover:-translate-y-0.5 hover:bg-teal-700 disabled:opacity-50 disabled:hover:translate-y-0"
+              className="group flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_16px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:opacity-50 disabled:hover:translate-y-0"
             >
               Next: Final Touches
               <span className="transition-transform group-hover:translate-x-1">
