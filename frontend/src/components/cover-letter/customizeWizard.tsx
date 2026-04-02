@@ -415,10 +415,10 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
               </div>
               {/* Step 3 Active */}
               <div className="flex flex-col items-center gap-1.5 bg-slate-50 px-2 dark:bg-transparent">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-[0_0_0_4px_#f8fafc] transition-colors duration-300 animate-pulse">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-[0_0_0_4px_#f8fafc] transition-colors duration-300 animate-pulse">
                   3
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-600">
                   Final Touches
                 </span>
               </div>
@@ -430,7 +430,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm animate-in fade-in duration-500">
           {/* Card Header */}
           <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-6 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shadow-sm">
               <Wand2 className="h-5 w-5" strokeWidth={2} />
             </div>
             <div>
@@ -449,7 +449,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
             <div className="shrink-0 space-y-4">
               <h3 className="flex items-center gap-2 text-[13px] font-extrabold text-slate-900">
                 <Sparkles
-                  className="h-4 w-4 text-indigo-500"
+                  className="h-4 w-4 text-blue-500"
                   strokeWidth={2.5}
                 />
                 Letter Tone & Style
@@ -529,8 +529,8 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
             </div>
 
             {/* AI Enhancement Info Box */}
-            <div className="flex shrink-0 items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 shadow-sm">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-md">
+            <div className="flex shrink-0 items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md">
                 <Rocket className="h-5 w-5" strokeWidth={2.5} />
               </div>
               <div>
@@ -560,7 +560,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
             <button
               onClick={handleGenerate}
               disabled={isLoading}
-              className="group flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_20px_rgba(37,99,235,0.3)] transition-all hover:-translate-y-0.5 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-70 disabled:hover:translate-y-0"
+              className="group flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_20px_rgba(37,99,235,0.3)] transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:opacity-70 disabled:hover:translate-y-0"
             >
               {isLoading ? (
                 <>
