@@ -1905,7 +1905,11 @@ export default function DocumentsPage() {
     window.URL.revokeObjectURL(url);
   };
 
-  const downloadAsFile = async (content: any, title: string) => {
+  const downloadAsFile = async (
+    content: any,
+    title: string,
+    documentType?: string,
+  ) => {
     if (!content) return;
     setIsLoading(true);
     toast({ title: 'Generating PDF...' });
@@ -1913,7 +1917,17 @@ export default function DocumentsPage() {
     try {
       const response = await apiInstance.post(
         '/students/pdf/generate-pdf',
-        { html: htmlContent, title },
+        {
+          html: htmlContent,
+          title,
+          documentType: documentType || 'resume',
+          margin: {
+            top: '10mm',
+            right: '15mm',
+            bottom: '15mm',
+            left: '15mm',
+          },
+        },
         { responseType: 'blob' },
       );
       if (response.status !== 200)

@@ -1,26 +1,30 @@
 // src/worker/retryWorker.js
 
-import { StudentApplication } from '../models/students/studentApplication.model.js';
+import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
 import { StudentAgent } from '../models/students/studentAgent.model.js';
 import { getStudentProfileSnapshot } from '../services/getStudentProfileSnapshot.js';
 import { buildEffectiveStudentProfile } from '../utils/profileHydration.js';
-import { buildApplicationData } from '../worker/autopilotWorker.js';
-import { processTailoredApplication } from '../utils/tailored.autopilot.js';
+import { buildApplicationData } from '../utils/buildAgentApplicationData.js';
+import {
+  addTailoredApplicationJob,
+  TAILORED_APPLICATION_JOB_KINDS,
+} from '../queues/tailoredApplication.queue.js';
 
 const MAX_RETRIES = Number(process.env.APP_MAX_RETRIES) || 2;
 const BATCH_SIZE = 10;
 
 /**
- * Retries StudentApplications stuck in 'Failed' status.
+ * Retries agent-generated tailored applications stuck in failed status.
  * Gives up after MAX_RETRIES attempts.
  * Called automatically by the cron every 4 hours.
  */
 export const retryFailedApplications = async () => {
-  const failedApps = await StudentApplication.find({
-    status: 'Failed',
+  const failedApps = await StudentTailoredApplication.find({
+    flag: 'agent',
+    status: 'failed',
     retryCount: { $lt: MAX_RETRIES },
   })
-    .populate('job')
+    .populate('jobId')
     .limit(BATCH_SIZE)
     .lean();
 
@@ -43,27 +47,27 @@ export const retryFailedApplications = async () => {
         : studentProfile;
 
       const appData = buildApplicationData(
-        app.job,
+        app.jobId,
         effectiveStudent,
         agent?.finalTouch || '',
       );
 
       // Mark as retrying so UI shows progress
-      await StudentApplication.updateOne(
+      await StudentTailoredApplication.updateOne(
         { _id: app._id },
         {
-          $set: { status: 'Generating', error: null },
+          $set: { status: 'pending', error: null, completedAt: null },
           $inc: { retryCount: 1 },
         },
       );
 
-      await processTailoredApplication(
-        app.student,
-        app._id,
-        appData,
-        null,
-        null,
-      );
+      await addTailoredApplicationJob({
+        kind: TAILORED_APPLICATION_JOB_KINDS.STUDENT_TAILORED_APPLICATION,
+        userId: app.student.toString(),
+        applicationId: app._id.toString(),
+        applicationData: appData,
+        jobKey: `retry-${app._id}-${app.retryCount || 0}`,
+      });
       retried++;
 
       if (process.env.DEBUG_AUTOPILOT === '1') {
@@ -73,10 +77,10 @@ export const retryFailedApplications = async () => {
       console.error(`[RetryWorker] Failed app=${app._id}:`, err.message);
 
       // Mark as failed again with updated retry count
-      await StudentApplication.updateOne(
+      await StudentTailoredApplication.updateOne(
         { _id: app._id },
         {
-          $set: { status: 'Failed', error: err.message },
+          $set: { status: 'failed', error: err.message },
           $inc: { retryCount: 1 },
         },
       ).catch(() => {});

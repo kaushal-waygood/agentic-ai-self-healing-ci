@@ -1,68 +1,90 @@
 import { Worker } from 'bullmq';
-import mongoose from 'mongoose';
 
 import { bullmqConnection } from '../queues/bullmq.connection.js';
-import { StudentApplication } from '../models/students/studentApplication.model.js';
-import { User } from '../models/User.model.js';
+import { TAILORED_APPLICATION_JOB_KINDS } from '../queues/tailoredApplication.queue.js';
+import { processTailoredApplication as processStudentApplication } from '../utils/tailored.autopilot.js';
+import { processTailoredApplication as processStudentTailoredApplication } from '../utils/tailoredApply.background.js';
 
-import { buildJobContextString } from '../utils/jobContext.js';
-import { processTailoredApplication } from '../utils/tailored.autopilot.js';
+let tailoredApplicationWorker = null;
 
-new Worker(
-  'tailored-application-queue',
-  async (job) => {
-    const { studentId, userId, job: jobData, effectiveStudent } = job.data;
+const getWorkerConcurrency = () => {
+  const value = Number.parseInt(
+    process.env.TAILORED_APPLICATION_WORKER_CONCURRENCY,
+    10,
+  );
+  if (!Number.isFinite(value) || value <= 0) return 6;
+  return Math.min(value, 12);
+};
 
-    try {
-      const application = await StudentApplication.create({
-        student: studentId,
-        jobTitle: jobData.title,
-        jobCompany: jobData.company,
-        jobDescription: jobData.description,
-        status: 'Draft',
-      });
+const processQueuedTailoredApplication = async (job, io) => {
+  const {
+    kind,
+    userId,
+    applicationId,
+    applicationData,
+    endpoint,
+    processorOptions = {},
+  } = job.data;
 
-      await processTailoredApplication(
-        studentId,
-        application._id,
-        {
-          job: {
-            ...jobData,
-            jobContextString: buildJobContextString(jobData),
-          },
-          candidate: JSON.stringify(effectiveStudent),
-          preferences: '',
-        },
-        null,
-      );
+  if (kind === TAILORED_APPLICATION_JOB_KINDS.STUDENT_TAILORED_APPLICATION) {
+    await processStudentTailoredApplication(
+      userId,
+      applicationId,
+      applicationData,
+      io,
+      { rethrowOnError: true },
+    );
+    return;
+  }
 
-      await StudentApplication.updateOne(
-        { _id: application._id },
-        { $set: { status: 'Applied' } },
-      );
-    } catch (err) {
-      // FINAL FAILURE → REFUND CREDIT
-      if (job.attemptsMade + 1 >= job.opts.attempts) {
-        await User.updateOne(
-          { _id: userId },
-          {
-            $inc: { credits: 1 },
-            $push: {
-              creditTransactions: {
-                type: 'ADJUST',
-                amount: 1,
-                kind: 'AUTOPILOT_REFUND',
-                meta: { jobId: job.id },
-              },
-            },
-          },
-        );
-      }
-      throw err; // REQUIRED for BullMQ retry
-    }
-  },
-  {
-    connection: bullmqConnection,
-    concurrency: 3,
-  },
-);
+  if (kind === TAILORED_APPLICATION_JOB_KINDS.STUDENT_APPLICATION) {
+    await processStudentApplication(
+      userId,
+      applicationId,
+      applicationData,
+      io,
+      endpoint,
+      {
+        ...processorOptions,
+        rethrowOnError: true,
+      },
+    );
+    return;
+  }
+
+  throw new Error(`Unsupported tailored application job kind: ${kind}`);
+};
+
+export const startTailoredApplicationWorker = ({ io = null } = {}) => {
+  if (tailoredApplicationWorker) return tailoredApplicationWorker;
+
+  tailoredApplicationWorker = new Worker(
+    'tailored-application-queue',
+    async (job) => {
+      await processQueuedTailoredApplication(job, io);
+    },
+    {
+      connection: bullmqConnection,
+      concurrency: getWorkerConcurrency(),
+    },
+  );
+
+  tailoredApplicationWorker.on('completed', (job) => {
+    console.log(
+      `[TailoredApplicationWorker] Completed job ${job.id} (${job.name})`,
+    );
+  });
+
+  tailoredApplicationWorker.on('failed', (job, err) => {
+    console.error(
+      `[TailoredApplicationWorker] Failed job ${job?.id}:`,
+      err?.message || err,
+    );
+  });
+
+  tailoredApplicationWorker.on('error', (err) => {
+    console.error('[TailoredApplicationWorker] Worker error:', err);
+  });
+
+  return tailoredApplicationWorker;
+};

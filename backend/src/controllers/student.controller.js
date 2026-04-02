@@ -9,7 +9,7 @@ import { safeUnlink, __dirname } from '../utils/fileUploadingManaging.js';
 import calculateExperience from '../utils/calculateExperience.js';
 import mongoose from 'mongoose';
 import { google } from 'googleapis';
-import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
+// import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
 import redisClient from '../config/redis.js';
 import {
   normalizeSet,
@@ -40,6 +40,17 @@ import {
 import { StudentSkill } from '../models/students/studentSkill.model.js';
 import { StudentAgent } from '../models/students/studentAgent.model.js';
 import { makeTop4Key } from '../utils/dashboardKeys.js';
+import {
+  generatePdfFromHtml,
+  sendEmailWithPdfAttachments,
+} from '../utils/pdfEmailService.js';
+
+const PDF_MARGIN = {
+  top: '10mm',
+  right: '15mm',
+  bottom: '15mm',
+  left: '15mm',
+};
 
 const PROFILE_SECTION_ACTIONS = {
   PERSONAL: 'PROFILE_COMPLETE_PERSONAL',
@@ -2013,7 +2024,9 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     if (cachedRecoRaw) {
       try {
         const cachedReco = JSON.parse(cachedRecoRaw);
-        const cachedJobs = Array.isArray(cachedReco?.jobs) ? cachedReco.jobs : [];
+        const cachedJobs = Array.isArray(cachedReco?.jobs)
+          ? cachedReco.jobs
+          : [];
         const cachedSlice = cachedJobs.slice(skip, skip + limitNum);
 
         if (cachedSlice.length > 0 || (skip === 0 && cachedJobs.length > 0)) {
@@ -2025,9 +2038,13 @@ export async function getProfileBasedRecommendedJobs(req, res) {
             syncCooldown.set(syncKey, Date.now());
             setImmediate(async () => {
               try {
-                const bgProfile = await buildUserProfileFromStudent(req.user._id);
+                const bgProfile = await buildUserProfileFromStudent(
+                  req.user._id,
+                );
                 bgProfile._id = req.user._id;
-                const bgInteractions = await buildInteractionContext(req.user._id);
+                const bgInteractions = await buildInteractionContext(
+                  req.user._id,
+                );
                 const bgPrimaryTitles = normalizeSet(bgProfile.titles || []);
                 const bgPrimaryIntent =
                   bgPrimaryTitles.join(' ').trim() || 'jobs';
@@ -2051,15 +2068,20 @@ export async function getProfileBasedRecommendedJobs(req, res) {
 
                 const processPool = (jobsPool, ctx) => {
                   const validJobs = jobsPool.filter(
-                    (job) => job.description && job.description.trim().length > 0,
+                    (job) =>
+                      job.description && job.description.trim().length > 0,
                   );
                   const filtered = applyFilters(validJobs, ctx);
                   return rankJobsWithIntentBoost(filtered, ctx);
                 };
 
                 const levels = [
-                  ...(bgCity ? [{ country: bgCountry, state: bgState, city: bgCity }] : []),
-                  ...(bgState ? [{ country: bgCountry, state: bgState, city: null }] : []),
+                  ...(bgCity
+                    ? [{ country: bgCountry, state: bgState, city: bgCity }]
+                    : []),
+                  ...(bgState
+                    ? [{ country: bgCountry, state: bgState, city: null }]
+                    : []),
                   { country: bgCountry, state: null, city: null },
                   { country: null, state: null, city: null },
                 ];
@@ -2095,7 +2117,10 @@ export async function getProfileBasedRecommendedJobs(req, res) {
                         ),
                       );
                       processed = processPool(
-                        dedupeByTitleCompany([...localCandidates, ...formatted]),
+                        dedupeByTitleCompany([
+                          ...localCandidates,
+                          ...formatted,
+                        ]),
                         ctx,
                       );
                     }
@@ -2127,7 +2152,8 @@ export async function getProfileBasedRecommendedJobs(req, res) {
             pagination: {
               currentPage: pageNum,
               hasNextPage:
-                (cachedReco?.totalJobs || cachedJobs.length) > skip + jobsWithViews.length,
+                (cachedReco?.totalJobs || cachedJobs.length) >
+                skip + jobsWithViews.length,
               totalJobs: cachedReco?.totalJobs || cachedJobs.length,
             },
             jobs: jobsWithViews,
@@ -2405,54 +2431,34 @@ export const sendJobApplicationViaEmail = async (req, res) => {
 
   try {
     const user = await User.findOne({ email: senderEmail }).select('tokens');
-    if (!user || !user.tokens) {
+    if (!user?.tokens)
       return res.status(404).send('User not found or not authorized');
-    }
 
     const oauth2Client = new google.auth.OAuth2();
     oauth2Client.setCredentials(user.tokens);
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
-    // Generate PDFs
-    const resumePdf = await generatePdfFromHtml(htmlResume);
-    const coverLetterPdf = await generatePdfFromHtml(htmlCoverLetter);
+    // Generate both PDFs in parallel
+    const [resumeBuffer, coverLetterBuffer] = await Promise.all([
+      generatePdfFromHtml(htmlResume, {
+        documentType: 'resume',
+        margin: PDF_MARGIN,
+      }),
+      generatePdfFromHtml(htmlCoverLetter, {
+        documentType: 'coverletter',
+        margin: PDF_MARGIN,
+      }),
+    ]);
 
-    const resumeBase64 = resumePdf.toString('base64');
-    const coverLetterBase64 = coverLetterPdf.toString('base64');
-
-    // Compose raw email message
-    const messageParts = [
-      `From: <${senderEmail}>`,
-      `To: <${recieverEmail}>`,
-      `Subject: ${subject || 'Job Application'}`,
-      `MIME-Version: 1.0`,
-      `Content-Type: multipart/mixed; boundary="boundary123"`,
-      ``,
-      `--boundary123`,
-      `Content-Type: text/html; charset="UTF-8"`,
-      `Content-Transfer-Encoding: 7bit`,
-      ``,
-      bodyHtml || 'Hi, please find attached my resume and cover letter.',
-      ``,
-      ...createAttachment('Resume.pdf', 'application/pdf', resumeBase64),
-      ...createAttachment(
-        'CoverLetter.pdf',
-        'application/pdf',
-        coverLetterBase64,
-      ),
-      `--boundary123--`,
-    ];
-
-    const rawMessage = messageParts.join('\r\n');
-    const encodedMessage = Buffer.from(rawMessage)
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-
-    await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: { raw: encodedMessage },
+    await sendEmailWithPdfAttachments(gmail, {
+      from: senderEmail,
+      to: recieverEmail,
+      subject,
+      bodyHtml,
+      attachments: [
+        { name: 'Resume.pdf', buffer: resumeBuffer },
+        { name: 'CoverLetter.pdf', buffer: coverLetterBuffer },
+      ],
     });
 
     res.status(200).json({ message: 'Email sent successfully' });

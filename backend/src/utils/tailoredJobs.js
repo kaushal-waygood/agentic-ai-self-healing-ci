@@ -4,11 +4,11 @@ import { Job } from '../models/jobs.model.js';
 import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
 import { getStudentProfileSnapshot } from '../services/getStudentProfileSnapshot.js';
 import { buildEffectiveStudentProfile } from '../utils/profileHydration.js';
+import { buildApplicationData } from './buildAgentApplicationData.js';
 import {
-  buildApplicationData,
-  processAgentDiscovery,
-} from '../worker/autopilotWorker.js';
-import { processTailoredApplication } from './tailored.autopilot.js';
+  addTailoredApplicationJob,
+  TAILORED_APPLICATION_JOB_KINDS,
+} from '../queues/tailoredApplication.queue.js';
 
 const buildTailoredViewUrl = (applicationId) =>
   applicationId ? `/dashboard/my-docs/application/${applicationId}` : null;
@@ -118,20 +118,13 @@ export const initiateTailoredJobGeneration = async ({
     flag: 'agent',
   });
 
-  // 7. Trigger Async Processing (Fire and Forget)
-  processTailoredApplication(
-    studentId,
-    application._id,
+  // 7. Trigger async processing through the shared queue
+  await addTailoredApplicationJob({
+    kind: TAILORED_APPLICATION_JOB_KINDS.STUDENT_TAILORED_APPLICATION,
+    userId: studentId,
+    applicationId: application._id.toString(),
     applicationData,
-    io,
-    null,
-    {
-      modelType: 'StudentTailoredApplication',
-      statusMap: { success: 'completed', failed: 'failed' },
-    },
-  ).catch((err) =>
-    console.error(`[TailoredUtil] Failed for job ${jobId}:`, err),
-  );
+  });
 
   return {
     status: 202,

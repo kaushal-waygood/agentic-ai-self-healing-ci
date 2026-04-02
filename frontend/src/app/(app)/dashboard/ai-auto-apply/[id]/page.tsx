@@ -27,6 +27,10 @@ import {
   replaceAgentJob,
   startAgentJobTailoredGeneration,
 } from '@/services/api/autopilot';
+import {
+  buildAgentJobsByDate,
+  emptyAgentJobsByDate,
+} from '@/utils/agent-job-date-buckets';
 
 const PAGE_LIMIT = 30;
 
@@ -69,12 +73,7 @@ type JobsPayload = {
   pagination?: PaginationState | null;
 };
 
-const emptyByDate: JobsByDate = {
-  today: [],
-  yesterday: [],
-  lastWeek: [],
-  older: [],
-};
+const emptyByDate: JobsByDate = emptyAgentJobsByDate<Job>();
 
 const emptyPagination: PaginationState = {
   page: 1,
@@ -130,16 +129,7 @@ const Page = () => {
     metaPagination: PaginationState | null = null,
   ) => {
     const list = data?.jobs ?? [];
-    let byDate = data?.byDate ?? emptyByDate;
-    if (
-      list.length > 0 &&
-      !byDate.today?.length &&
-      !byDate.yesterday?.length &&
-      !byDate.lastWeek?.length &&
-      !byDate.older?.length
-    ) {
-      byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
-    }
+    const byDate = list.length > 0 ? buildAgentJobsByDate(list) : emptyByDate;
     return {
       list,
       byDate,
@@ -147,12 +137,16 @@ const Page = () => {
     };
   };
 
-  const fetchJobs = () => {
+  const fetchJobs = (options?: { refresh?: boolean }) => {
     if (!agentId) return;
     setJobsLoading(true);
     setJobsError(null);
 
-    getAgentJobs(agentId, { page: currentPage, limit: PAGE_LIMIT })
+    getAgentJobs(agentId, {
+      page: currentPage,
+      limit: PAGE_LIMIT,
+      refresh: options?.refresh,
+    })
       .then((res) => {
         const {
           list,
@@ -183,7 +177,9 @@ const Page = () => {
   };
 
   useEffect(() => {
-    if (agentId) fetchJobs();
+    if (agentId) {
+      fetchJobs({ refresh: currentPage === 1 });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentId, currentPage]);
 
@@ -326,7 +322,7 @@ const Page = () => {
   };
 
   const handleRefresh = () => {
-    fetchJobs();
+    fetchJobs({ refresh: true });
   };
 
   return (

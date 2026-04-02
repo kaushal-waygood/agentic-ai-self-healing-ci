@@ -362,6 +362,7 @@ const ResultStep = ({
                 title="Cover Letter"
                 content={tailoredCl}
                 setContent={setTailoredCl}
+                type="coverletter"
                 template={null}
                 isHtml={true}
                 onSendEmail={(email, options) =>

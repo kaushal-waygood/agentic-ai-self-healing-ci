@@ -11,10 +11,13 @@ const AgentPreviewModal = ({
     agentName,
     jobTitle,
     country,
+    cvOption,
     cvFile,
+    selectedCVTitle,
     isRemote,
     employmentTypes,
     coverLetterStrategy,
+    selectedCoverLetterTitle,
     coverLetterInstructions,
     maxApplications,
   } = formData;
@@ -47,8 +50,24 @@ const AgentPreviewModal = ({
             }
           />
           {/* <Row label="Max Applications" value={maxApplications} /> */}
-          <Row label="CV File" value={cvFile.name} />
-          <Row label="Cover Letter Mode" value={coverLetterStrategy} />
+          <Row
+            label="CV Source"
+            value={
+              cvOption === 'uploaded_pdf'
+                ? cvFile?.name || 'Uploaded PDF'
+                : cvOption === 'saved_cv'
+                  ? selectedCVTitle || 'Selected CV'
+                  : 'Use My Profile'
+            }
+          />
+          <Row
+            label="Cover Letter Mode"
+            value={
+              coverLetterStrategy === 'template'
+                ? selectedCoverLetterTitle || 'Selected cover letter'
+                : 'Generate from scratch'
+            }
+          />
           {coverLetterInstructions && (
             <Row
               label="Custom Instructions"

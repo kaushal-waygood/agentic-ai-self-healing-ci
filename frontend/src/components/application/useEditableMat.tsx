@@ -83,6 +83,61 @@ export const useEditableMaterial = ({
     setWordCount(text ? text.split(/\s+/).length : 0);
   };
 
+  const buildExportHtml = (cleanBody: string) => {
+    const rawStyle = template?.style?.replace(/<style>|<\/style>/g, '') || '';
+    const { fullName, jobRole } = students[0]?.student || {};
+    const documentTitle =
+      title || [fullName, jobRole].filter(Boolean).join(' | ') || 'Document';
+    const baseStyle = `
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+      }
+      body {
+        color: #0f172a;
+        font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+      .resume-isolation-container {
+        color: #0f172a;
+      }
+    `;
+    const coverLetterStyle =
+      type === 'coverletter'
+        ? `
+      .resume-isolation-container {
+        font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 16px;
+        line-height: 1.55;
+      }
+      .resume-isolation-container p {
+        margin: 0 0 1.25rem;
+      }
+      .resume-isolation-container p:last-child {
+        margin-bottom: 0;
+      }
+    `
+        : '';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${documentTitle}</title>
+          <style>${baseStyle}</style>
+          ${rawStyle ? `<style>${rawStyle}</style>` : ''}
+          ${coverLetterStyle ? `<style>${coverLetterStyle}</style>` : ''}
+        </head>
+        <body>
+          <div class="resume-isolation-container">${cleanBody}</div>
+        </body>
+      </html>`;
+  };
+
   const handleInput = useCallback(() => {
     if (editorRef.current) {
       updateWordCount(editorRef.current.innerHTML);
@@ -123,28 +178,16 @@ export const useEditableMaterial = ({
     setLoadingType(format);
     try {
       const cleanBody = purgeInternalStyles(localContent);
-
-      const rawStyle = template?.style?.replace(/<style>|<\/style>/g, '') || '';
-
-      const { fullName, jobRole } = students[0]?.student;
-
-      const fullHtml = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>${`${fullName} | ${jobRole}`}</title>
-            <style>${rawStyle}</style>
-          </head>
-          <body>
-            <div class="resume-isolation-container">${cleanBody}</div>
-          </body>
-        </html>`;
+      const fullHtml = buildExportHtml(cleanBody);
 
       const response = await apiInstance.post(
         `/students/${format}/generate-${format}`,
-        { html: fullHtml, title, isShowImage: showImages },
+        {
+          html: fullHtml,
+          title,
+          isShowImage: showImages,
+          documentType: type === 'coverletter' ? 'coverletter' : 'resume',
+        },
         { responseType: 'blob' },
       );
 

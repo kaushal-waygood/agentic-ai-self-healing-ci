@@ -344,6 +344,35 @@ export const getRecommendedJobs = async ({
     filtered = remoteOnly.length > 0 ? remoteOnly : filtered;
   }
 
+  // If still no results and we haven't tried broader queries, add fallback strategies
+  if (!filtered.length && candidates.length === 0 && !skipExternalFetch) {
+    if (shouldDebugJobs()) {
+      console.log(
+        '[DEBUG_JOBS] No local candidates found, trying broader external search',
+      );
+    }
+
+    const profileData = context.profile || { skills: [], titles: [] };
+
+    // Try with a more generic query based on profile titles/skills
+    const broaderContext = {
+      ...context,
+      query:
+        profileData.skills && profileData.skills.length > 0
+          ? profileData.skills.slice(0, 5).join(' ')
+          : (profileData.titles && profileData.titles[0]) ||
+            'Software Engineer',
+      filters: {
+        ...context.filters,
+        employmentType: undefined, // Remove employment type filter
+      },
+      skipCacheForAgent: true,
+    };
+
+    candidates = await retrieveCandidates(broaderContext, poolSize);
+    filtered = applyFilters(candidates, broaderContext);
+  }
+
   const ranked = rankJobsWithIntentBoost(filtered, context);
   const jobs = ranked.slice(0, limit);
 

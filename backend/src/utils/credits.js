@@ -50,6 +50,34 @@ const CREDIT_TZ = 'Asia/Kolkata';
 const MAX_CREDIT_TRANSACTIONS = 500;
 const SOCIAL_ENGAGEMENT_DAILY_CAP = 20;
 
+export const AUTOPILOT_AGENT_JOB_LIMITS = Object.freeze({
+  FREE: 5,
+  WEEKLY: 5,
+  MONTHLY: 12,
+  DEFAULT: 5,
+  MAX: 12,
+});
+
+const resolveAutopilotDailyJobLimit = ({
+  hasActivePlan,
+  planType,
+  billingPeriod,
+}) => {
+  if (!hasActivePlan || planType === 'Free') {
+    return AUTOPILOT_AGENT_JOB_LIMITS.FREE;
+  }
+
+  if (planType === 'Weekly' || billingPeriod === 'Weekly') {
+    return AUTOPILOT_AGENT_JOB_LIMITS.WEEKLY;
+  }
+
+  if (planType === 'Monthly') {
+    return AUTOPILOT_AGENT_JOB_LIMITS.MONTHLY;
+  }
+
+  return AUTOPILOT_AGENT_JOB_LIMITS.DEFAULT;
+};
+
 // ---------- helpers ----------
 export async function resolveUser(userOrId) {
   if (!userOrId) throw new Error('userOrId required');
@@ -182,8 +210,11 @@ export async function getAutopilotEntitlements(userOrId) {
     ? purchase.billingVariant?.period || null
     : null;
 
-  const dailyJobLimit =
-    hasActivePlan && billingPeriod && billingPeriod !== 'Weekly' ? 12 : 5;
+  const dailyJobLimit = resolveAutopilotDailyJobLimit({
+    hasActivePlan,
+    planType,
+    billingPeriod,
+  });
 
   const configuredAgentLimit = Number(user.usageLimits?.aiAutoApply);
   const maxAgents =

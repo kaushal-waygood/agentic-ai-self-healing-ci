@@ -151,6 +151,18 @@ const convertHtmlToPdf = async (html, title = 'document', options = {}) =>
     ...options,
   });
 
+const sanitizeEmailBodyHtml = (html = '') => {
+  const normalized = String(html || '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<head[\s\S]*?<\/head>/gi, '')
+    .replace(/<!DOCTYPE[^>]*>/gi, '')
+    .replace(/<\/?(html|body)[^>]*>/gi, '')
+    .trim();
+
+  return normalized || 'Please find my application attached.';
+};
+
 /* -------------------------
    Google OAuth Configuration
    ------------------------- */
@@ -1454,7 +1466,9 @@ export const sendEmails = async (req, res) => {
 
     const attachments = [];
     if (resumeHtml) {
-      const buffer = await convertHtmlToPdf(resumeHtml);
+      const buffer = await convertHtmlToPdf(resumeHtml, 'resume', {
+        documentType: 'resume',
+      });
       attachments.push({
         filename: 'resume.pdf',
         content: buffer,
@@ -1462,7 +1476,9 @@ export const sendEmails = async (req, res) => {
       });
     }
     if (coverLetterHtml) {
-      const buffer = await convertHtmlToPdf(coverLetterHtml);
+      const buffer = await convertHtmlToPdf(coverLetterHtml, 'cover_letter', {
+        documentType: 'coverletter',
+      });
       attachments.push({
         filename: 'cover_letter.pdf',
         content: buffer,
@@ -1470,10 +1486,12 @@ export const sendEmails = async (req, res) => {
       });
     }
 
+    const sanitizedBodyHtml = sanitizeEmailBodyHtml(bodyHtml);
+
     await sendEmailViaGmailApi({
       user,
       subject,
-      bodyHtml,
+      bodyHtml: sanitizedBodyHtml,
       attachments,
       to: receiverEmails,
     });
@@ -1485,7 +1503,7 @@ export const sendEmails = async (req, res) => {
         subject,
         sentCv: !!resumeHtml,
         sentCoverLetter: !!coverLetterHtml,
-        sentEmailDraft: !!bodyHtml,
+        sentEmailDraft: !!sanitizedBodyHtml,
         jobTitle: jobTitle || null,
         companyName: companyName || null,
         applicationId: applicationId || null,

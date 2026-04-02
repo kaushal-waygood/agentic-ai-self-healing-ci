@@ -28,6 +28,7 @@ const schema = new Schema(
     applicationEmail: Object,
 
     error: String,
+    retryCount: { type: Number, default: 0 },
     flag: { type: String, enum: ['web', 'app', 'extension', 'agent'] },
 
     completedAt: Date,
