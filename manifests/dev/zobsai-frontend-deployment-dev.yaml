@@ -36,13 +36,13 @@ spec:
                 name: zobsai-frontend-config
             - secretRef:
                 name: zobsai-frontend-secrets
-          resources:
-            requests:
-              cpu: '750m'
-              memory: '1Gi'
-            limits:
-              cpu: '2000m'
-              memory: '2Gi'
+          # resources:
+          #   requests:
+          #     cpu: '520m'
+          #     memory: '1Gi'
+          #   limits:
+          #     cpu: '1000m'
+          #     memory: '2Gi'
 ---
 apiVersion: v1
 kind: Service
