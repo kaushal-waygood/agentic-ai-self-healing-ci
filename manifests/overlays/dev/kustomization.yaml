@@ -11,6 +11,10 @@ resources:
   - ../../zobsai-redis.yaml
   - ../../zobsai-ingress-dev.yaml
 
+images:
+  - name: ghcr.io/zobsai-com/zobsai-backend
+    newTag: latest
+
 namespace: dev-zobsai
 # Optionally add a nameSuffix or namePrefix to avoid name collisions across namespaces
 # nameSuffix: -dev
