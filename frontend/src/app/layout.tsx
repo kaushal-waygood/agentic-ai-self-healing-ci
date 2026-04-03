@@ -8,7 +8,6 @@ import LayoutPage from './LayoutPage';
 import Script from 'next/script';
 import { Metadata } from 'next';
 import NextTopLoader from 'nextjs-toploader';
-import Clarity from '@microsoft/clarity';
 import { Suspense } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -95,11 +94,6 @@ export default function RootLayout({
       },
     ],
   };
-
-  // const projectId = 'vi5ne0i7kt';
-  const projectId = 'vi4y7xtc9c';
-
-  Clarity.init(projectId);
 
   return (
     <html lang="en" suppressHydrationWarning>

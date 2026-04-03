@@ -16,7 +16,7 @@ export const FRONTEND_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
     ? 'https://zobsai.com'
     : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
-      ? 'https://api.zobsai.com'
+      ? 'https://dev.zobsai.com'
       : 'http://127.0.0.1:3000';
 
 const safeLocalStorage = {
