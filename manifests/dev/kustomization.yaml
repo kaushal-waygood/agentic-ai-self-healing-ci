@@ -10,6 +10,7 @@ resources:
 
   # Frontend resources
   - zobsai-frontend-deployment-dev.yaml
+  - zobsai-frontend-pdb-dev.yaml
   - zobsai-frontend-config-dev.yaml
   - zobsai-frontend-secrets-dev.yaml
 
