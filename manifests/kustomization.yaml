@@ -7,6 +7,7 @@ resources:
   - zobsai-backend-configmap.yaml
   - zobsai-backend-secrets.yaml
   - zobsai-frontend-deployment.yaml
+  - zobsai-frontend-pdb.yaml
   - zobsai-frontend-configs.yaml
   - zobsai-frontend-secrets.yaml
   - zobsai-redis.yaml

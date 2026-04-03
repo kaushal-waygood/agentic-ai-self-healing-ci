@@ -6,6 +6,7 @@ resources:
   - ../../dev/zobsai-backend-config-dev.yaml
   - ../../dev/zobsai-backend-secrets-dev.yaml
   - ../../dev/zobsai-frontend-deployment-dev.yaml
+  - ../../dev/zobsai-frontend-pdb-dev.yaml
   - ../../dev/zobsai-frontend-config-dev.yaml
   - ../../dev/zobsai-frontend-secrets-dev.yaml
   - ../../zobsai-redis.yaml
