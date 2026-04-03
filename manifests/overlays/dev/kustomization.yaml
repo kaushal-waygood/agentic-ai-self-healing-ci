@@ -14,6 +14,8 @@ resources:
 images:
   - name: ghcr.io/zobsai-com/zobsai-backend
     newTag: latest
+  - name: ghcr.io/zobsai-com/zobsai-frontend
+    newTag: latest
 
 namespace: dev-zobsai
 # Optionally add a nameSuffix or namePrefix to avoid name collisions across namespaces

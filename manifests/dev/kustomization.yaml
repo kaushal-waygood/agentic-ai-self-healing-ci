@@ -30,6 +30,8 @@ resources:
 images:
   - name: ghcr.io/zobsai-com/zobsai-backend
     newTag: latest
+  - name: ghcr.io/zobsai-com/zobsai-frontend
+    newTag: latest
 
 namespace: dev-zobsai
 
