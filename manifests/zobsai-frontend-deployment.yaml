@@ -24,6 +24,8 @@ spec:
           env:
             - name: REACT_APP_API_URL
               value: 'http://zobsai-backend.zobsai.svc.cluster.local:8080'
+            - name: INTERNAL_API_URL
+              value: 'http://zobsai-backend.zobsai.svc.cluster.local:8080'
           envFrom:
             - configMapRef:
                 name: zobsai-frontend-config

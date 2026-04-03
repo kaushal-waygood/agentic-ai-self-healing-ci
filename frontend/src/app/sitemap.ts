@@ -17,7 +17,8 @@ const SITE_URL =
 const BACKEND_URL = (
   env === 'local' || !env
     ? 'http://127.0.0.1:8080'
-    : process.env.NEXT_PUBLIC_API_URL ||
+    : process.env.INTERNAL_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
       (env === 'production'
         ? 'https://api.zobsai.com'
         : 'https://api.dev.zobsai.com')

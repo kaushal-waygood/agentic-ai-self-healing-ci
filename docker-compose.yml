@@ -87,6 +87,7 @@ services:
     restart: unless-stopped
     environment:
       - NEXT_PUBLIC_NODE_ENV=production
+      - INTERNAL_API_URL=http://backend:8080
     ports:
       - '3000:3000'
     depends_on:
@@ -114,6 +115,7 @@ services:
     restart: unless-stopped
     environment:
       - NEXT_PUBLIC_NODE_ENV=production
+      - INTERNAL_API_URL=http://backend:8080
     ports:
       - '3002:3002'
     depends_on:
