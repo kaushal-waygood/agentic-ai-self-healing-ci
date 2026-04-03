@@ -17,7 +17,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: backend-cron
-          image: ghcr.io/zobsai-com/zobsai-backend:28361a931b05a2b3137073fa1baf93c02dd4d53f
+          image: ghcr.io/zobsai-com/zobsai-backend:latest
           imagePullPolicy: Always
           command:
             - node
