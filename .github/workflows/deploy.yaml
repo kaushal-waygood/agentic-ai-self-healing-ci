@@ -144,8 +144,8 @@ jobs:
       # ─────────────────────────────────────────────
       - name: Update Manifests
         run: |
-          # Backend
-          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-backend:.*|image: ghcr.io/zobsai-com/zobsai-backend:${{ github.sha }}|g" ${{ env.MANIFEST_DIR }}/zobsai-backend${{ env.MANIFEST_SUFFIX }}
+          # Backend (shared by backend + backend-cron via Kustomize images)
+          sed -i -e "s|newTag: .*|newTag: ${{ github.sha }}|g" ${{ env.MANIFEST_DIR }}/kustomization.yaml
           
           # Frontend
           sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-frontend:.*|image: ghcr.io/zobsai-com/zobsai-frontend:${{ github.sha }}|g" ${{ env.MANIFEST_DIR }}/zobsai-frontend${{ env.MANIFEST_SUFFIX }}
