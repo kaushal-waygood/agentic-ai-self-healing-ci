@@ -38,11 +38,12 @@ type BlogData = {
 const getBlogData = async (slug: string): Promise<BlogData | null> => {
   try {
     const API_BASE_URL =
-      process.env.NEXT_PUBLIC_NODE_ENV === 'production'
+      process.env.INTERNAL_API_URL ||
+      (process.env.NEXT_PUBLIC_NODE_ENV === 'production'
         ? 'https://api.zobsai.com'
         : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
           ? 'https://api.dev.zobsai.com'
-          : 'http://127.0.0.1:8080';
+          : 'http://127.0.0.1:8080');
 
     const resp = await axios.get(`${API_BASE_URL}/api/v1/blog/view/${slug}`);
 
