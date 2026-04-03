@@ -7,6 +7,7 @@ import { setupNotificationSocket } from './src/socket/notification.socket.js';
 import { socketHandler } from './src/socket/socketHandler.js'; // <--- IMPORT ADDED
 import { config as appConfig } from './src/config/config.js';
 import { generateEmbedding } from './src/config/embedding.js';
+import { startTailoredApplicationWorker } from './src/workers/tailoredApplication.worker.js';
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ async function startHttpServer() {
 
   // Make io accessible in controllers via req.app.get('io')
   app.set('io', io);
+  startTailoredApplicationWorker({ io });
 
   const PORT = process.env.PORT || appConfig.port || 8080;
   server.listen(PORT, '0.0.0.0', () =>

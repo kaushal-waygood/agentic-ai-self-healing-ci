@@ -22,7 +22,7 @@ interface Props {
 
 /**
  * TourManager
- * - Runtime-injects driver.js CSS (CDN) so we don't depend on package.exports
+ * - Uses the app-level driver.js stylesheet import from the root layout
  * - Dynamically imports driver.js and adapts to multiple export shapes
  * - Exposes window.__startTourForPage(pageKey, optionalStartIndex)
  * - Debounced progress sync via tourService
@@ -37,24 +37,6 @@ export default function TourManager({
   const [startIndex, setStartIndex] = useState(0);
   const [completed, setCompleted] = useState(false);
   const activeDriverRef = useRef<any>(null);
-
-  // --- Runtime CSS injection for driver.js (CDN)
-  useEffect(() => {
-    const CDN_CSS = 'https://unpkg.com/driver.js@1.0.8/dist/driver.min.css'; // pinned version; change if needed
-    const id = 'driverjs-cdn-css';
-
-    if (!document.getElementById(id)) {
-      const link = document.createElement('link');
-      link.id = id;
-      link.rel = 'stylesheet';
-      link.href = CDN_CSS;
-      link.crossOrigin = 'anonymous';
-      document.head.appendChild(link);
-    }
-
-    // keep stylesheet for entire session (no removal)
-    // return () => { const el = document.getElementById(id); if (el) el.remove(); };
-  }, []);
 
   // Fetch server config & user progress; flush local backup; optionally auto-start
   useEffect(() => {

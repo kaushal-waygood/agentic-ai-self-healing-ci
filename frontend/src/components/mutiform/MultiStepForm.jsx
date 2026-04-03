@@ -40,8 +40,15 @@ const MultiStepForm = () => {
     country: '',
     isRemote: false,
     employmentTypes: [],
+    cvOption: 'current_profile',
     cvFile: null,
+    selectedCVId: '',
+    selectedCVSource: '',
+    selectedCVTitle: '',
     coverLetterStrategy: 'generate',
+    selectedCoverLetterId: '',
+    selectedCoverLetterSource: '',
+    selectedCoverLetterTitle: '',
     coverLetterInstructions: '',
     maxApplications: 5,
   };
@@ -67,7 +74,61 @@ const MultiStepForm = () => {
 
   const handleFileChange = (e) => {
     const file = e?.target?.files?.[0] ?? null;
-    setFormData((prev) => ({ ...prev, cvFile: file }));
+    setFormData((prev) => ({
+      ...prev,
+      cvFile: file,
+      cvOption: file ? 'uploaded_pdf' : 'current_profile',
+      selectedCVId: '',
+      selectedCVSource: '',
+      selectedCVTitle: '',
+    }));
+  };
+
+  const handleCvOptionChange = (cvOption) => {
+    setFormData((prev) => ({
+      ...prev,
+      cvOption,
+      cvFile: cvOption === 'uploaded_pdf' ? prev.cvFile : null,
+      selectedCVId: cvOption === 'saved_cv' ? prev.selectedCVId : '',
+      selectedCVSource: cvOption === 'saved_cv' ? prev.selectedCVSource : '',
+      selectedCVTitle: cvOption === 'saved_cv' ? prev.selectedCVTitle : '',
+    }));
+  };
+
+  const handleSelectedCvChange = (selection) => {
+    setFormData((prev) => ({
+      ...prev,
+      cvOption: 'saved_cv',
+      cvFile: null,
+      selectedCVId: selection?.id || '',
+      selectedCVSource: selection?.source || '',
+      selectedCVTitle: selection?.title || '',
+    }));
+  };
+
+  const handleCoverLetterStrategyChange = (coverLetterStrategy) => {
+    setFormData((prev) => ({
+      ...prev,
+      coverLetterStrategy,
+      selectedCoverLetterId:
+        coverLetterStrategy === 'template' ? prev.selectedCoverLetterId : '',
+      selectedCoverLetterSource:
+        coverLetterStrategy === 'template'
+          ? prev.selectedCoverLetterSource
+          : '',
+      selectedCoverLetterTitle:
+        coverLetterStrategy === 'template' ? prev.selectedCoverLetterTitle : '',
+    }));
+  };
+
+  const handleSelectedCoverLetterChange = (selection) => {
+    setFormData((prev) => ({
+      ...prev,
+      coverLetterStrategy: 'template',
+      selectedCoverLetterId: selection?.id || '',
+      selectedCoverLetterSource: selection?.source || '',
+      selectedCoverLetterTitle: selection?.title || '',
+    }));
   };
 
   const handleEditAgent = (agentId) => {
@@ -208,6 +269,22 @@ const MultiStepForm = () => {
         formData.coverLetterInstructions || '',
       );
 
+      if (formData.coverLetterStrategy === 'template') {
+        submissionData.append(
+          'selectedCoverLetterId',
+          formData.selectedCoverLetterId || '',
+        );
+        submissionData.append(
+          'selectedCoverLetterSource',
+          formData.selectedCoverLetterSource || '',
+        );
+        submissionData.append(
+          'selectedCoverLetterTitle',
+          formData.selectedCoverLetterTitle || '',
+        );
+        submissionData.append('savedClId', formData.selectedCoverLetterId || '');
+      }
+
       // 3. Arrays/JSON
       submissionData.append(
         'employmentTypes',
@@ -224,8 +301,29 @@ const MultiStepForm = () => {
         String(formData.maxApplications),
       );
 
+      submissionData.append(
+        'cvOption',
+        formData.cvOption === 'uploaded_pdf'
+          ? 'uploaded_pdf'
+          : formData.cvOption === 'saved_cv'
+            ? 'saved_cv'
+            : 'current_profile',
+      );
+
+      if (formData.cvOption === 'saved_cv') {
+        submissionData.append('selectedCVId', formData.selectedCVId || '');
+        submissionData.append(
+          'selectedCVSource',
+          formData.selectedCVSource || '',
+        );
+        submissionData.append('selectedCVTitle', formData.selectedCVTitle || '');
+      }
+
       // 5. File
-      if (formData.cvFile instanceof File) {
+      if (
+        formData.cvOption === 'uploaded_pdf' &&
+        formData.cvFile instanceof File
+      ) {
         submissionData.append('cv', formData.cvFile);
       }
 
@@ -321,6 +419,8 @@ const MultiStepForm = () => {
             nextStep={nextStep}
             prevStep={prevStep}
             handleFileChange={handleFileChange}
+            handleCvOptionChange={handleCvOptionChange}
+            handleSelectedCvChange={handleSelectedCvChange}
             values={formData}
           />
         );
@@ -331,6 +431,8 @@ const MultiStepForm = () => {
             nextStep={nextStep}
             prevStep={prevStep}
             handleChange={handleChange}
+            handleCoverLetterStrategyChange={handleCoverLetterStrategyChange}
+            handleSelectedCoverLetterChange={handleSelectedCoverLetterChange}
             handleSubmit={handlePreview}
             values={formData}
           />

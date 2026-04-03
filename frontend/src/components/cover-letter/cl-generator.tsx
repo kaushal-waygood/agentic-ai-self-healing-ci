@@ -501,10 +501,10 @@ const ClGenerator = ({
               </div>
               {/* Step 2: Active */}
               <div className="flex flex-col items-center gap-1.5 bg-slate-50 px-2 dark:bg-transparent">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-[0_0_0_4px_#f8fafc] transition-colors duration-300">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-[0_0_0_4px_#f8fafc] transition-colors duration-300">
                   2
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-600">
                   CV Context
                 </span>
               </div>
@@ -525,7 +525,7 @@ const ClGenerator = ({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm animate-in fade-in duration-500">
           {/* Card Header */}
           <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-6 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shadow-sm">
               <FileText className="h-5 w-5" strokeWidth={2} />
             </div>
             <div>
@@ -545,7 +545,7 @@ const ClGenerator = ({
             <div className="flex shrink-0 items-center justify-between px-1">
               <h3 className="flex items-center gap-2 text-[13px] font-extrabold text-slate-900">
                 <FileText
-                  className="h-4 w-4 text-indigo-500"
+                  className="h-4 w-4 text-blue-500"
                   strokeWidth={2.5}
                 />
                 Select From Saved CVs
@@ -578,11 +578,11 @@ const ClGenerator = ({
                       checked={selectedSavedCvId === cv._id}
                       onChange={() => setSelectedSavedCvId(cv._id)}
                     />
-                    <div className="flex items-center justify-between rounded-xl border-2 border-slate-200 bg-white p-4 transition-all hover:border-indigo-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-50/30">
+                    <div className="flex items-center justify-between rounded-xl border-2 border-slate-200 bg-white p-4 transition-all hover:border-blue-300 peer-checked:border-blue-600 peer-checked:bg-blue-50/30">
                       <div className="flex items-center gap-3">
                         {/* Radio Ring */}
-                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-300 peer-checked:border-indigo-600">
-                          <div className="h-2.5 w-2.5 scale-0 rounded-full bg-indigo-600 transition-transform peer-checked:scale-100"></div>
+                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-300 peer-checked:border-blue-600">
+                          <div className="h-2.5 w-2.5 scale-0 rounded-full bg-blue-600 transition-transform peer-checked:scale-100"></div>
                         </div>
                         {/* Details */}
                         <div>
@@ -658,11 +658,11 @@ const ClGenerator = ({
                 disabled={isLoading}
                 className={`flex items-center gap-3 rounded-xl border-2 border-dashed p-3 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                   dragActive
-                    ? 'border-indigo-500 bg-indigo-50'
-                    : 'border-slate-300 hover:bg-indigo-50/50 hover:border-indigo-400'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-slate-300 hover:bg-blue-50/50 hover:border-blue-400'
                 }`}
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
                   {isLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin" strokeWidth={2} />
                   ) : (
@@ -707,7 +707,7 @@ const ClGenerator = ({
             <button
               onClick={handleNextStep}
               disabled={!selectedSavedCvId || isLoading}
-              className="group flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_16px_rgba(79,70,229,0.25)] transition-all hover:-translate-y-0.5 hover:bg-indigo-700 disabled:opacity-50 disabled:hover:translate-y-0"
+              className="group flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_16px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:opacity-50 disabled:hover:translate-y-0"
             >
               Next: Final Touches
               <span className="transition-transform group-hover:translate-x-1">

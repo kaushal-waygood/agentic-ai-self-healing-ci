@@ -4,6 +4,7 @@ type AgentJobsOptions = {
   page?: number;
   limit?: number;
   feedback?: string;
+  refresh?: boolean;
 };
 
 export const createAutoPilot = async (payload: { title: string }) => {
@@ -35,6 +36,7 @@ export const getAgentJobs = async (
     page: options.page ?? 1,
   };
   if (options.feedback?.trim()) params.feedback = options.feedback.trim();
+  if (options.refresh) params.refresh = 'true';
   const response = await apiInstance.get(`/pilotagent/get/${agentId}/jobs`, {
     params,
   });

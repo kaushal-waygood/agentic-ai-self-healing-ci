@@ -14,7 +14,6 @@ import {
 import mammoth from 'mammoth';
 import Tesseract from 'tesseract.js';
 import mongoose from 'mongoose';
-import { processTailoredApplication } from '../utils/tailoredApply.background.js';
 import { StudentCV } from '../models/students/studentCV.model.js';
 import { StudentCL } from '../models/students/studentCL.model.js';
 import { StudentCoverLetter } from '../models/students/studentCoverLetter.model.js';
@@ -40,6 +39,10 @@ import {
 } from '../prompt/generateEmail.js';
 import { wrapEmailHtml, wrapEmailDraftHtml } from '../utils/emailTemplate.js';
 import { getStudentProfileSnapshot } from '../services/getStudentProfileSnapshot.js';
+import {
+  addTailoredApplicationJob,
+  TAILORED_APPLICATION_JOB_KINDS,
+} from '../queues/tailoredApplication.queue.js';
 
 /**
  * Extract plain text from an uploaded file (PDF, DOCX, TXT)
@@ -478,9 +481,7 @@ export const getAllTailoredApplications = async (req, res) => {
     const rawLimit = Number.parseInt(req.query.limit, 10);
     const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
     const limit =
-      Number.isFinite(rawLimit) && rawLimit > 0
-        ? Math.min(rawLimit, 100)
-        : 10;
+      Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 10;
     const requiredWindow = page * limit;
 
     const tailoredListProjection =
@@ -910,6 +911,7 @@ export const changeTempateCV = async (req, res) => {
 export const refreshStatus = async (req, res) => {
   const { type, id } = req.params;
   const { _id: userId } = req.user;
+  console.log(`Refreshing status for ${type} with id ${id}`);
 
   const modelName = getModelForType(type);
   if (!modelName) {
@@ -917,27 +919,38 @@ export const refreshStatus = async (req, res) => {
   }
 
   try {
-    let student;
-    modelName === 'cvs'
-      ? (student = await StudentCV.find({ student: userId, _id: id }).exec())
-      : modelName === 'cls'
-        ? (student = await StudentCL.find({
-            student: userId,
-            _id: id,
-          }).exec())
-        : (student = await StudentTailoredApplication.find({
-            student: userId,
-            _id: id,
-          }).exec());
+    let item = null;
 
-    if (!student || student.length === 0) {
+    if (modelName === 'cvs') {
+      item = await StudentCV.findOne({ student: userId, _id: id }).lean();
+    } else if (modelName === 'cls') {
+      item = await StudentCL.findOne({ student: userId, _id: id }).lean();
+    } else {
+      item = await StudentTailoredApplication.findOne({
+        student: userId,
+        _id: id,
+      }).lean();
+
+      // My Docs merges StudentTailoredApplication and StudentApplication into a
+      // single "application" list, so the status refresh endpoint needs to
+      // support both record types.
+      if (!item) {
+        const agentApplication = await StudentApplication.findOne({
+          student: userId,
+          _id: id,
+        }).lean();
+
+        if (agentApplication) {
+          item = normalizeAgentApplication(agentApplication);
+        }
+      }
+    }
+
+    if (!item) {
       return res
         .status(404)
         .json({ error: `Item with id ${id} not found for this student.` });
     }
-
-    // Get the single item from the array
-    const item = student[0];
 
     res.status(200).json({ success: true, item: item });
   } catch (error) {
@@ -1458,15 +1471,12 @@ export const createTailoredApply = async (req, res) => {
       preferences: finalTouch || '',
     };
 
-    const io = req.app?.get?.('io') ?? null;
-
-    // Trigger background process
-    processTailoredApplication(
-      _id,
-      newApplication._id,
+    await addTailoredApplicationJob({
+      kind: TAILORED_APPLICATION_JOB_KINDS.STUDENT_TAILORED_APPLICATION,
+      userId: _id,
+      applicationId: newApplication._id.toString(),
       applicationData,
-      io,
-    ).catch((err) => console.error('Background Job Failed:', err));
+    });
 
     return res.status(202).json({
       success: true,

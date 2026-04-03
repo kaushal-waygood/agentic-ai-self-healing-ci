@@ -10,6 +10,7 @@ import {
 } from './notification.utils.js';
 import { StudentApplication } from '../models/students/studentApplication.model.js';
 import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
+import { sendRealTimeDocumentStatus } from '../socket/notification.socket.js';
 
 const processCVResponse = (response) =>
   response.replace(/```json|```/g, '').trim();
@@ -35,8 +36,6 @@ const genAIWithRetry = async (
   }
 };
 
-// ── Data normaliser (handles both API path and worker path) ──
-
 const normalizeApplicationData = (raw) => {
   // Already normalised (has candidate at top level)
   if (raw?.candidate) return raw;
@@ -52,17 +51,6 @@ const normalizeApplicationData = (raw) => {
     preferences: raw?.finalTouch || '',
   };
 };
-
-// ── BUG 2 + 3 FIX: model-agnostic DB update ─────────────────
-//
-// Previously this function ALWAYS updated StudentApplication.
-// The manual endpoint (startAgentJobTailoredGeneration) creates a
-// StudentTailoredApplication record, so updateOne found 0 matching
-// docs and silently no-oped — generated content was lost.
-//
-// Fix: accept a `modelType` param that tells us which collection to
-// update, and a `statusMap` so each caller controls its own status
-// vocabulary ('Applied' for autopilot, 'completed' for manual).
 
 const resolveModel = (modelType) => {
   if (modelType === 'StudentTailoredApplication')
@@ -97,6 +85,7 @@ export const processTailoredApplication = async (
   {
     modelType = 'StudentApplication',
     statusMap = { success: 'Applied', failed: 'Failed' },
+    rethrowOnError = false,
   } = {},
 ) => {
   const Model = resolveModel(modelType);
@@ -104,28 +93,15 @@ export const processTailoredApplication = async (
   try {
     const data = normalizeApplicationData(applicationData);
 
-    // 1) CV
-    const cvResponse = await genAIWithRetry(
-      generateCVPrompts(data),
-      endpoint,
-      userId,
-    );
+    // Generate all three assets in parallel to reduce end-to-end latency.
+    const [cvResponse, coverLetterResponse, emailResponse] = await Promise.all([
+      genAIWithRetry(generateCVPrompts(data), endpoint, userId),
+      genAIWithRetry(generateCoverLetterPrompts(data), endpoint, userId),
+      genAIWithRetry(generateEmailPrompt(data), endpoint, userId),
+    ]);
+
     const tailoredCV = processCVResponse(cvResponse);
-
-    // 2) Cover Letter
-    const coverLetterResponse = await genAIWithRetry(
-      generateCoverLetterPrompts(data),
-      endpoint,
-      userId,
-    );
     const tailoredCoverLetter = processCoverLetterResponse(coverLetterResponse);
-
-    // 3) Email
-    const emailResponse = await genAIWithRetry(
-      generateEmailPrompt(data),
-      endpoint,
-      userId,
-    );
     const applicationEmail = processEmailResponse(emailResponse);
 
     // ✅ Save to whichever model created the record
@@ -161,6 +137,13 @@ export const processTailoredApplication = async (
         notifyErr?.message || notifyErr,
       );
     }
+
+    sendRealTimeDocumentStatus(io, userId, {
+      documentId: String(applicationId),
+      documentType: 'application',
+      status: statusMap.success === 'Failed' ? 'failed' : 'completed',
+      updatedAt: new Date().toISOString(),
+    });
 
     return true;
   } catch (error) {
@@ -206,6 +189,18 @@ export const processTailoredApplication = async (
         '[TAILORED] Notification failed (error path):',
         notifyErr?.message || notifyErr,
       );
+    }
+
+    sendRealTimeDocumentStatus(io, userId, {
+      documentId: String(applicationId),
+      documentType: 'application',
+      status: 'failed',
+      updatedAt: new Date().toISOString(),
+      error: errorMessage,
+    });
+
+    if (rethrowOnError) {
+      throw error;
     }
 
     return false;

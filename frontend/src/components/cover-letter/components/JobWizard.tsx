@@ -703,10 +703,10 @@ const JobWizard = ({
 
             <div className="relative z-10 flex w-full justify-between">
               <div className="flex flex-col items-center gap-1.5 bg-slate-50 px-2 dark:bg-transparent">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-[0_0_0_4px_#f8fafc] transition-colors duration-300">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-[0_0_0_4px_#f8fafc] transition-colors duration-300">
                   1
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-600">
                   Job Context
                 </span>
               </div>
@@ -734,7 +734,7 @@ const JobWizard = ({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm">
           {/* Card Header */}
           <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-6 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shadow-sm">
               <Target className="h-5 w-5" strokeWidth={2} />
             </div>
             <div>
@@ -763,7 +763,7 @@ const JobWizard = ({
                     <TabsTrigger
                       key={tab.value}
                       value={tab.value}
-                      className="flex-1 gap-2 rounded-lg py-2.5 text-[13px] font-semibold transition-all data-[state=active]:bg-white data-[state=active]:font-bold data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/50 text-slate-500 hover:text-slate-800"
+                      className="flex-1 gap-2 rounded-lg py-2.5 text-[13px] font-semibold transition-all data-[state=active]:bg-white data-[state=active]:font-bold data-[state=active]:text-blue-600 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/50 text-slate-500 hover:text-slate-800"
                     >
                       <Icon className="h-4 w-4" strokeWidth={2.5} />
                       {tab.label}
@@ -780,8 +780,8 @@ const JobWizard = ({
                 <div className="relative flex-1 min-h-[160px]">
                   <textarea
                     placeholder="✨ Paste the full job description here... Include requirements, responsibilities, and company culture for best results."
-                    className={`custom-scrollbar absolute inset-0 h-full w-full resize-none rounded-xl border bg-slate-50 p-4 pb-8 text-[13.5px] font-medium text-slate-900 shadow-inner transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-50 ${
-                      isFocused ? 'border-indigo-300' : 'border-slate-200'
+                    className={`custom-scrollbar absolute inset-0 h-full w-full resize-none rounded-xl border bg-slate-50 p-4 pb-8 text-[13.5px] font-medium text-slate-900 shadow-inner transition-all placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-50 ${
+                      isFocused ? 'border-blue-300' : 'border-slate-200'
                     }`}
                     value={pastedJobDescription}
                     onChange={(e) => setPastedJobDescription(e.target.value)}
@@ -792,7 +792,7 @@ const JobWizard = ({
                   <div className="pointer-events-none absolute bottom-2 left-4 text-[11px] font-bold text-slate-400">
                     <span
                       className={
-                        charCount >= 200 ? 'text-green-600' : 'text-indigo-600'
+                        charCount >= 200 ? 'text-green-600' : 'text-blue-600'
                       }
                     >
                       {charCount}
@@ -833,7 +833,7 @@ const JobWizard = ({
                   <button
                     onClick={() => handleSetJobContext('paste')}
                     disabled={charCount < 200 || isLoading}
-                    className="group flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_16px_rgba(79,70,229,0.25)] transition-all hover:-translate-y-0.5 hover:bg-indigo-700 disabled:opacity-50 disabled:hover:translate-y-0"
+                    className="group flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_16px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:opacity-50 disabled:hover:translate-y-0"
                   >
                     {isLoading ? (
                       <>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Edit,
   UploadCloud,
@@ -13,6 +13,7 @@ import {
   Briefcase,
   Loader2,
   ExternalLink,
+  Linkedin,
 } from 'lucide-react';
 
 import {
@@ -25,6 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { useProfile } from '@/hooks/useProfile';
 import apiInstance from '@/services/api';
@@ -32,6 +34,9 @@ import { useDispatch } from 'react-redux';
 import {
   getStudentDetailsRequest,
   getStudentEducationRequest,
+  getStudentExperienceRequest,
+  getStudentSkllsRequest,
+  getAllProjectsRequest,
 } from '@/redux/reducers/studentReducer';
 import { useToast } from '@/hooks/use-toast';
 import { SimplePhoneInput } from '@/components/common/SimplePhoneInput';
@@ -70,6 +75,12 @@ const SideSectionProfile = () => {
   });
   const { toast } = useToast();
   const dispatch = useDispatch();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isLinkedInConnecting, setIsLinkedInConnecting] = useState(false);
+  const [isLinkedInDocumentUploading, setIsLinkedInDocumentUploading] =
+    useState(false);
+  const linkedInDocumentInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (localIsModalOpen) {
@@ -83,6 +94,44 @@ const SideSectionProfile = () => {
       setErrors((prev) => ({ ...prev, phone: '' }));
     }
   }, [localFormData.phone]);
+
+  useEffect(() => {
+    const linkedinStatus = searchParams.get('linkedin');
+    if (!linkedinStatus) return;
+
+    if (linkedinStatus === 'success') {
+      const importedFields =
+        searchParams
+          .get('linkedin_fields')
+          ?.split(',')
+          .filter(Boolean)
+          .join(', ') || '';
+
+      toast({
+        title: 'LinkedIn profile imported',
+        description: importedFields
+          ? `Imported ${importedFields}. Skills still import best from your CV or manual profile sections.`
+          : 'Basic LinkedIn details were connected. Skills still import best from your CV or manual profile sections.',
+      });
+    } else {
+      toast({
+        title: 'LinkedIn import failed',
+        variant: 'destructive',
+        description:
+          'We could not import your LinkedIn profile. Please try again.',
+      });
+    }
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete('linkedin');
+    nextParams.delete('linkedin_fields');
+
+    const nextQuery = nextParams.toString();
+    router.replace(
+      nextQuery ? `/dashboard/profile?${nextQuery}` : '/dashboard/profile',
+      { scroll: false },
+    );
+  }, [router, searchParams, toast]);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -154,6 +203,90 @@ const SideSectionProfile = () => {
       setIsLoading(false);
     }
   };
+
+  const handleLinkedInImport = useCallback(async () => {
+    try {
+      setIsLinkedInConnecting(true);
+      const { data } = await apiInstance.get('/user/linkedin/import-url');
+      const authUrl = data?.authUrl;
+
+      if (!authUrl) {
+        throw new Error('Missing LinkedIn auth URL');
+      }
+
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Failed to start LinkedIn import:', error);
+      setIsLinkedInConnecting(false);
+      toast({
+        title: 'Unable to connect LinkedIn',
+        variant: 'destructive',
+        description: 'Please try again in a moment.',
+      });
+    }
+  }, [toast]);
+
+  const handleLinkedInDocumentPicker = useCallback(() => {
+    linkedInDocumentInputRef.current?.click();
+  }, []);
+
+  const refreshImportedProfile = useCallback(() => {
+    dispatch(getStudentDetailsRequest());
+    dispatch(getStudentEducationRequest());
+    dispatch(getStudentExperienceRequest());
+    dispatch(getStudentSkllsRequest());
+    dispatch(getAllProjectsRequest());
+  }, [dispatch]);
+
+  const handleLinkedInDocumentUpload = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const selectedFile = event.target.files?.[0];
+      event.target.value = '';
+
+      if (!selectedFile) return;
+
+      const allowedTypes = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ];
+
+      if (!allowedTypes.includes(selectedFile.type)) {
+        toast({
+          title: 'Invalid LinkedIn file',
+          variant: 'destructive',
+          description: 'Upload a LinkedIn PDF or DOCX export.',
+        });
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('cv', selectedFile);
+
+      try {
+        setIsLinkedInDocumentUploading(true);
+        await apiInstance.post('/user/linkedin/import-document', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        refreshImportedProfile();
+        toast({
+          title: 'LinkedIn profile imported',
+          description:
+            'Education, experience, skills, and projects were updated from your uploaded LinkedIn document.',
+        });
+      } catch (error) {
+        console.error('LinkedIn document import failed:', error);
+        toast({
+          title: 'LinkedIn document import failed',
+          variant: 'destructive',
+          description:
+            'Please upload a clearer PDF or DOCX export and try again.',
+        });
+      } finally {
+        setIsLinkedInDocumentUploading(false);
+      }
+    },
+    [refreshImportedProfile, toast],
+  );
 
   const handleUpload = async () => {
     if (!file) return;
@@ -641,6 +774,33 @@ const SideSectionProfile = () => {
         >
           <Edit size={16} /> Edit Profile
         </Button>
+
+        <Button
+          onClick={handleLinkedInImport}
+          variant="outline"
+          disabled={isLinkedInConnecting}
+          className="mt-3 w-full gap-2 border-[#0A66C2]/20 text-[#0A66C2] hover:bg-[#0A66C2]/5 hover:text-[#0A66C2]"
+        >
+          {isLinkedInConnecting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Connecting...
+            </>
+          ) : (
+            <>
+              <Linkedin size={16} />
+              Connect Basic Profile
+            </>
+          )}
+        </Button>
+
+        <input
+          ref={linkedInDocumentInputRef}
+          type="file"
+          accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          className="hidden"
+          onChange={handleLinkedInDocumentUpload}
+        />
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

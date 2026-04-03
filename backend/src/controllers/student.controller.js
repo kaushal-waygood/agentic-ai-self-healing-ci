@@ -9,7 +9,7 @@ import { safeUnlink, __dirname } from '../utils/fileUploadingManaging.js';
 import calculateExperience from '../utils/calculateExperience.js';
 import mongoose from 'mongoose';
 import { google } from 'googleapis';
-import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
+// import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
 import redisClient from '../config/redis.js';
 import {
   normalizeSet,
@@ -40,6 +40,17 @@ import {
 import { StudentSkill } from '../models/students/studentSkill.model.js';
 import { StudentAgent } from '../models/students/studentAgent.model.js';
 import { makeTop4Key } from '../utils/dashboardKeys.js';
+import {
+  generatePdfFromHtml,
+  sendEmailWithPdfAttachments,
+} from '../utils/pdfEmailService.js';
+
+const PDF_MARGIN = {
+  top: '10mm',
+  right: '15mm',
+  bottom: '15mm',
+  left: '15mm',
+};
 
 const PROFILE_SECTION_ACTIONS = {
   PERSONAL: 'PROFILE_COMPLETE_PERSONAL',
@@ -1982,6 +1993,9 @@ ${JSON.stringify(profile)}
 }
 
 const syncCooldown = new Map();
+const RECO_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
+const RECO_FAST_LOCAL_POOL = 800;
+const RECO_CACHE_MAX_JOBS = 120;
 
 export async function getProfileBasedRecommendedJobs(req, res) {
   const { page = 1, limit = 10 } = req.query || {};
@@ -2003,6 +2017,153 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     }
 
     const profile = await buildUserProfileFromStudent(req.user._id);
+    profile._id = req.user._id;
+    const recoCacheKey = `${makeRecoKey(profile)}:feed`;
+
+    const cachedRecoRaw = await redisClient.get(recoCacheKey);
+    if (cachedRecoRaw) {
+      try {
+        const cachedReco = JSON.parse(cachedRecoRaw);
+        const cachedJobs = Array.isArray(cachedReco?.jobs)
+          ? cachedReco.jobs
+          : [];
+        const cachedSlice = cachedJobs.slice(skip, skip + limitNum);
+
+        if (cachedSlice.length > 0 || (skip === 0 && cachedJobs.length > 0)) {
+          const jobsWithViews = await attachJobViews(cachedSlice);
+
+          const syncKey = `${req.user._id}:${pageNum}:${limitNum}`;
+          const lastSyncAt = syncCooldown.get(syncKey) || 0;
+          if (Date.now() - lastSyncAt > RECO_SYNC_COOLDOWN_MS) {
+            syncCooldown.set(syncKey, Date.now());
+            setImmediate(async () => {
+              try {
+                const bgProfile = await buildUserProfileFromStudent(
+                  req.user._id,
+                );
+                bgProfile._id = req.user._id;
+                const bgInteractions = await buildInteractionContext(
+                  req.user._id,
+                );
+                const bgPrimaryTitles = normalizeSet(bgProfile.titles || []);
+                const bgPrimaryIntent =
+                  bgPrimaryTitles.join(' ').trim() || 'jobs';
+                const bgCountry = bgProfile.location?.country || 'IN';
+                const bgState = bgProfile.location?.state;
+                const bgCity = bgProfile.location?.city;
+
+                const makeContext = (filterOverride) => ({
+                  type: 'recommendation',
+                  query: bgPrimaryIntent,
+                  vectorQuery: `${bgPrimaryIntent} ${normalizeSet(
+                    bgProfile.skills || [],
+                  )
+                    .slice(0, 5)
+                    .join(' ')}`.trim(),
+                  profile: bgProfile,
+                  filters: filterOverride,
+                  userId: req.user._id,
+                  interactions: bgInteractions,
+                });
+
+                const processPool = (jobsPool, ctx) => {
+                  const validJobs = jobsPool.filter(
+                    (job) =>
+                      job.description && job.description.trim().length > 0,
+                  );
+                  const filtered = applyFilters(validJobs, ctx);
+                  return rankJobsWithIntentBoost(filtered, ctx);
+                };
+
+                const levels = [
+                  ...(bgCity
+                    ? [{ country: bgCountry, state: bgState, city: bgCity }]
+                    : []),
+                  ...(bgState
+                    ? [{ country: bgCountry, state: bgState, city: null }]
+                    : []),
+                  { country: bgCountry, state: null, city: null },
+                  { country: null, state: null, city: null },
+                ];
+
+                let processed = [];
+
+                for (const filterSet of levels) {
+                  const ctx = makeContext(filterSet);
+                  const localCandidates = await retrieveLocalCandidates(
+                    ctx,
+                    RECO_FAST_LOCAL_POOL,
+                  );
+                  processed = processPool(localCandidates, ctx);
+
+                  if (processed.length < RECO_CACHE_MAX_JOBS) {
+                    const externalRaw = await fetchExternalDeep({
+                      apiTerm: bgPrimaryTitles[0] || 'jobs',
+                      country: filterSet.country || 'IN',
+                      state: filterSet.state,
+                      city: filterSet.city,
+                      minRequired: RECO_CACHE_MAX_JOBS,
+                      maxPages: 6,
+                    });
+
+                    if (externalRaw.length) {
+                      const formatted = externalRaw.map((job) =>
+                        transformRapidApiJob(job, bgPrimaryIntent),
+                      );
+                      await upsertExternalJobs(formatted).catch((err) =>
+                        console.error(
+                          'Recommended jobs background upsert error:',
+                          err.message,
+                        ),
+                      );
+                      processed = processPool(
+                        dedupeByTitleCompany([
+                          ...localCandidates,
+                          ...formatted,
+                        ]),
+                        ctx,
+                      );
+                    }
+                  }
+
+                  if (processed.length >= RECO_CACHE_MAX_JOBS) break;
+                }
+
+                const cachedPayload = {
+                  jobs: processed.slice(0, RECO_CACHE_MAX_JOBS),
+                  totalJobs: processed.length,
+                };
+                await redisClient.set(
+                  recoCacheKey,
+                  JSON.stringify(cachedPayload),
+                  600,
+                );
+              } catch (err) {
+                console.error(
+                  'Recommended jobs background refresh failed:',
+                  err?.message || err,
+                );
+              }
+            });
+          }
+
+          return res.status(200).json({
+            success: true,
+            pagination: {
+              currentPage: pageNum,
+              hasNextPage:
+                (cachedReco?.totalJobs || cachedJobs.length) >
+                skip + jobsWithViews.length,
+              totalJobs: cachedReco?.totalJobs || cachedJobs.length,
+            },
+            jobs: jobsWithViews,
+          });
+        }
+      } catch (err) {
+        console.warn('Recommended jobs cache parse failed:', err?.message);
+      }
+    }
+
     const interactions = await buildInteractionContext(req.user._id);
 
     // ===============================
@@ -2041,60 +2202,6 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     const apiTerm = primaryTitles[0] || 'jobs';
     const apiStartPage = Math.max(1, pageNum);
 
-    const fetchExternal = async (extCountry, extState, extCity) => {
-      const pagesToFetch = [apiStartPage, apiStartPage + 1];
-
-      const externalRaw = await fetchExternalDeep({
-        apiTerm,
-        // country: extCountry || country || 'IN',
-        country: extCountry || 'IN',
-        state: extState,
-        city: extCity,
-        minRequired: 2000,
-        maxPages: 40,
-      });
-
-      const raw = await Promise.all(
-        pagesToFetch.map((apiPage) =>
-          Promise.race([
-            fetchExternalJobs(
-              apiTerm,
-              extCountry,
-              extState,
-              extCity,
-              null,
-              null,
-              null,
-              apiPage,
-            ),
-            new Promise((r) => setTimeout(() => r([]), API_TIMEOUT)),
-          ]),
-        ),
-      );
-
-      return raw.flat().filter(Boolean);
-    };
-
-    const mergeExternal = async (externalRaw, localCandidates, ctx) => {
-      if (!externalRaw.length) {
-        return processPool(localCandidates, ctx);
-      }
-
-      const formatted = externalRaw.map((j) =>
-        transformRapidApiJob(j, primaryIntent),
-      );
-
-      // await upsertExternalJobs(formatted).catch((e) =>
-      //   console.error('Upsert err', e.message),
-      // );
-
-      await upsertExternalJobs(formatted);
-
-      // const all = dedupeByTitleCompany([...localCandidates, ...formatted]);
-      const merged = dedupeByTitleCompany([...localCandidates, ...formatted]);
-      return processPool(merged, ctx);
-    };
-
     const levels = [
       ...(city ? [{ country, state, city }] : []),
       ...(state ? [{ country, state, city: null }] : []),
@@ -2108,28 +2215,11 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     for (const filterSet of levels) {
       const ctx = makeContext(filterSet);
 
-      const poolSize = 3000;
+      const poolSize = RECO_FAST_LOCAL_POOL;
       const localCandidates = await retrieveLocalCandidates(ctx, poolSize);
 
       processed = processPool(localCandidates, ctx);
       finalJobs = processed.slice(skip, skip + limitNum);
-
-      const needsExternal =
-        finalJobs.length < limitNum || processed.length < skip + limitNum;
-
-      if (needsExternal) {
-        processed = await mergeExternal(
-          await fetchExternal(
-            filterSet.country || 'IN',
-            filterSet.state,
-            filterSet.city,
-          ),
-          localCandidates,
-          ctx,
-        );
-
-        finalJobs = processed.slice(skip, skip + limitNum);
-      }
 
       if (processed.length >= skip + limitNum) break;
     }
@@ -2147,11 +2237,90 @@ export async function getProfileBasedRecommendedJobs(req, res) {
       jobs: jobsWithViews,
     };
 
+    await redisClient.set(
+      recoCacheKey,
+      JSON.stringify({
+        jobs: processed.slice(0, RECO_CACHE_MAX_JOBS),
+        totalJobs: processed.length,
+      }),
+      600,
+    );
+
     // Warm prefetch cache for page 1 so reloads are instant
     if (pageNum === 1 && limitNum <= 10 && jobsWithViews.length > 0) {
       void setPrefetchedJobs(req.user._id, {
         jobs: jobsWithViews,
         pagination: payload.pagination,
+      });
+    }
+
+    const syncKey = `${req.user._id}:${pageNum}:${limitNum}`;
+    const lastSyncAt = syncCooldown.get(syncKey) || 0;
+    if (Date.now() - lastSyncAt > RECO_SYNC_COOLDOWN_MS) {
+      syncCooldown.set(syncKey, Date.now());
+      setImmediate(async () => {
+        try {
+          const levelsForSync = [
+            ...(city ? [{ country, state, city }] : []),
+            ...(state ? [{ country, state, city: null }] : []),
+            { country, state: null, city: null },
+            { country: null, state: null, city: null },
+          ];
+
+          let backgroundProcessed = processed;
+
+          for (const filterSet of levelsForSync) {
+            const ctx = makeContext(filterSet);
+            const localCandidates = await retrieveLocalCandidates(
+              ctx,
+              RECO_FAST_LOCAL_POOL,
+            );
+            backgroundProcessed = processPool(localCandidates, ctx);
+
+            if (backgroundProcessed.length < RECO_CACHE_MAX_JOBS) {
+              const externalRaw = await fetchExternalDeep({
+                apiTerm,
+                country: filterSet.country || 'IN',
+                state: filterSet.state,
+                city: filterSet.city,
+                minRequired: RECO_CACHE_MAX_JOBS,
+                maxPages: 6,
+              });
+
+              if (externalRaw.length) {
+                const formatted = externalRaw.map((job) =>
+                  transformRapidApiJob(job, primaryIntent),
+                );
+                await upsertExternalJobs(formatted).catch((err) =>
+                  console.error(
+                    'Recommended jobs background upsert error:',
+                    err.message,
+                  ),
+                );
+                backgroundProcessed = processPool(
+                  dedupeByTitleCompany([...localCandidates, ...formatted]),
+                  ctx,
+                );
+              }
+            }
+
+            if (backgroundProcessed.length >= RECO_CACHE_MAX_JOBS) break;
+          }
+
+          await redisClient.set(
+            recoCacheKey,
+            JSON.stringify({
+              jobs: backgroundProcessed.slice(0, RECO_CACHE_MAX_JOBS),
+              totalJobs: backgroundProcessed.length,
+            }),
+            600,
+          );
+        } catch (err) {
+          console.error(
+            'Recommended jobs background refresh failed:',
+            err?.message || err,
+          );
+        }
       });
     }
 
@@ -2262,54 +2431,34 @@ export const sendJobApplicationViaEmail = async (req, res) => {
 
   try {
     const user = await User.findOne({ email: senderEmail }).select('tokens');
-    if (!user || !user.tokens) {
+    if (!user?.tokens)
       return res.status(404).send('User not found or not authorized');
-    }
 
     const oauth2Client = new google.auth.OAuth2();
     oauth2Client.setCredentials(user.tokens);
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
-    // Generate PDFs
-    const resumePdf = await generatePdfFromHtml(htmlResume);
-    const coverLetterPdf = await generatePdfFromHtml(htmlCoverLetter);
+    // Generate both PDFs in parallel
+    const [resumeBuffer, coverLetterBuffer] = await Promise.all([
+      generatePdfFromHtml(htmlResume, {
+        documentType: 'resume',
+        margin: PDF_MARGIN,
+      }),
+      generatePdfFromHtml(htmlCoverLetter, {
+        documentType: 'coverletter',
+        margin: PDF_MARGIN,
+      }),
+    ]);
 
-    const resumeBase64 = resumePdf.toString('base64');
-    const coverLetterBase64 = coverLetterPdf.toString('base64');
-
-    // Compose raw email message
-    const messageParts = [
-      `From: <${senderEmail}>`,
-      `To: <${recieverEmail}>`,
-      `Subject: ${subject || 'Job Application'}`,
-      `MIME-Version: 1.0`,
-      `Content-Type: multipart/mixed; boundary="boundary123"`,
-      ``,
-      `--boundary123`,
-      `Content-Type: text/html; charset="UTF-8"`,
-      `Content-Transfer-Encoding: 7bit`,
-      ``,
-      bodyHtml || 'Hi, please find attached my resume and cover letter.',
-      ``,
-      ...createAttachment('Resume.pdf', 'application/pdf', resumeBase64),
-      ...createAttachment(
-        'CoverLetter.pdf',
-        'application/pdf',
-        coverLetterBase64,
-      ),
-      `--boundary123--`,
-    ];
-
-    const rawMessage = messageParts.join('\r\n');
-    const encodedMessage = Buffer.from(rawMessage)
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-
-    await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: { raw: encodedMessage },
+    await sendEmailWithPdfAttachments(gmail, {
+      from: senderEmail,
+      to: recieverEmail,
+      subject,
+      bodyHtml,
+      attachments: [
+        { name: 'Resume.pdf', buffer: resumeBuffer },
+        { name: 'CoverLetter.pdf', buffer: coverLetterBuffer },
+      ],
     });
 
     res.status(200).json({ message: 'Email sent successfully' });

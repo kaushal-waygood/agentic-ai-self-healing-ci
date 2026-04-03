@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "watch": "nodemon worker.js",
+    "cron": "node cron-worker.js",
+    "cron:watch": "nodemon cron-worker.js",
     "dev": "nodemon server.js",
     "start": "node server.js",
     "test": "jest --coverage",
@@ -16,6 +18,8 @@
     "test:open": "node tests/reports/open-jest-report.cjs",
     "seed:jobs": "node scripts/seedExternalJobs.js",
     "delete:pending-tailor-docs": "node scripts/deletePendingTailorDocs.js",
+    "delete:pending-tailored-applications": "node scripts/deletePendingTailoredApplications.js",
+    "delete:draft-student-applications": "node scripts/deleteDraftStudentApplications.js",
     "delete:google-auth": "node scripts/deleteGoogleAuth.js",
     "delete:google-auth:run": "node scripts/deleteGoogleAuth.js --delete",
     "reembed:jobs": "node scripts/reembedJobs.js",

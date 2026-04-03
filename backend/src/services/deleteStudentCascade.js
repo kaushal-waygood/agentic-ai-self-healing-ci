@@ -13,6 +13,7 @@ import {
   StudentHtmlCV,
   StudentCoverLetter,
 } from '../models/index.js';
+import { AssistantFoundJob } from '../models/AssistantFoundJob.js';
 
 export async function deleteStudentCascade(studentId) {
   const session = await mongoose.startSession();
@@ -31,6 +32,7 @@ export async function deleteStudentCascade(studentId) {
       ),
       StudentHtmlCV.deleteMany({ student: studentId }).session(session),
       StudentCoverLetter.deleteMany({ student: studentId }).session(session),
+      AssistantFoundJob.deleteMany({ student: studentId }).session(session),
     ]);
 
     await Student.deleteOne({ _id: studentId }).session(session);

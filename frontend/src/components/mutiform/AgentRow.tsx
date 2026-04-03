@@ -1,19 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Bot,
-  Plus,
-  Trash2,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  Zap,
-  Clock,
-  Briefcase,
-  Activity,
-  Tag,
-  Link,
-} from 'lucide-react';
+import { Trash2, Loader2, Tag, Link } from 'lucide-react';
 import apiInstance from '@/services/api';
 import {
   getAgentJobs,
@@ -23,6 +10,10 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import GetJobsViaAgents from './GetJobsViaAgents';
+import {
+  buildAgentJobsByDate,
+  emptyAgentJobsByDate,
+} from '@/utils/agent-job-date-buckets';
 
 const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
   const router = useRouter();
@@ -30,12 +21,7 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
 
   const [expanded, setExpanded] = useState(false);
 
-  const emptyByDate = {
-    today: [],
-    yesterday: [],
-    lastWeek: [],
-    older: [],
-  };
+  const emptyByDate = emptyAgentJobsByDate();
   const [jobs, setJobs] = useState([]);
   const [jobsByDate, setJobsByDate] = useState(emptyByDate);
   const [jobsLoading, setJobsLoading] = useState(false);
@@ -53,16 +39,7 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
   /* ── Helpers ── */
   const normalizeJobsPayload = (data = {}) => {
     const list = data.jobs ?? [];
-    let byDate = data.byDate ?? emptyByDate;
-    if (
-      list.length > 0 &&
-      !byDate.today?.length &&
-      !byDate.yesterday?.length &&
-      !byDate.lastWeek?.length &&
-      !byDate.older?.length
-    ) {
-      byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
-    }
+    const byDate = list.length > 0 ? buildAgentJobsByDate(list) : emptyByDate;
     return { list, byDate };
   };
 
@@ -365,6 +342,7 @@ const AgentRow = ({ agent, onEdit, onDelete, onToggleActive }) => {
           findingJobs={findingJobs}
           onFindAnotherJob={handleFindAnotherJob}
           onGenerateDocs={handleGenerateDocs}
+          agentTitle={agent.agentName || agent.agentId}
         />
       )}
     </div>

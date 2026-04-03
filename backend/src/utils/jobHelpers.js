@@ -1031,7 +1031,7 @@ export async function buildSearchContext(req) {
 export async function retrieveCandidates(context, limit = 300) {
   const cacheKey =
     context.query && !context.skipCacheForAgent
-      ? `cand:search:${context.userId || 'anon'}:${context.query}:${context.filters?.country}`
+      ? `cand:search:${context.userId || 'anon'}:${context.query}:${context.filters?.country}:${context.pageOffset || 0}`
       : null;
 
   if (cacheKey) {
@@ -1060,12 +1060,13 @@ export async function retrieveCandidates(context, limit = 300) {
     );
     const apiQuery = (context.query || 'Software Engineer').slice(0, 200);
     const country = context.filters?.country || 'IN';
+    const pageOffset = Math.max(0, Number(context.pageOffset || 0));
 
     // When skipExternalFetch (autopilot): limit to 1 page to avoid 429
     const pagesToFetch = fallbackWhenEmpty ? 1 : 5;
     const pagePromises = [];
 
-    for (let p = 1; p <= pagesToFetch; p++) {
+    for (let p = 1 + pageOffset; p <= pagesToFetch + pageOffset; p++) {
       pagePromises.push(
         fetchExternalJobs(
           apiQuery,

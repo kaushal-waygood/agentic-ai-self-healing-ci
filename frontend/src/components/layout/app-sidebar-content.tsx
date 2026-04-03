@@ -440,7 +440,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Rocket,
   Pin,
@@ -474,6 +474,7 @@ export const AppSidebarContent = ({
 }: {
   isCollapsed: boolean;
 }) => {
+  const [hasHydrated, setHasHydrated] = useState(false);
   const { isPinned, setPinned } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
@@ -481,6 +482,11 @@ export const AppSidebarContent = ({
   const studentWrapper = useSelector(
     (state: RootState) => state.student.students?.[0],
   );
+  const { planType } = useSelector((state: RootState) => state.plan);
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
 
   // --- 1. ROLE DEFINITIONS ---
   const ROLES = {
@@ -494,13 +500,15 @@ export const AppSidebarContent = ({
   };
 
   // Safe fallback to 'user' if role is missing
-  const currentRole = authUser?.role || ROLES.USER;
-  const { planType } = useSelector((state: RootState) => state.plan);
+  const currentRole = hasHydrated ? authUser?.role || ROLES.USER : ROLES.USER;
+  const displayName = hasHydrated
+    ? studentWrapper?.student?.fullName || authUser?.fullName || 'Guest'
+    : 'Guest';
 
   const user = {
     role: currentRole,
     fullName: authUser?.fullName || 'Guest User',
-    plan: planType || 'Free',
+    plan: hasHydrated ? planType || 'Free' : 'Free',
   };
 
   const SIDEBAR_SECTIONS = [
@@ -820,7 +828,7 @@ export const AppSidebarContent = ({
               <div className="group flex cursor-pointer items-center justify-between rounded-[14px] border border-slate-200/60 bg-[#F1F5F9] p-3.5 transition-colors hover:bg-[#E2E8F0]">
                 <div className="flex flex-col min-w-0">
                   <span className="truncate text-[13px] font-extrabold leading-tight text-slate-900 capitalize">
-                    {studentWrapper?.student.fullName || 'Guest'}
+                    {displayName}
                   </span>
                   <span className="mt-0.5 text-[11px] font-medium text-slate-500">
                     Welcome back!

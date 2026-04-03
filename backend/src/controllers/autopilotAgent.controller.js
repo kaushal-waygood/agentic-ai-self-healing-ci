@@ -1,6 +1,5 @@
 import { Student } from '../models/students/student.model.js';
 import mongoose from 'mongoose';
-import { extractDataFromCV } from '../utils/extractedCv.js';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,22 +11,19 @@ import {
   earnCreditsForAction,
   getAutopilotEntitlements,
 } from '../utils/credits.js';
-import { extractTextFromCV, parseCVData } from './rough.js';
 import { processAutopilotAgent } from '../utils/autopilot.background.js';
 import { StudentAgent } from '../models/students/studentAgent.model.js';
 import { AppliedJob } from '../models/AppliedJob.js';
-import { StudentApplication } from '../models/students/studentApplication.model.js';
 import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
-import { Job } from '../models/jobs.model.js';
-import { getStudentProfileSnapshot } from '../services/getStudentProfileSnapshot.js';
-import { buildEffectiveStudentProfile } from '../utils/profileHydration.js';
+import { StudentCV } from '../models/students/studentCV.model.js';
+import { StudentHtmlCV } from '../models/students/studentHtmlCV.model.js';
+import { StudentCL } from '../models/students/studentCL.model.js';
+import { StudentCoverLetter } from '../models/students/studentCoverLetter.model.js';
 import { getRecommendedJobs } from '../utils/getRecommendedJobs.js';
-import {
-  buildApplicationData,
-  processAgentDiscovery,
-} from '../worker/autopilotWorker.js';
-import { processTailoredApplication } from '../utils/tailoredApply.background.js';
+import { processAgentDiscovery } from '../worker/autopilotWorker.js';
 import { AgentFoundJob } from '../models/AgentFoundJob.js';
+import { addAutopilotDiscoveryJob } from '../queues/autopilotDiscoveryQueue.js';
+import { initiateTailoredJobGeneration } from '../utils/tailoredJobs.js';
 
 // ----------------- helpers -----------------
 const toBool = (v) => {
@@ -82,6 +78,7 @@ const mapAgentJob = (record, tailoredApplication) => {
     id: job._id,
     _id: job._id,
     title: job.title,
+    description: job.description,
     company: job.company,
     country: job.country,
     location: job.location,
@@ -150,10 +147,7 @@ const fetchActiveAgentJobs = async (
     ...activeFoundJobFilter,
   };
   const safePage = Math.max(1, parseInt(page, 10) || 1);
-  const safeLimit = Math.min(
-    Math.max(1, parseInt(limit, 10) || 20),
-    50,
-  );
+  const safeLimit = Math.min(Math.max(1, parseInt(limit, 10) || 20), 50);
   const skip = (safePage - 1) * safeLimit;
 
   const total = await AgentFoundJob.countDocuments(filter);
@@ -164,13 +158,11 @@ const fetchActiveAgentJobs = async (
     .populate({
       path: 'job',
       select:
-        'title company country location remote jobTypes slug jobPostedAt',
+        'title description company country location remote jobTypes slug jobPostedAt',
     })
     .lean();
 
-  const jobIds = foundJobs
-    .map((record) => record?.job?._id)
-    .filter(Boolean);
+  const jobIds = foundJobs.map((record) => record?.job?._id).filter(Boolean);
 
   let tailoredByJobId = new Map();
   if (jobIds.length > 0) {
@@ -194,10 +186,7 @@ const fetchActiveAgentJobs = async (
 
   const jobs = foundJobs
     .map((record) =>
-      mapAgentJob(
-        record,
-        tailoredByJobId.get(String(record?.job?._id || '')),
-      ),
+      mapAgentJob(record, tailoredByJobId.get(String(record?.job?._id || ''))),
     )
     .filter(Boolean);
 
@@ -247,7 +236,28 @@ export const createAutopilotAgent = async (req, res) => {
     const isOnsite = toBool(req.body.isOnsite);
     const keywords = String(req.body.keywords || '').trim();
     const cvOption =
-      req.body.cvOption === 'uploaded_pdf' ? 'uploaded_pdf' : 'current_profile';
+      req.body.cvOption === 'uploaded_pdf'
+        ? 'uploaded_pdf'
+        : req.body.cvOption === 'saved_cv'
+          ? 'saved_cv'
+          : 'current_profile';
+    const selectedCVId = String(req.body.selectedCVId || '').trim();
+    const selectedCVSource = String(req.body.selectedCVSource || '').trim();
+    const selectedCVTitle = String(req.body.selectedCVTitle || '').trim();
+    const coverLetterStrategy =
+      req.body.coverLetterStrategy === 'template' ? 'template' : 'generate';
+    const selectedCoverLetterId = String(
+      req.body.selectedCoverLetterId || req.body.savedClId || '',
+    ).trim();
+    const selectedCoverLetterSource = String(
+      req.body.selectedCoverLetterSource || 'saved',
+    ).trim();
+    const selectedCoverLetterTitle = String(
+      req.body.selectedCoverLetterTitle || '',
+    ).trim();
+    const coverLetterInstructions = String(
+      req.body.coverLetterInstructions || '',
+    ).trim();
     const jobDescription = String(req.body.jobDescription || '');
     const autopilotLimit = Math.min(Number(req.body.autopilotLimit || 5), 20);
     const country = String(req.body.country || '').trim();
@@ -257,6 +267,94 @@ export const createAutopilotAgent = async (req, res) => {
         success: false,
         message: 'CV file is required for uploaded_pdf option',
       });
+    }
+
+    if (cvOption === 'saved_cv') {
+      if (!selectedCVId || !mongoose.Types.ObjectId.isValid(selectedCVId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'A valid selected CV is required for saved_cv option',
+        });
+      }
+
+      if (!['saved', 'generated'].includes(selectedCVSource)) {
+        return res.status(400).json({
+          success: false,
+          message: 'selectedCVSource must be saved or generated',
+        });
+      }
+
+      const selectedDoc =
+        selectedCVSource === 'generated'
+          ? await StudentCV.findOne({
+              _id: selectedCVId,
+              student: studentId,
+              status: 'completed',
+            })
+              .select('_id')
+              .lean()
+          : await StudentHtmlCV.findOne({
+              _id: selectedCVId,
+              student: studentId,
+            })
+              .select('_id')
+              .lean();
+
+      if (!selectedDoc) {
+        return res.status(404).json({
+          success: false,
+          message:
+            selectedCVSource === 'generated'
+              ? 'Generated CV not found or not ready'
+              : 'Saved CV not found',
+        });
+      }
+    }
+
+    if (coverLetterStrategy === 'template') {
+      if (
+        !selectedCoverLetterId ||
+        !mongoose.Types.ObjectId.isValid(selectedCoverLetterId)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'A valid selected cover letter is required for template strategy',
+        });
+      }
+
+      if (!['saved', 'generated'].includes(selectedCoverLetterSource)) {
+        return res.status(400).json({
+          success: false,
+          message: 'selectedCoverLetterSource must be saved or generated',
+        });
+      }
+
+      const selectedLetter =
+        selectedCoverLetterSource === 'generated'
+          ? await StudentCL.findOne({
+              _id: selectedCoverLetterId,
+              student: studentId,
+              status: 'completed',
+            })
+              .select('_id')
+              .lean()
+          : await StudentCoverLetter.findOne({
+              _id: selectedCoverLetterId,
+              student: studentId,
+            })
+              .select('_id')
+              .lean();
+
+      if (!selectedLetter) {
+        return res.status(404).json({
+          success: false,
+          message:
+            selectedCoverLetterSource === 'generated'
+              ? 'Generated cover letter not found or not ready'
+              : 'Saved cover letter not found',
+        });
+      }
     }
 
     if (req.file) {
@@ -290,10 +388,9 @@ export const createAutopilotAgent = async (req, res) => {
     ) {
       return res.status(403).json({
         success: false,
-        message:
-          entitlements.isFree
-            ? 'Free plan supports only 1 active AI job agent. Upgrade to add more.'
-            : `Your plan supports only ${entitlements.maxAgents} active AI job agents.`,
+        message: entitlements.isFree
+          ? 'Free plan supports only 1 active AI job agent. Upgrade to add more.'
+          : `Your plan supports only ${entitlements.maxAgents} active AI job agents.`,
         errorCode: 'AGENT_LIMIT_REACHED',
         upgradeRequired: entitlements.isFree,
       });
@@ -311,6 +408,24 @@ export const createAutopilotAgent = async (req, res) => {
       keywords,
       employmentType,
       cvOption,
+      selectedCVId: cvOption === 'saved_cv' ? selectedCVId : undefined,
+      selectedCVSource:
+        cvOption === 'saved_cv' ? selectedCVSource : undefined,
+      selectedCVTitle: cvOption === 'saved_cv' ? selectedCVTitle : undefined,
+      coverLetterStrategy,
+      selectedCoverLetterId:
+        coverLetterStrategy === 'template'
+          ? selectedCoverLetterId
+          : undefined,
+      selectedCoverLetterSource:
+        coverLetterStrategy === 'template'
+          ? selectedCoverLetterSource
+          : undefined,
+      selectedCoverLetterTitle:
+        coverLetterStrategy === 'template'
+          ? selectedCoverLetterTitle
+          : undefined,
+      coverLetterInstructions,
       autopilotEnabled: true,
       autopilotLimit,
       jobDescription,
@@ -523,6 +638,7 @@ export const getAgentJobs = async (req, res) => {
   const { id: agentId } = req.params;
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
+  const shouldRefresh = toBool(req.query.refresh);
 
   try {
     const agent = await StudentAgent.findOne({
@@ -537,14 +653,31 @@ export const getAgentJobs = async (req, res) => {
       });
     }
 
-    const { jobs, pagination } = await fetchActiveAgentJobs(studentId, agent._id, {
-      page,
-      limit,
-    });
+    let { jobs, pagination } = await fetchActiveAgentJobs(
+      studentId,
+      agent._id,
+      {
+        page,
+        limit,
+      },
+    );
+
+    const hasJobs = jobs.length > 0;
+    const canDiscoverMore = agent.isAgentActive !== false;
+    let isRefreshing = false;
+
+    if ((shouldRefresh || !hasJobs) && canDiscoverMore) {
+      // Queue discovery for background processing to avoid blocking the response
+      addAutopilotDiscoveryJob(agent, shouldRefresh).catch((err) => {
+        console.error('[getAgentJobs] Failed to queue discovery:', err);
+      });
+      // Return current jobs immediately with a flag indicating refresh is in progress
+      isRefreshing = true;
+    }
 
     return res.status(200).json({
       success: true,
-      data: { jobs, byDate: buildJobsByDate(jobs) },
+      data: { jobs, byDate: buildJobsByDate(jobs), isRefreshing },
       meta: {
         agentId: agent.agentId,
         count: jobs.length,
@@ -609,10 +742,14 @@ export const replaceAgentJob = async (req, res) => {
       force: true,
       requestedSlots: 1,
     });
-    const { jobs, pagination } = await fetchActiveAgentJobs(studentId, agent._id, {
-      page,
-      limit,
-    });
+    const { jobs, pagination } = await fetchActiveAgentJobs(
+      studentId,
+      agent._id,
+      {
+        page,
+        limit,
+      },
+    );
 
     return res.status(200).json({
       success: true,
@@ -651,139 +788,18 @@ export const startAgentJobTailoredGeneration = async (req, res) => {
   const { agentId: agentIdParam, jobId } = req.params;
 
   try {
-    if (!mongoose.Types.ObjectId.isValid(studentId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid student ID',
-        errorCode: 'INVALID_STUDENT_ID',
-      });
-    }
-    if (!jobId || !mongoose.Types.ObjectId.isValid(jobId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid job ID',
-        errorCode: 'INVALID_JOB_ID',
-      });
-    }
-
-    const isMongoId =
-      mongoose.Types.ObjectId.isValid(agentIdParam) &&
-      String(agentIdParam).length === 24;
-    const agent = await StudentAgent.findOne(
-      isMongoId
-        ? { _id: agentIdParam, student: studentId }
-        : { agentId: agentIdParam, student: studentId },
-    ).lean();
-
-    if (!agent) {
-      return res.status(404).json({
-        success: false,
-        message: 'Agent not found',
-        errorCode: 'AGENT_NOT_FOUND',
-      });
-    }
-
-    const job = await Job.findById(jobId).lean();
-    if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: 'Job not found',
-        errorCode: 'JOB_NOT_FOUND',
-      });
-    }
-
-    const existingDraft = await StudentTailoredApplication.findOne({
-      student: studentId,
-      jobId: job._id,
-    });
-    if (existingDraft) {
-      if (existingDraft.status === 'completed') {
-        return res.status(200).json({
-          success: true,
-          message: 'Tailored docs already generated for this job',
-          data: {
-            applicationId: existingDraft._id,
-            jobTitle: job.title,
-            company: job.company,
-            tailoredStatus: existingDraft.status,
-            tailoredGenerated: true,
-            tailoredViewUrl: buildTailoredViewUrl(existingDraft._id),
-          },
-        });
-      }
-      return res.status(202).json({
-        success: true,
-        message: 'Generation already in progress for this job',
-        data: {
-          applicationId: existingDraft._id,
-          jobTitle: job.title,
-          company: job.company,
-          tailoredStatus: existingDraft.status,
-          tailoredGenerated: false,
-          tailoredViewUrl: buildTailoredViewUrl(existingDraft._id),
-        },
-      });
-    }
-
-    const studentProfile = await getStudentProfileSnapshot(studentId);
-    if (!studentProfile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student profile not found',
-        errorCode: 'PROFILE_NOT_FOUND',
-      });
-    }
-
-    const effectiveStudent = buildEffectiveStudentProfile(
-      studentProfile,
-      agent,
-    );
-    const applicationData = buildApplicationData(job, effectiveStudent, '');
-
-    const application = await StudentTailoredApplication.create({
-      student: studentId,
-      jobId: job._id,
-      jobTitle: job.title,
-      companyName: job.company,
-      jobDescription: job.description,
-      useProfile: true,
-      status: 'pending',
-      flag: 'agent',
-    });
-
-    const io = req.app.get('io');
-
-    // ✅ FIX: pass modelType + statusMap so processTailoredApplication
-    //    updates StudentTailoredApplication (not StudentApplication) and
-    //    uses the 'completed' / 'failed' status values this model expects.
-    processTailoredApplication(
+    const result = await initiateTailoredJobGeneration({
       studentId,
-      application._id,
-      applicationData,
-      io,
-      null,
-      {
-        modelType: 'StudentTailoredApplication',
-        statusMap: { success: 'completed', failed: 'failed' },
-      },
-    ).catch((err) =>
-      console.error(
-        `[AgentJobTailored] Failed for job ${jobId} agent ${agent.agentId}:`,
-        err,
-      ),
-    );
+      agentIdParam,
+      jobId,
+      io: req.app.get('io'),
+    });
 
-    return res.status(202).json({
-      success: true,
-      message: 'Tailored doc generation started',
-      data: {
-        applicationId: application._id,
-        jobTitle: job.title,
-        company: job.company,
-        tailoredStatus: application.status,
-        tailoredGenerated: false,
-        tailoredViewUrl: buildTailoredViewUrl(application._id),
-      },
+    return res.status(result.status).json({
+      success: result.success,
+      message: result.message,
+      ...(result.errorCode ? { errorCode: result.errorCode } : {}),
+      ...(result.data ? { data: result.data } : {}),
     });
   } catch (error) {
     console.error(
@@ -887,10 +903,9 @@ export const activateAgent = async (req, res) => {
       ) {
         return res.status(403).json({
           success: false,
-          message:
-            entitlements.isFree
-              ? 'Free plan supports only 1 active AI job agent. Upgrade to activate more.'
-              : `Your plan supports only ${entitlements.maxAgents} active AI job agents.`,
+          message: entitlements.isFree
+            ? 'Free plan supports only 1 active AI job agent. Upgrade to activate more.'
+            : `Your plan supports only ${entitlements.maxAgents} active AI job agents.`,
           errorCode: 'AGENT_LIMIT_REACHED',
           upgradeRequired: entitlements.isFree,
         });
@@ -971,10 +986,9 @@ export const singleActivateAgent = async (req, res) => {
       ) {
         return res.status(403).json({
           success: false,
-          message:
-            entitlements.isFree
-              ? 'Free plan supports only 1 active AI job agent. Upgrade to activate more.'
-              : `Your plan supports only ${entitlements.maxAgents} active AI job agents.`,
+          message: entitlements.isFree
+            ? 'Free plan supports only 1 active AI job agent. Upgrade to activate more.'
+            : `Your plan supports only ${entitlements.maxAgents} active AI job agents.`,
           errorCode: 'AGENT_LIMIT_REACHED',
           upgradeRequired: entitlements.isFree,
         });

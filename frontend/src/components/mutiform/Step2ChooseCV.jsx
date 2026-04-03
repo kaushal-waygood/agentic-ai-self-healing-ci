@@ -3,10 +3,14 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
+  CheckCircle2,
+  FileText,
+  Sparkles,
   UploadCloud,
+  User,
   X,
 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchGeneratedCVsRequest } from '../../redux/reducers/aiReducer';
 
@@ -14,45 +18,50 @@ const Step2ChooseCV = ({
   nextStep,
   prevStep,
   handleFileChange,
+  handleCvOptionChange,
+  handleSelectedCvChange,
   values = {},
 }) => {
   const [dragActive, setDragActive] = useState(false);
-  const [manuallySavedCvs, setManuallySavedCvs] = useState([]); // New state for API-fetched CVs
-  const [cvs, setCvs] = useState([]);
-  const [loadingApi, setLoadingApi] = useState(true); // Separate loading for API
+  const [savedCvs, setSavedCvs] = useState([]);
+  const [loadingSavedCvs, setLoadingSavedCvs] = useState(true);
   const [error, setError] = useState(null);
   const inputRef = useRef(null);
 
   const dispatch = useDispatch();
   const { generatedCVs, loading: aiLoading } = useSelector((state) => state.ai);
 
-  // Configuration for valid formats
-  const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx'];
-  const ALLOWED_MIME_TYPES = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  ];
+  const isUsingProfile = values?.cvOption === 'current_profile';
+  const isUsingUploadedPdf = values?.cvOption === 'uploaded_pdf';
+  const isUsingSelectedCv = values?.cvOption === 'saved_cv';
+  const hasUploadedFile = values?.cvFile instanceof File;
+  const hasSelectedCv = Boolean(values?.selectedCVId);
+  const hasSelection =
+    isUsingProfile || (isUsingUploadedPdf && hasUploadedFile) || hasSelectedCv;
 
-  // Effect to fetch manually saved CVs and dispatch AI CVs request
   useEffect(() => {
     let cancelled = false;
-    const fetchInitialData = async () => {
-      setLoadingApi(true);
+
+    const fetchSavedCvs = async () => {
+      setLoadingSavedCvs(true);
       try {
         const response = await apiInstance.get('/students/resume/saved');
         if (!cancelled) {
-          setManuallySavedCvs(response.data?.html || []);
+          setSavedCvs(response.data?.html || []);
         }
-      } catch (err) {
-        console.error('Failed to fetch manually saved CVs:', err);
-        if (!cancelled) setManuallySavedCvs([]);
+      } catch (fetchError) {
+        console.error('Failed to fetch saved CVs:', fetchError);
+        if (!cancelled) {
+          setSavedCvs([]);
+        }
       } finally {
-        if (!cancelled) setLoadingApi(false);
+        if (!cancelled) {
+          setLoadingSavedCvs(false);
+        }
       }
     };
 
-    fetchInitialData();
+    fetchSavedCvs();
     dispatch(fetchGeneratedCVsRequest());
 
     return () => {
@@ -60,64 +69,77 @@ const Step2ChooseCV = ({
     };
   }, [dispatch]);
 
-  // Effect to combine CVs when either source changes
-  useEffect(() => {
-    const combinedCvs = [
-      ...manuallySavedCvs,
-      ...generatedCVs.map((cv) => ({
-        _id: cv._id,
-        htmlCVTitle: cv.cvTitle,
+  const existingCvs = useMemo(() => {
+    const saved = savedCvs.map((cv) => ({
+      id: cv._id,
+      title: cv.htmlCVTitle || 'Saved CV',
+      createdAt: cv.createdAt,
+      source: 'saved',
+      badge: 'Saved',
+    }));
+
+    const generated = (generatedCVs || [])
+      .filter((cv) => cv?.status === 'completed')
+      .map((cv) => ({
+        id: cv._id,
+        title: cv.cvTitle || 'Generated CV',
         createdAt: cv.createdAt,
-        isAIGenerated: true,
-      })),
-    ];
+        source: 'generated',
+        badge: 'Generated',
+      }));
 
-    // Remove duplicates based on _id
-    const uniqueCvs = Array.from(
-      new Map(combinedCvs.map((cv) => [cv._id, cv])).values(),
+    return [...generated, ...saved].sort(
+      (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
     );
+  }, [generatedCVs, savedCvs]);
 
-    setCvs(uniqueCvs);
-  }, [manuallySavedCvs, generatedCVs]);
-
-  const overallLoading = loadingApi || aiLoading;
-
-  // Centralized Validation Function
   const validateFile = (file) => {
     if (!file) return false;
 
     const fileName = file.name.toLowerCase();
-    const isValidExtension = ALLOWED_EXTENSIONS.some((ext) =>
-      fileName.endsWith(ext),
-    );
-    const isValidMime = ALLOWED_MIME_TYPES.includes(file.type);
+    const isPdf =
+      file.type === 'application/pdf' || fileName.endsWith('.pdf');
 
-    if (!isValidExtension && !isValidMime) {
-      setError('Invalid document. Please upload a valid CV (PDF/DOC/DOCX).');
+    if (!isPdf) {
+      setError('Only PDF CVs are supported for AI Auto Application.');
       return false;
     }
 
-    setError(null); // Clear error if valid
+    setError(null);
     return true;
   };
-  // Drag handlers
+
+  const selectProfile = () => {
+    setError(null);
+    handleCvOptionChange('current_profile');
+  };
+
+  const selectExistingCv = (cv) => {
+    setError(null);
+    handleSelectedCvChange(cv);
+  };
+
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
-    if (e.type === 'dragleave') setDragActive(false);
+
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    }
+
+    if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
+
     const files = e.dataTransfer?.files;
-    if (files && files[0]) {
-      if (validateFile(files[0])) {
-        handleFileChange({ target: { files } });
-        nextStep();
-      }
+    if (files && files[0] && validateFile(files[0])) {
+      handleFileChange({ target: { files } });
     }
   };
 
@@ -126,198 +148,251 @@ const Step2ChooseCV = ({
     if (files && files[0]) {
       if (validateFile(files[0])) {
         handleFileChange(e);
-        nextStep();
       } else {
         e.target.value = '';
       }
     }
   };
 
-  const onSelectSavedCv = (cv) => {
-    setError(null);
-    const fakeFile = {
-      name: cv.htmlCVTitle || 'Saved CV',
-      size: 0,
-      type: 'text/html',
-      __savedCvId: cv._id ?? cv.id ?? null,
-    };
-    handleFileChange({ target: { files: [fakeFile] } });
-    nextStep();
+  const removeUploadedFile = (e) => {
+    e.preventDefault();
+    handleFileChange({ target: { files: [] } });
+    handleCvOptionChange('current_profile');
+    if (inputRef.current) inputRef.current.value = '';
   };
 
-  const formattedSize = (size) => {
-    if (!size && size !== 0) return '';
-    if (size < 1024) return `${size} B`;
-    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-    return `${(size / (1024 * 1024)).toFixed(2)} MB`;
-  };
+  const selectedSummary = hasUploadedFile
+    ? values.cvFile.name
+    : hasSelectedCv
+      ? values.selectedCVTitle
+      : 'Use My Profile';
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-4 animate-fade-in">
-      {/* Header */}
       <div className="bg-header-gradient-primary text-white px-6 py-4 rounded-lg shadow-lg mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center font-bold">
             2
           </div>
-          <h2 className="text-2xl font-bold">Choose Your Master CV</h2>
+          <h2 className="text-2xl font-bold">Choose Your CV Source</h2>
         </div>
         <p className="text-white/90">
-          Select a saved CV or upload a new one. Selecting will advance to the
-          next step.
+          Use your profile, upload a PDF CV, or select one of your existing
+          saved or generated CVs.
         </p>
       </div>
 
       <div className="bg-white rounded-lg shadow py-4 px-6 border border-gray-100">
-        {/* Saved CVs */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-semibold text-gray-700">Saved CVs</div>
-            <div className="text-xs text-gray-500">
-              {overallLoading ? 'Loading...' : `${cvs.length} available`}
-            </div>
-          </div>
-
-          <div className="max-h-56 overflow-auto space-y-2">
-            {overallLoading ? (
-              <div className="py-8 text-center text-slate-500">
-                Loading saved CVs...
-              </div>
-            ) : cvs.length === 0 ? (
-              <div className="py-8 text-center text-slate-500 border-2 border-dashed rounded-md p-6 bg-blue-50">
-                <div className="font-medium mb-1">No saved CVs</div>
-                <div className="text-xs text-slate-400">
-                  Upload one below or create with the AI assistant
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button
+            type="button"
+            onClick={selectProfile}
+            className={`relative text-left border rounded-xl p-5 transition-all ${
+              isUsingProfile
+                ? 'border-blue-500 bg-blue-50 shadow-sm'
+                : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/40'
+            }`}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                  <User className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-base font-semibold text-slate-900">
+                    Use My Profile
+                  </div>
+                  <div className="text-sm text-slate-500 mt-1">
+                    Fastest option. We use your current profile details as the
+                    base for job matching and tailored docs.
+                  </div>
                 </div>
               </div>
+              {isUsingProfile && (
+                <CheckCircle2 className="w-5 h-5 text-blue-600 shrink-0" />
+              )}
+            </div>
+          </button>
+
+          <div
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={handleDrop}
+            className={`border rounded-xl p-5 transition-all ${
+              isUsingUploadedPdf || dragActive || hasUploadedFile
+                ? 'border-indigo-400 bg-indigo-50'
+                : 'border-gray-200 border-dashed'
+            }`}
+          >
+            <input
+              ref={inputRef}
+              id="cv-upload"
+              type="file"
+              accept=".pdf,application/pdf"
+              onChange={onSelectFile}
+              className="hidden"
+            />
+
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                <UploadCloud className="w-6 h-6" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-base font-semibold text-slate-900">
+                  Upload CV PDF
+                </div>
+                <div className="text-sm text-slate-500 mt-1">
+                  Use a dedicated PDF CV if you want a different resume context
+                  for this agent.
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-md bg-buttonPrimary text-white shadow-sm"
+            >
+              <UploadCloud className="w-4 h-4" />
+              Browse PDF
+            </button>
+
+            {hasUploadedFile ? (
+              <div className="mt-4 flex items-center justify-between gap-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-slate-800 truncate">
+                    {values.cvFile.name}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    PDF selected for this agent
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={removeUploadedFile}
+                  className="text-sm text-red-600 shrink-0"
+                >
+                  Remove
+                </button>
+              </div>
             ) : (
-              <ul className="space-y-2">
-                {cvs.map((cv, idx) => (
-                  <li
-                    key={cv._id ?? idx}
-                    role="button"
-                    value={cvs.htmlCVTitle || 'Untitled CV'}
-                    tabIndex={0}
-                    onClick={() => onSelectSavedCv(cv)}
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' ? onSelectSavedCv(cv) : null
-                    }
-                    className="flex items-center justify-between p-3 border rounded-md hover:bg-blue-50 cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 bg-blue-50 rounded-md flex items-center justify-center text-blue-600 font-medium">
-                        CV
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-slate-800 truncate">
-                          {cv.htmlCVTitle || 'Untitled CV'}
-                        </div>
-                        <div className="text-xs text-slate-400 truncate">
-                          {cv.createdAt || 'Saved'}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-xs text-slate-500">Select</div>
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-4 text-xs text-slate-500">
+                PDF only, up to 5 MB
+              </div>
             )}
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200" />
+        <div className="mt-5">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-semibold text-gray-700">
+              Saved And Generated CVs
+            </div>
+            <div className="text-xs text-gray-500">
+              {loadingSavedCvs || aiLoading
+                ? 'Loading...'
+                : `${existingCvs.length} available`}
+            </div>
           </div>
-          <div className="relative flex justify-center">
-            <span className="bg-white px-3 text-xs text-slate-500">OR</span>
+
+          <div className="max-h-64 overflow-auto space-y-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+            {loadingSavedCvs || aiLoading ? (
+              <div className="py-8 text-center text-slate-500">
+                Loading available CVs...
+              </div>
+            ) : existingCvs.length === 0 ? (
+              <div className="py-8 text-center text-slate-500">
+                No saved or generated CVs found yet.
+              </div>
+            ) : (
+              existingCvs.map((cv) => {
+                const isSelected =
+                  isUsingSelectedCv &&
+                  values?.selectedCVId === cv.id &&
+                  values?.selectedCVSource === cv.source;
+
+                return (
+                  <button
+                    key={`${cv.source}-${cv.id}`}
+                    type="button"
+                    onClick={() => selectExistingCv(cv)}
+                    className={`w-full text-left rounded-xl border p-3 transition-all ${
+                      isSelected
+                        ? 'border-emerald-500 bg-emerald-50 shadow-sm'
+                        : 'border-white bg-white hover:border-emerald-200 hover:bg-emerald-50/50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                            cv.source === 'generated'
+                              ? 'bg-violet-100 text-violet-600'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {cv.source === 'generated' ? (
+                            <Sparkles className="w-5 h-5" />
+                          ) : (
+                            <FileText className="w-5 h-5" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-slate-800 truncate">
+                            {cv.title}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-1">
+                            {cv.createdAt
+                              ? new Date(cv.createdAt).toLocaleString()
+                              : 'Saved'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={`text-[11px] px-2 py-1 rounded-full font-medium ${
+                            cv.source === 'generated'
+                              ? 'bg-violet-100 text-violet-700'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {cv.badge}
+                        </span>
+                        {isSelected && (
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
-        {/* Error Message Display */}
+
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md flex items-center justify-between animate-in fade-in slide-in-from-top-1">
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md flex items-center justify-between animate-in fade-in slide-in-from-top-1">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
               <span>{error}</span>
             </div>
-            <button onClick={() => setError(null)}>
+            <button type="button" onClick={() => setError(null)}>
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
-        {/* Upload area */}
-        <div
-          onDragEnter={handleDrag}
-          onDragOver={handleDrag}
-          onDragLeave={handleDrag}
-          onDrop={handleDrop}
-          className={`p-4 rounded-md text-center transition ${
-            dragActive
-              ? 'border-2 border-indigo-400 bg-indigo-50'
-              : 'border-2 border-dashed border-gray-200'
-          }`}
-        >
-          <input
-            ref={inputRef}
-            id="cv-upload"
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={onSelectFile}
-            className="hidden"
-          />
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-buttonPrimary text-white shadow-sm"
-          >
-            <UploadCloud className="w-4 h-4" />
-            Browse or drop file
-          </button>
 
-          {values?.cvFile ? (
-            <div className="mt-3 flex items-center justify-center gap-4">
-              <div className="text-sm">
-                <div className="font-medium text-slate-800 truncate">
-                  {values.cvFile.name}
-                </div>
-                <div className="text-xs text-slate-400">
-                  {formattedSize(values.cvFile.size)}
-                </div>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleFileChange({ target: { files: [] } });
-                }}
-                className="text-sm text-red-600"
-              >
-                Remove
-              </button>
-            </div>
-          ) : (
-            <div className="mt-3 text-xs text-slate-500">
-              PDF, DOC, DOCX, PNG, JPG
-            </div>
-          )}
+        <div className="mt-5 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 text-sm text-slate-600">
+          <span>
+            Selected source: <strong>{selectedSummary}</strong>
+          </span>
         </div>
 
-        {/* CTA */}
-        {/* <div className="mt-4">
-          <button
-            type="button"
-            onClick={() => {
-              nextStep();
-            }}
-            className="w-full px-4 py-3 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white font-semibold"
-          >
-            Create / Use Selected CV
-          </button>
-        </div> */}
-
-        {/* Footer nav */}
         <div className="flex items-center justify-between mt-4 pt-4 border-t">
           <button
+            type="button"
             onClick={prevStep}
             className="flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-all duration-200 hover:scale-105"
           >
@@ -325,14 +400,14 @@ const Step2ChooseCV = ({
           </button>
 
           <button
+            type="button"
             onClick={nextStep}
-            disabled={!values?.cvFile}
-            className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all
-    ${
-      values?.cvFile
-        ? 'bg-buttonPrimary text-white shadow-lg hover:scale-105'
-        : 'bg-gray-300 text-gray-500'
-    }`}
+            disabled={!hasSelection}
+            className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all ${
+              hasSelection
+                ? 'bg-buttonPrimary text-white shadow-lg hover:scale-105'
+                : 'bg-gray-300 text-gray-500'
+            }`}
           >
             Next <ArrowRight className="w-4 h-4" />
           </button>
@@ -343,11 +418,3 @@ const Step2ChooseCV = ({
 };
 
 export default Step2ChooseCV;
-
-/* helper */
-function formattedSize(size) {
-  if (size === undefined || size === null) return '';
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(2)} MB`;
-}

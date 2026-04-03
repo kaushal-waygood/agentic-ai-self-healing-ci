@@ -469,11 +469,11 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
     : 'Recently';
 
   return (
-    <div className="group flex cursor-pointer items-center justify-between rounded-xl border-2 border-slate-200 bg-white p-4 transition-all hover:border-teal-300 hover:bg-slate-50">
+    <div className="group flex cursor-pointer items-center justify-between rounded-xl border-2 border-slate-200 bg-white p-4 transition-all hover:border-blue-300 hover:bg-slate-50">
       <div className="flex items-center gap-4">
         {/* Pseudo-radio button */}
-        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-300 transition-colors group-hover:border-teal-500">
-          <div className="h-2.5 w-2.5 scale-0 rounded-full bg-teal-600 transition-transform group-active:scale-100"></div>
+        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-300 transition-colors group-hover:border-blue-500">
+          <div className="h-2.5 w-2.5 scale-0 rounded-full bg-blue-600 transition-transform group-active:scale-100"></div>
         </div>
         <div>
           <div className="text-[14px] font-bold leading-tight text-slate-900 line-clamp-1">
@@ -586,10 +586,10 @@ export function JobStep({
 
             <div className="relative z-10 flex w-full justify-between">
               <div className="flex flex-col items-center gap-1.5 bg-slate-50 px-2 dark:bg-transparent">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white shadow-[0_0_0_4px_#f8fafc] transition-colors duration-300">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-[0_0_0_4px_#f8fafc] transition-colors duration-300">
                   1
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-teal-600">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-600">
                   Job Context
                 </span>
               </div>
@@ -617,7 +617,7 @@ export function JobStep({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm">
           {/* Card Header */}
           <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-6 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shadow-sm">
               <Briefcase className="h-5 w-5" strokeWidth={2} />
             </div>
             <div>
@@ -646,7 +646,7 @@ export function JobStep({
                     <TabsTrigger
                       key={tab.key}
                       value={tab.key}
-                      className="flex-1 gap-2 rounded-lg py-2.5 text-[13px] font-semibold transition-all data-[state=active]:bg-white data-[state=active]:font-bold data-[state=active]:text-teal-600 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/50 text-slate-500 hover:text-slate-800"
+                      className="flex-1 gap-2 rounded-lg py-2.5 text-[13px] font-semibold transition-all data-[state=active]:bg-white data-[state=active]:font-bold data-[state=active]:text-blue-600 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/50 text-slate-500 hover:text-slate-800"
                     >
                       <Icon className="h-4 w-4" strokeWidth={2.5} />
                       <span className="hidden sm:inline">{tab.label}</span>
@@ -663,8 +663,8 @@ export function JobStep({
                 <div className="relative flex-1 min-h-[160px]">
                   <textarea
                     placeholder="✨ Paste the full job description here... Include requirements, responsibilities, and company culture for best results."
-                    className={`custom-scrollbar absolute inset-0 h-full w-full resize-none rounded-xl border bg-slate-50 p-4 pb-8 text-[13.5px] font-medium text-slate-900 shadow-inner transition-all placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-4 focus:ring-teal-50 ${
-                      isFocused ? 'border-teal-300' : 'border-slate-200'
+                    className={`custom-scrollbar absolute inset-0 h-full w-full resize-none rounded-xl border bg-slate-50 p-4 pb-8 text-[13.5px] font-medium text-slate-900 shadow-inner transition-all placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-50 ${
+                      isFocused ? 'border-blue-300' : 'border-slate-200'
                     }`}
                     value={pastedJobDesc}
                     onChange={(e) => setPastedJobDesc(e.target.value)}
@@ -675,7 +675,7 @@ export function JobStep({
                   <div className="pointer-events-none absolute bottom-2 left-4 text-[11px] font-bold text-slate-400">
                     <span
                       className={
-                        charCount >= 200 ? 'text-green-600' : 'text-teal-600'
+                        charCount >= 200 ? 'text-green-600' : 'text-blue-600'
                       }
                     >
                       {charCount}
@@ -717,7 +717,7 @@ export function JobStep({
                       handleJobContextSubmit('paste', pastedJobDesc)
                     }
                     disabled={charCount < 200 || isLoading}
-                    className="group flex items-center gap-2 rounded-xl bg-teal-600 px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_16px_rgba(13,148,136,0.25)] transition-all hover:-translate-y-0.5 hover:bg-teal-700 disabled:opacity-50 disabled:hover:translate-y-0"
+                    className="group flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_16px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:opacity-50 disabled:hover:translate-y-0"
                   >
                     {isLoading ? (
                       <>
@@ -754,7 +754,7 @@ export function JobStep({
                     <div className="mb-3 flex shrink-0 items-center justify-between px-1">
                       <h3 className="flex items-center gap-2 text-[13px] font-extrabold text-slate-900">
                         <Briefcase
-                          className="h-4 w-4 text-teal-500"
+                          className="h-4 w-4 text-blue-500"
                           strokeWidth={2.5}
                         />
                         Select From Saved Jobs
@@ -782,8 +782,8 @@ export function JobStep({
                 ) : (
                   <div className="flex flex-1 flex-col items-center justify-center text-center py-10">
                     <div className="relative mb-6 inline-block">
-                      <div className="absolute inset-0 animate-pulse rounded-full bg-gradient-to-r from-teal-500 to-emerald-500 opacity-20 blur-2xl"></div>
-                      <div className="relative z-10 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 shadow-2xl transition-transform duration-300 hover:scale-110">
+                      <div className="absolute inset-0 animate-pulse rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 opacity-20 blur-2xl"></div>
+                      <div className="relative z-10 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-2xl transition-transform duration-300 hover:scale-110">
                         <Briefcase
                           className="h-10 w-10 text-white"
                           strokeWidth={1.5}
@@ -810,18 +810,18 @@ export function JobStep({
                   <button
                     onClick={() => jobDescFileInputRef.current?.click()}
                     disabled={isLoading}
-                    className="group flex w-full max-w-md flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-10 transition-all hover:border-teal-400 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="group flex w-full max-w-md flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-10 transition-all hover:border-blue-400 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isLoading && loadingMessage ? (
                       <>
-                        <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+                        <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
                         <span className="text-[14px] font-bold text-slate-700">
                           {loadingMessage}
                         </span>
                       </>
                     ) : (
                       <>
-                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-teal-600 transition-transform group-hover:scale-110">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600 transition-transform group-hover:scale-110">
                           <UploadCloud className="h-8 w-8" strokeWidth={2} />
                         </div>
                         <div className="text-center">

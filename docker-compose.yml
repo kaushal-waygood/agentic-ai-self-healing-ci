@@ -5,11 +5,12 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: dockerfile
     container_name: hsa-backend
     restart: unless-stopped
     environment:
       - NODE_ENV=production
+      - ENABLE_IN_PROCESS_CRONS=false
       - PORT=8080
       - MONGO_URL=mongodb+srv://arsalan:n3nq9IZZJsOOC5Cl@careerpilot.zysihya.mongodb.net/careerpilot?retryWrites=true&w=majority&appName=careerpilot
       - REDIS_URL=redis://redis:6379
@@ -40,6 +41,43 @@ services:
     networks:
       - hsa-network
 
+  # Dedicated Cron Worker
+  backend-cron:
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    container_name: hsa-backend-cron
+    restart: unless-stopped
+    command: ['node', 'cron-worker.js']
+    environment:
+      - NODE_ENV=production
+      - ENABLE_IN_PROCESS_CRONS=false
+      - MONGO_URL=mongodb+srv://arsalan:n3nq9IZZJsOOC5Cl@careerpilot.zysihya.mongodb.net/careerpilot?retryWrites=true&w=majority&appName=careerpilot
+      - REDIS_URL=redis://redis:6379
+      - GOOGLE_API_KEY=AIzaSyBV9zLT9YX8b7NVNbxM8YDgiRwsNANJRJs
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=2525
+      - EMAIL_USER=arsalan@helpstudyabroad.com
+      - EMAIL_PASSWORD=qlmj zoaa ncno yugp
+      - EMAIL_SECURE=false
+      - CLIENT_ID=584491493872-83pvhlcutmll768clf3bom050882n3ur.apps.googleusercontent.com
+      - CLIENT_SECRET=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
+      - REDIRECT_URI=http://localhost:8080/oauth2callback
+      - ACCESS_TOKEN_SECRET=a11d913c91c854d9122d42c2855f20f4cea45d465ec0bc155a7f952d8f32bb7815d202b7a070b0387548db0b6f2da50c6253
+      - RAPID_API_KEY=e181f48f77msh3138245c94a6f01p197d40jsn0ae1e0afe85c
+      - GOOGLE_GENERATIVE_AI_KEY=AIzaSyBgE-nvjKEF_I0r87axPylb0abKxWq7K9M
+      - STRIPE_SECRET_KEY=sk_test_51P9LpzRk1I3BflpJdPQJH8oIUiO9OzYgcDQ7s9jfM0J2iVTAFRWm2o4ZKx6wxUldltqsujiskWhs7w3kCdTkAUXK00nsJPmZVh
+      - STRIPE_WEBHOOK_SECRET=whsec_6c59f923af5ef54bca0e1bb1ccdf04a8a0261e02ab12dd2a372ab0779492b3a9
+      - RAZORPAY_KEY_ID=rzp_test_S1l5Ld6XaitMdS
+      - RAZORPAY_KEY_SECRET=PZ1qZqZcsYlCtKaJWWu5LQKY
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - hsa-network
+
   # Frontend Service (React/Vue/Next.js)
   frontend:
     build:
@@ -50,11 +88,23 @@ services:
     environment:
       - NEXT_PUBLIC_NODE_ENV=production
     ports:
-      - '3000:80' # Nginx runs on 80 internally
+      - '3000:3000'
     depends_on:
       - backend
     networks:
       - hsa-network
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   uni-company-panel:
     build:
@@ -65,11 +115,23 @@ services:
     environment:
       - NEXT_PUBLIC_NODE_ENV=production
     ports:
-      - '3002:3002' # Nginx runs on 80 internally
+      - '3002:3002'
     depends_on:
       - backend
     networks:
       - hsa-network
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3002').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # MongoDB Service
   mongo:

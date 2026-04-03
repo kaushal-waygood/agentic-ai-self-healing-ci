@@ -98,3 +98,22 @@ export function sendRealTimeNotification(io, userId, notification) {
     return false;
   }
 }
+
+export function sendRealTimeDocumentStatus(io, userId, payload) {
+  try {
+    if (!io) {
+      console.warn(
+        '🔔 ⚠️ Socket.IO not available - document status update emitted to DB only',
+      );
+      return false;
+    }
+
+    const userRoom = `user:${userId}`;
+    const notificationNamespace = io.of('/notifications');
+    notificationNamespace.to(userRoom).emit('document-status-updated', payload);
+    return true;
+  } catch (error) {
+    console.error('🔔 ❌ Error sending document status update:', error);
+    return false;
+  }
+}

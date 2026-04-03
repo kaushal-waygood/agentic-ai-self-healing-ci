@@ -13,6 +13,14 @@ type Notification = {
   actionUrl?: string;
 };
 
+type DocumentStatusUpdate = {
+  documentId: string;
+  documentType: 'cv' | 'cl' | 'application';
+  status: string;
+  updatedAt?: string;
+  error?: string;
+};
+
 export function useNotifications() {
   const socketRef = useRef<Socket | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -57,11 +65,19 @@ export function useNotifications() {
     const onNew = (notification: Notification) => {
       prependNotification(notification);
     };
+    const onDocumentStatusUpdated = (update: DocumentStatusUpdate) => {
+      window.dispatchEvent(
+        new CustomEvent('document-status-updated', {
+          detail: update,
+        }),
+      );
+    };
 
     socket.on('connect', onConnect);
     socket.on('connect_error', onError);
     socket.on('disconnect', onDisconnect);
     socket.on('new-notification', onNew);
+    socket.on('document-status-updated', onDocumentStatusUpdated);
 
     // store globally for debug if you like
     // @ts-ignore
@@ -76,6 +92,7 @@ export function useNotifications() {
         socket.off('connect_error', onError);
         socket.off('disconnect', onDisconnect);
         socket.off('new-notification', onNew);
+        socket.off('document-status-updated', onDocumentStatusUpdated);
         socket.disconnect();
       } catch (e) {
         console.warn('useNotifications cleanup failed', e);
