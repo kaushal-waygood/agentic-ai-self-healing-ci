@@ -26,6 +26,9 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
+          env:
+            - name: INTERNAL_API_URL
+              value: 'http://zobsai-backend.zobsai.svc.cluster.local:8080'
           envFrom:
             - configMapRef:
                 name: zobsai-frontend-config
