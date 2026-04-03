@@ -142,12 +142,9 @@ jobs:
       # ─────────────────────────────────────────────
       - name: Update Manifests
         run: |
-          # Backend (shared by backend + backend-cron via Kustomize images)
+          # Backend + frontend are pinned via Kustomize images
           sed -i -e "s|newTag: .*|newTag: ${{ github.sha }}|g" ${{ env.MANIFEST_DIR }}/kustomization.yaml
-          
-          # Frontend
-          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-frontend:.*|image: ghcr.io/zobsai-com/zobsai-frontend:${{ github.sha }}|g" ${{ env.MANIFEST_DIR }}/zobsai-frontend${{ env.MANIFEST_SUFFIX }}
-          
+
           # Uni Panel
           sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:.*|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:${{ github.sha }}|g" ${{ env.MANIFEST_DIR }}/zobsai-uni-company-panel${{ env.MANIFEST_SUFFIX }}
 
