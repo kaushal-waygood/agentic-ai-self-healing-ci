@@ -29,9 +29,9 @@ resources:
 
 images:
   - name: ghcr.io/zobsai-com/zobsai-backend
-    newTag: c88bcd653c958b5e1bf14afa3749eea763d6806d
+    newTag: 6f0728cece859a0cef098fd4af3facc50265f21d
   - name: ghcr.io/zobsai-com/zobsai-frontend
-    newTag: c88bcd653c958b5e1bf14afa3749eea763d6806d
+    newTag: 6f0728cece859a0cef098fd4af3facc50265f21d
 
 namespace: dev-zobsai
 
