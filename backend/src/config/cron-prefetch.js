@@ -5,14 +5,21 @@ import {
   transformRapidApiJob,
   upsertExternalJobs,
 } from '../utils/jobHelpers.js';
+import { runWithCronTelemetry } from '../utils/cronMonitor.js';
+
+const PREFETCH_QUERY_LIMIT = Math.max(
+  1,
+  Number(process.env.CRON_PREFETCH_QUERY_LIMIT) || 10,
+);
 
 export const startPrefetchCron = () => {
   // Run every 3 days at 3:00 AM
-  cron.schedule('0 3 */3 * *', async () => {
-    console.log(
-      '🗓️  [Cron] Starting 3-day job prefetch for popular queries...',
-    );
-    try {
+  cron.schedule('0 3 */3 * *', () =>
+    runWithCronTelemetry('JobPrefetch', async () => {
+      console.log(
+        '🗓️  [Cron] Starting 3-day job prefetch for popular queries...',
+      );
+      try {
       // 1. Find the top 50 most popular search queries from our DB
       const popularQueriesRaw = await Job.aggregate([
         { $unwind: '$queries' },
@@ -23,7 +30,7 @@ export const startPrefetchCron = () => {
           },
         },
         { $sort: { count: -1 } },
-        { $limit: 50 },
+        { $limit: PREFETCH_QUERY_LIMIT },
       ]);
 
       const topQueries = popularQueriesRaw.map((q) => q._id).filter(Boolean);
@@ -79,11 +86,12 @@ export const startPrefetchCron = () => {
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
 
-      console.log('✅ [Cron] 3-day job prefetch completed.');
-    } catch (error) {
-      console.error('❌ [Cron] Error during job prefetch:', error);
-    }
-  });
+        console.log('✅ [Cron] 3-day job prefetch completed.');
+      } catch (error) {
+        console.error('❌ [Cron] Error during job prefetch:', error);
+      }
+    }),
+  );
 
   console.log('🗓️  Job Prefetch cron scheduled (runs every 3 days).');
 };

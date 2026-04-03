@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zobsai-backend-cron
+  namespace: dev-zobsai
+  annotations:
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+  labels:
+    app: zobsai-backend-cron
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: zobsai-backend-cron
+  template:
+    metadata:
+      labels:
+        app: zobsai-backend-cron
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: backend-cron
+          image: ghcr.io/zobsai-com/zobsai-backend:7773f80b4aff1711ec7bef56f0a73977008e70a1
+          imagePullPolicy: Always
+          command:
+            - node
+            - cron-worker.js
+          env:
+            - name: ENABLE_IN_PROCESS_CRONS
+              value: 'false'
+          envFrom:
+            - configMapRef:
+                name: zobsai-backend-config
+            - secretRef:
+                name: zobsai-backend-secrets
+          resources:
+            requests:
+              cpu: '250m'
+              memory: '512Mi'
+            limits:
+              cpu: '1000m'
+              memory: '1Gi'

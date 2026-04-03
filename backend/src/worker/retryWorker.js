@@ -11,7 +11,7 @@ import {
 } from '../queues/tailoredApplication.queue.js';
 
 const MAX_RETRIES = Number(process.env.APP_MAX_RETRIES) || 2;
-const BATCH_SIZE = 10;
+const BATCH_SIZE = Math.max(1, Number(process.env.RETRY_WORKER_BATCH) || 5);
 
 /**
  * Retries agent-generated tailored applications stuck in failed status.

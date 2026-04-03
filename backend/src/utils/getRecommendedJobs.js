@@ -206,6 +206,7 @@ export const getRecommendedJobs = async ({
   studentProfile,
   appliedJobIds = [],
   limit = 50,
+  pageOffset = 0,
   skipExternalFetch = false,
   includeAppliedInResults = false,
   queryOverride,
@@ -223,6 +224,7 @@ export const getRecommendedJobs = async ({
     appliedJobIds,
     queryOverride,
   );
+  context.pageOffset = Math.max(0, Number(pageOffset || 0));
   context.skipExternalFetch = skipExternalFetch;
   context.includeAppliedInResults = includeAppliedInResults;
   // ── Fix: use the passed-in value, not includeAppliedInResults ────────────

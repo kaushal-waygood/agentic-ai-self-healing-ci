@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - zobsai-backend-deployment.yaml
+  - zobsai-backend-cron-deployment.yaml
   - zobsai-backend-configmap.yaml
   - zobsai-backend-secrets.yaml
   - zobsai-frontend-deployment.yaml
