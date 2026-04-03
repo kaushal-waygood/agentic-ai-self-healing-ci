@@ -6,7 +6,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 # ---------------------------
 # Stage 2: Builder
@@ -46,15 +46,18 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Create a non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser --system --uid 1001 nextjs
+
+RUN mkdir -p /app && chown -R nextjs:nodejs /app
 
 # Copy only necessary files from builder
 COPY --from=builder /app/public ./public
 
 # Set correct permissions for the .next directory
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+#RUN mkdir .next
+#RUN chown nextjs:nodejs .next
 
 # Automatically leverages output: 'standalone' from next.config.ts
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
