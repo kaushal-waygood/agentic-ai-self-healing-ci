@@ -13,6 +13,7 @@ import { StudentHtmlCV } from '../models/students/studentHtmlCV.model.js';
 import { StudentCoverLetter } from '../models/students/studentCoverLetter.model.js';
 import { StudentAgent } from '../models/students/studentAgent.model.js';
 import { AgentFoundJob } from '../models/AgentFoundJob.js';
+import { AssistantFoundJob } from '../models/AssistantFoundJob.js';
 import { AppliedJob } from '../models/AppliedJob.js';
 import { JobApplication } from '../models/JobApplication.js';
 import { RecruiterEmailSent } from '../models/RecruiterEmailSent.model.js';
@@ -60,6 +61,7 @@ export async function deleteUserCascade(userId) {
         StudentCoverLetter.deleteMany({ student: studentId }).session(session),
         StudentAgent.deleteMany({ student: studentId }).session(session),
         AgentFoundJob.deleteMany({ student: studentId }).session(session),
+        AssistantFoundJob.deleteMany({ student: studentId }).session(session),
         AppliedJob.deleteMany({ student: studentId }).session(session),
         JobApplication.deleteMany({ applicant: studentId }).session(session),
       ]);

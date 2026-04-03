@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   # Backend resources
   - zobsai-backend-deployment-dev.yaml
+  - zobsai-backend-cron-deployment-dev.yaml
   - zobsai-backend-config-dev.yaml
   - zobsai-backend-secrets-dev.yaml
 

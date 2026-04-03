@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "watch": "nodemon worker.js",
+    "cron": "node cron-worker.js",
+    "cron:watch": "nodemon cron-worker.js",
     "dev": "nodemon server.js",
     "start": "node server.js",
     "test": "jest --coverage",

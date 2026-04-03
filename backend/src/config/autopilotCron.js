@@ -2,6 +2,7 @@
 import cron from 'node-cron';
 import { StudentAgent } from '../models/students/studentAgent.model.js';
 import jobDiscoveryQueue from '../queues/jobDiscoveryQueue.js';
+import { runWithCronTelemetry } from '../utils/cronMonitor.js';
 
 export const runAutopilotTask = async () => {
   console.log('🚀 [Task] Finding students for job discovery...');
@@ -39,6 +40,11 @@ export const runAutopilotTask = async () => {
 
 export const scheduleAutopilotTriggers = () => {
   // We'll run this every 5 minutes for more frequent checks
-  cron.schedule('*/1 * * * *', runAutopilotTask);
-  console.log('🗓️  DB job creation cron job scheduled to run every 5 minutes.');
+  const schedule = process.env.CRON_AUTOPILOT_DISCOVERY_SCHEDULE || '*/5 * * * *';
+  cron.schedule(schedule, () =>
+    runWithCronTelemetry('AutopilotDiscovery', runAutopilotTask),
+  );
+  console.log(
+    `🗓️  DB job creation cron job scheduled (${schedule}).`,
+  );
 };

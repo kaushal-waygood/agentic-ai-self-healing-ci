@@ -117,7 +117,8 @@ const SideSectionProfile = () => {
       toast({
         title: 'LinkedIn import failed',
         variant: 'destructive',
-        description: 'We could not import your LinkedIn profile. Please try again.',
+        description:
+          'We could not import your LinkedIn profile. Please try again.',
       });
     }
 
@@ -277,7 +278,8 @@ const SideSectionProfile = () => {
         toast({
           title: 'LinkedIn document import failed',
           variant: 'destructive',
-          description: 'Please upload a clearer PDF or DOCX export and try again.',
+          description:
+            'Please upload a clearer PDF or DOCX export and try again.',
         });
       } finally {
         setIsLinkedInDocumentUploading(false);
@@ -799,31 +801,6 @@ const SideSectionProfile = () => {
           className="hidden"
           onChange={handleLinkedInDocumentUpload}
         />
-
-        <Button
-          onClick={handleLinkedInDocumentPicker}
-          variant="outline"
-          disabled={isLinkedInDocumentUploading}
-          className="mt-3 w-full gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
-        >
-          {isLinkedInDocumentUploading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Importing LinkedIn PDF...
-            </>
-          ) : (
-            <>
-              <FileText size={16} />
-              Import LinkedIn PDF/Export
-            </>
-          )}
-        </Button>
-
-        <p className="mt-2 text-xs leading-relaxed text-gray-500">
-          Connect LinkedIn for basic identity details, or upload your LinkedIn
-          PDF/DOCX export to import education, experience, skills, and
-          projects.
-        </p>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

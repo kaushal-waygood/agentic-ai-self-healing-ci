@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { findAndProcessJobs } from '../worker/autopilotWorker.js';
 import { backfillMissingEmails } from '../worker/emailBackfillWorker.js';
 import { retryFailedApplications } from '../worker/retryWorker.js';
+import { runWithCronTelemetry } from '../utils/cronMonitor.js';
 
 const toBool = (v) => v === true || String(v).toLowerCase() === 'true';
 const isEnabled = () => toBool(process.env.AUTOGEN_TAILORED || 'false');
@@ -31,10 +32,10 @@ const makeRunner = (lockKey, label, handler) => async () => {
   }
 
   locks[lockKey] = true;
-  console.log(`🚀 [AutopilotCron] ${label} started...`);
-
   try {
-    const result = await handler();
+    const result = await runWithCronTelemetry(`Autopilot:${label}`, handler, {
+      lockKey,
+    });
     console.log(`✅ [AutopilotCron] ${label} complete.`, result ?? '');
   } catch (err) {
     console.error(`❌ [AutopilotCron] ${label} error:`, err?.message || err);
@@ -50,6 +51,7 @@ const runFindAndApply = makeRunner('findAndApply', 'FindAndApply', async () => {
   const result = await findAndProcessJobs();
   return [
     `Agents checked: ${result?.agentsChecked ?? 0}`,
+    `Deferred: ${result?.agentsDeferred ?? 0}`,
     `Processed: ${result?.processed ?? 0}`,
     `Already searched today: ${result?.alreadySearchedToday ?? 0}`,
     `Pool already full: ${result?.poolAlreadyFull ?? 0}`,

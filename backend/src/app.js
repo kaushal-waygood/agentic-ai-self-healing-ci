@@ -31,11 +31,7 @@ import chatRoutes from './routes/chatRoutes.js';
 import devRoutes from './routes/dev.route.js';
 import blogRoutes from './routes/blogs/index.js';
 
-import { startCronsRenew } from './config/renew-cron/cron.js';
-import { startPrefetchCron } from './config/cron-prefetch.js';
-import { clearExpiredEmailChangeRequests } from './utils/cron.js';
-import { startAutopilotWorkerCron } from './config/autopilotWorkerCron.js';
-import { startEmailScheduler } from './utils/emailScheduler.js';
+import { startScheduledJobs } from './config/startScheduledJobs.js';
 
 import {
   handleStripeWebhook,
@@ -118,11 +114,9 @@ app.get('/health-check', (req, res) => {
   res.status(200).json({ status: 'ok', time: new Date() });
 });
 
-startCronsRenew();
-startPrefetchCron();
-clearExpiredEmailChangeRequests();
-startAutopilotWorkerCron(); // Autopilot: find & process jobs for active agents (requires AUTOGEN_TAILORED=true)
-startEmailScheduler();
+if (process.env.ENABLE_IN_PROCESS_CRONS !== 'false') {
+  startScheduledJobs();
+}
 
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/bring-zobs', bringZobsRoutes);

@@ -2,8 +2,8 @@
 import { Job } from '../models/jobs.model.js';
 import { runEmailScrape } from '../config/geminiCron.js';
 
-const BATCH_SIZE = Number(process.env.EMAIL_BACKFILL_BATCH) || 20;
-const CONCURRENCY = 5;
+const BATCH_SIZE = Math.max(1, Number(process.env.EMAIL_BACKFILL_BATCH) || 10);
+const CONCURRENCY = Math.max(1, Number(process.env.EMAIL_BACKFILL_CONCURRENCY) || 3);
 
 async function withConcurrency(items, handler, concurrency) {
   const queue = [...items];

@@ -507,7 +507,20 @@ export const findAndProcessJobs = async () => {
       new Date(b.createdAt || 0).getTime(),
   );
 
-  if (!activeAgents.length) {
+  const agentBatchLimit = normalizeLimit(
+    process.env.AUTOPILOT_AGENT_BATCH_LIMIT,
+    10,
+    { min: 1, max: 100 },
+  );
+  const agentsToProcess = activeAgents.slice(0, agentBatchLimit);
+
+  if (activeAgents.length > agentsToProcess.length) {
+    console.log(
+      `[Autopilot] Limiting this run to ${agentsToProcess.length}/${activeAgents.length} agent(s).`,
+    );
+  }
+
+  if (!agentsToProcess.length) {
     return {
       processed: 0,
       agentsChecked: 0,
@@ -520,7 +533,7 @@ export const findAndProcessJobs = async () => {
     };
   }
 
-  const activeAgentIds = activeAgents.map((agent) => agent._id).filter(Boolean);
+  const activeAgentIds = agentsToProcess.map((agent) => agent._id).filter(Boolean);
   const activeCountsRaw =
     activeAgentIds.length > 0
       ? await AgentFoundJob.aggregate([
@@ -700,7 +713,8 @@ export const findAndProcessJobs = async () => {
 
   return {
     processed: totals.processed,
-    agentsChecked: activeAgents.length,
+    agentsChecked: agentsToProcess.length,
+    agentsDeferred: Math.max(0, activeAgents.length - agentsToProcess.length),
     alreadySearchedToday: totals.alreadySearchedToday,
     poolAlreadyFull: totals.poolAlreadyFull,
     planAgentCapReached: totals.planAgentCapReached,
