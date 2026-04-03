@@ -29,7 +29,7 @@ resources:
 
 images:
   - name: ghcr.io/zobsai-com/zobsai-backend
-    newTag: latest
+    newTag: 9139cd67177f43a193b9f9044bcd6df918a1314d
 
 namespace: dev-zobsai
 
