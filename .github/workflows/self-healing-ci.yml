@@ -13,7 +13,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_OWNER: zobsai-com
+  IMAGE_OWNER: ${{ github.repository_owner }}
 
 jobs:
 
