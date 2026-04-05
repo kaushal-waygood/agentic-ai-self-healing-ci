@@ -120,6 +120,11 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "❌ OPENAI_API_KEY is missing"
+            exit 1
+          fi
+      
           python3 scripts/ai_fix_generator.py
 
       - name: Apply Fix
