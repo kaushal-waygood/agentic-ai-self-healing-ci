@@ -149,6 +149,7 @@ jobs:
       - name: Create Pull Request
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.PAT_TOKEN }}
           script: |
             const branch = `ai-fix-${context.runId}`;
 
