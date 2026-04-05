@@ -237,4 +237,5 @@ jobs:
           git add ${{ env.MANIFEST_DIR }}/*.yaml
 
           git commit -m "🚀 deploy: ${{ github.sha }}" || echo "No changes"
+          git pull --rebase origin ${{ env.BRANCH }} || true
           git push origin ${{ env.BRANCH }}
