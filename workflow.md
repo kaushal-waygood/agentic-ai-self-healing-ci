@@ -1,5 +1,6 @@
 # SearchJob Complete Workflow
 
+
 This document covers **every case** of the SearchJob feature, including both the **Search** and **Recommend** flows across **Frontend** (Next.js / Redux / Saga) and **Backend** (Express / MongoDB / RapidAPI).
 
 ---
