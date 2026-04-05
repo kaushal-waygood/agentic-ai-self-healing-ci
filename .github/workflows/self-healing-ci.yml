@@ -164,42 +164,50 @@ jobs:
 # ─────────────────────────────────────────────
 # 📊 3. Metrics Collection + Dashboard
 # ─────────────────────────────────────────────
-  metrics:
-    needs: [test-with-healing, analyze-failures]
-    runs-on: ubuntu-latest
+# ─────────────────────────────────────────────
+# 📊 4. Metrics Collection + Dashboard (Safe)
+# ─────────────────────────────────────────────
+metrics:
+  needs: [test-with-healing, analyze-failures]
+  runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+  steps:
+    - uses: actions/checkout@v4
 
-      - name: Generate Metrics
-        run: |
-          mkdir -p .github/metrics
+    - name: Generate Metrics
+      run: |
+        mkdir -p .github/metrics
+        STATUS="${{ needs.test-with-healing.outputs.test_status }}"
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-          STATUS="${{ needs.test-with-healing.outputs.test_status }}"
-          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        cat <<EOF > .github/metrics/ci-metrics.json
+        {
+          "timestamp": "$TIMESTAMP",
+          "status": "$STATUS",
+          "mttr_minutes": 10,
+          "success_rate": 95,
+          "flaky_tests": 2
+        }
+        EOF
 
-          cat <<EOF > .github/metrics/ci-metrics.json
-          {
-            "timestamp": "$TIMESTAMP",
-            "status": "$STATUS",
-            "mttr_minutes": 10,
-            "success_rate": 95,
-            "flaky_tests": 2
-          }
-          EOF
+    - name: Generate HTML Dashboard
+      run: |
+        cat <<EOF > .github/metrics/dashboard.html
+        <html>
+        <body>
+        <h1>🤖 Self-Healing CI Dashboard</h1>
+        <p>Status: ${{ needs.test-with-healing.outputs.test_status }}</p>
+        <p>MTTR: 10 minutes</p>
+        <p>Success Rate: 95%</p>
+        </body>
+        </html>
+        EOF
 
-      - name: Generate HTML Dashboard
-        run: |
-          cat <<EOF > .github/metrics/dashboard.html
-          <html>
-          <body>
-          <h1>🤖 Self-Healing CI Dashboard</h1>
-          <p>Status: ${{ needs.test-with-healing.outputs.test_status }}</p>
-          <p>MTTR: 10 minutes</p>
-          <p>Success Rate: 95%</p>
-          </body>
-          </html>
-          EOF
+    - name: Upload Metrics Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ci-metrics
+        path: .github/metrics/
 
       - name: Commit Metrics
         run: |
