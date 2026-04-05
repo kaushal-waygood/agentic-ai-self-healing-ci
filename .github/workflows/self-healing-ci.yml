@@ -209,28 +209,6 @@ metrics:
         name: ci-metrics
         path: .github/metrics/
 
-      - name: Commit Metrics
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          
-          git add .github/metrics/*
-
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-            exit 0
-          fi
-
-          git commit -m "📊 update self-healing CI metrics"
-
-          # Check if we are on a branch
-          BRANCH_NAME=$(git branch --show-current || echo "")
-          if [ -n "$BRANCH_NAME" ]; then
-            git push origin $BRANCH_NAME
-          else
-            echo "Detached HEAD detected, pushing to main with forced update"
-            git push origin HEAD:main
-          fi
 
 # ─────────────────────────────────────────────
 # 🚀 4. Build & Deploy (ZobsAI Existing)
