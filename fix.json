@@ -1,0 +1,5 @@
+{
+  "branch_name": "ai-fix-fallback",
+  "commit_message": "AI fix skipped due to OpenAI error",
+  "file_changes": []
+}
