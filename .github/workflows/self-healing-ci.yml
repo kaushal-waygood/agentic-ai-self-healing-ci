@@ -29,6 +29,15 @@ jobs:
       - name: Set test env
         run: |
           echo "NODE_ENV=test" >> $GITHUB_ENV
+          echo "NODE_ENV=test" >> $GITHUB_ENV
+          echo "MONGO_URL=mongodb://localhost:27017/test" >> $GITHUB_ENV
+          echo "ACCESS_TOKEN_SECRET=testsecret" >> $GITHUB_ENV
+          echo "RAPID_API_KEY=demo" >> $GITHUB_ENV
+          echo "GOOGLE_GENERATIVE_AI_KEY=demo" >> $GITHUB_ENV
+          echo "STRIPE_SECRET_KEY=demo" >> $GITHUB_ENV
+          echo "STRIPE_WEBHOOK_SECRET=demo" >> $GITHUB_ENV
+          echo "EMAIL_USER=demo@example.com" >> $GITHUB_ENV
+          echo "EMAIL_PASSWORD=demo" >> $GITHUB_ENV
           #echo "MONGO_URL=mongodb://localhost:27017/test" >> $GITHUB_ENV
 
       - name: Install Backend Dependencies
