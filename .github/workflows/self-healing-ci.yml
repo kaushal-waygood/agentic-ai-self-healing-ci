@@ -1,0 +1,215 @@
+name: 🤖 Self-Healing AI CI/CD - ZobsAI
+
+on:
+  push:
+    branches: [main, develop,demo-failures]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: ${{ github.repository_owner }}
+
+jobs:
+
+# 🧪 Test + Self-Healing
+  test-with-healing:
+    runs-on: ubuntu-latest
+    outputs:
+      test_status: ${{ steps.test_result.outputs.status }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set test env
+        run: |
+          echo "NODE_ENV=test" >> $GITHUB_ENV
+          #echo "MONGO_URL=mongodb://localhost:27017/test" >> $GITHUB_ENV
+
+      - name: Install Backend Dependencies
+        run: |
+          cd backend
+          npm install
+
+      - name: Run Tests (Initial)
+        run: |
+          cd backend
+          npm test || echo "failed" > test_status.txt
+
+      - name: Retry Failed Tests
+        run: |
+          if [ -f backend/test_status.txt ]; then
+            cd backend
+            npm test || echo "retry_failed" > retry_status.txt
+          fi
+
+      - name: Detect Flaky Tests
+        run: python3 scripts/flaky_test_healer.py || true
+
+      - name: Set Output Status
+        id: test_result
+        run: |
+          if [ -f backend/retry_status.txt ]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+          elif [ -f backend/test_status.txt ]; then
+            echo "status=flaky" >> $GITHUB_OUTPUT
+          else
+            echo "status=passed" >> $GITHUB_OUTPUT
+          fi
+
+# 🧠 AI Analysis
+  analyze-failures:
+    needs: test-with-healing
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Analyzer
+        run: python3 scripts/incident_analyzer.py > analysis.json || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-analysis
+          path: analysis.json
+
+# 🛠 AI Auto-Fix (SAFE)
+  auto-fix:
+    needs: analyze-failures
+    runs-on: ubuntu-latest
+
+    # ✅ Only run on develop
+    if: github.ref == 'refs/heads/develop' && needs.test-with-healing.outputs.test_status != 'passed'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - run: pip install openai jq
+
+      - name: Generate AI Fix
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "❌ Missing OpenAI key"
+            exit 0
+          fi
+
+          python3 scripts/ai_fix_generator.py || true
+
+      # ✅ VALIDATION LAYER
+      - name: Validate Fix
+        id: validate
+        run: |
+          if [ ! -f fix.json ]; then
+            echo "valid=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CHANGES=$(jq '.file_changes | length' fix.json)
+          CONFIDENCE=$(jq '.confidence // 0' fix.json)
+
+          echo "Changes: $CHANGES"
+          echo "Confidence: $CONFIDENCE"
+
+          if [ "$CHANGES" -eq 0 ]; then
+            echo "valid=false" >> $GITHUB_OUTPUT
+          elif (( $(echo "$CONFIDENCE < 0.7" | bc -l) )); then
+            echo "valid=false" >> $GITHUB_OUTPUT
+          else
+            echo "valid=true" >> $GITHUB_OUTPUT
+          fi
+
+      # ✅ APPLY ONLY REAL FIX
+      - name: Apply Fix
+        if: steps.validate.outputs.valid == 'true'
+        run: |
+          BRANCH="ai-fix"
+          git checkout -B $BRANCH
+
+          echo "Applying AI patch..."
+
+          # 👉 TODO: Replace with real patch logic
+          # Example:
+          # jq -r '.file_changes[] | "echo \"" + .content + "\" > " + .file' fix.json | bash
+
+          git config user.name "ai-bot"
+          git config user.email "ai-bot@github.com"
+
+          git add .
+
+          if git diff --cached --quiet; then
+            echo "No real changes"
+            exit 0
+          fi
+
+          git commit -m "🤖 AI auto-fix"
+
+          git push origin $BRANCH --force
+
+      # ✅ SINGLE PR ONLY
+      - name: Create or Update PR
+        if: steps.validate.outputs.valid == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const branch = "ai-fix";
+
+            const prs = await github.rest.pulls.list({
+              owner,
+              repo,
+              head: `${owner}:${branch}`,
+              state: "open"
+            });
+
+            if (prs.data.length > 0) {
+              console.log("PR already exists");
+            } else {
+              await github.rest.pulls.create({
+                owner,
+                repo,
+                title: "🤖 AI Auto Fix",
+                head: branch,
+                base: "develop",
+                body: "Auto-generated fix with confidence score."
+              });
+            }
+
+# 📊 Metrics (Artifact Only)
+  metrics:
+    needs: [test-with-healing, analyze-failures]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: |
+          mkdir -p .github/metrics
+          echo '{"status":"${{ needs.test-with-healing.outputs.test_status }}"}' > .github/metrics/ci.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-metrics
+          path: .github/metrics/
+
+# 🚀 Build & Deploy
+  build-and-deploy:
+    needs: metrics
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: echo "🚀 Deploy step (unchanged)"
